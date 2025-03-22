@@ -45,7 +45,6 @@
 //         return _asset.balanceOf(address(this));
 //     }
 
-
 //     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
 //         return Hooks.Permissions({
 //             beforeInitialize: false,
@@ -119,7 +118,6 @@
 //         BalanceDelta feesAccrued,
 //         bytes calldata hookData
 //     ) internal override returns (bytes4) {
-
 
 //         AavePool.supply(asset0, amount0, address(this));
 //         AavePool.supply(asset1, amount1, address(this));

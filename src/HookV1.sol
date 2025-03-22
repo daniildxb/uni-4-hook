@@ -38,30 +38,30 @@ contract HookV1 is BaseHook, ERC4626 {
     IERC20 public token0;
     IERC20 public token1;
     bool public liquidityInitialized;
+    PoolKey public key;
 
     constructor(
         IPoolManager _poolManager,
-        PoolKey memory key,
+        address _token0,
+        address _token1,
         uint256 _tickMin,
         uint256 _tickMax,
         address _aavePoolAddressesProvider,
         string memory _shareName,
         string memory _shareSymbol
-    ) 
-        BaseHook(_poolManager)
-        ERC4626(
-            IERC20(Currency.unwrap(key.currency0))
-        )
-        ERC20(
-            _shareName,
-            _shareSymbol
-        )
-    {
-        token0 = IERC20(Currency.unwrap(key.currency0));
-        token1 = IERC20(Currency.unwrap(key.currency1));
+    ) BaseHook(_poolManager) ERC4626(IERC20(_token0)) ERC20(_shareName, _shareSymbol) {
+        token0 = IERC20(_token0);
+        token1 = IERC20(_token1);
         tickMin = _tickMin;
         tickMax = _tickMax;
         aavePoolAddressesProvider = _aavePoolAddressesProvider;
+    }
+
+    // todo: the contract should support multiple pools and differentiate based on the passed poolKey
+    function addPool(PoolKey calldata _key) public {
+        assert(Currency.unwrap(_key.currency0) == address(token0));
+        assert(Currency.unwrap(_key.currency1) == address(token1));
+        key = _key;
     }
 
     /**
