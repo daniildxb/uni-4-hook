@@ -90,7 +90,7 @@ contract HookV1 is BaseHook, ERC4626 {
         });
     }
 
-    function addLiquidity(uint256 liquidity) public {
+    function addLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
         // get pool price
         // convert liquidity to ensure 
         // IERC20(token).transferFrom(msg.sender, address(this), amount);
@@ -106,7 +106,7 @@ contract HookV1 is BaseHook, ERC4626 {
     // -----------------------------------------------
 
     // withdraws liquidity from aave and deposits into existing position
-    function _beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
+    function _beforeSwap(address, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
         internal
         override
         returns (bytes4, BeforeSwapDelta, uint24)
@@ -115,7 +115,7 @@ contract HookV1 is BaseHook, ERC4626 {
     }
 
     // withdraws liquidity from the position and puts it into aave
-    function _afterSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+    function _afterSwap(address, PoolKey calldata _key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
         internal
         override
         returns (bytes4, int128)
@@ -126,11 +126,11 @@ contract HookV1 is BaseHook, ERC4626 {
     // ensures that liquidity is only added through the hook
     function _beforeAddLiquidity(
         address sender,
-        PoolKey calldata key,
+        PoolKey calldata _key,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) internal override returns (bytes4) {
-        require(!liquidityInitialized || sender == address(this), "Add Liquidity through Hook");
+        require(sender == address(this), "Add Liquidity through Hook");
         liquidityInitialized = true;
         return this.beforeAddLiquidity.selector;
     }
@@ -144,13 +144,13 @@ contract HookV1 is BaseHook, ERC4626 {
         BalanceDelta feesAccrued,
         bytes calldata hookData
     ) internal override returns (bytes4, BalanceDelta) {
-        return (BaseHook.beforeAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
+        return (BaseHook.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
     // ensures that liquidity is only removed through the hook
     function _beforeRemoveLiquidity(
         address,
-        PoolKey calldata key,
+        PoolKey calldata _key,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) internal override returns (bytes4) {
@@ -160,7 +160,7 @@ contract HookV1 is BaseHook, ERC4626 {
     // moves remaining funds back to aave (todo is it needed if we only withdraw specific amounts ?)
     function _afterRemoveLiquidity(
         address,
-        PoolKey calldata key,
+        PoolKey calldata _key,
         IPoolManager.ModifyLiquidityParams calldata,
         BalanceDelta,
         BalanceDelta,

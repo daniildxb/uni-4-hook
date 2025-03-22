@@ -18,7 +18,6 @@ import {HookV1} from "../src/HookV1.sol";
 contract HookV1Test is Test, Deployers {
     using CurrencyLibrary for Currency;
 
-    address poolManager = address(1);
     Currency token0;
     Currency token1;
     uint256 tickMin = 3000;
@@ -51,30 +50,17 @@ contract HookV1Test is Test, Deployers {
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs =
-            abi.encode(poolManager, token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol); //Add all the necessary constructor arguments from the hook
+            abi.encode(address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol); //Add all the necessary constructor arguments from the hook
         deployCodeTo("HookV1.sol:HookV1", constructorArgs, flags);
         hook = HookV1(flags);
     }
 
     function test_construction() public {
-        console.log("hook: ", address(hook));
         assertNotEq(address(hook), address(0));
     }
 
-    // function test_addLiquidity() public {
-    //     address poolManager = address(1);
-    //     address token0 = address(2);
-    //     address token1 = address(3);
-    //     uint256 tickMin = 3000;
-    //     uint256 tickMax = 60;
-    //     address aavePoolAddressesProvider = address(4);
-    //     string memory shareName = "name";
-    //     string memory shareSymbol = "symbol";
-
-    //     (HookV1 hook, PoolKey memory key) = _deployHook(
-    //         poolManager, token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol
-    //     );
-
-    //     // IPoolManager(poolManager).addLiquidity(key, 100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, "");
-    // }
+    function test_cannot_add_liquidity_directly() public {
+        vm.expectRevert();
+        modifyLiquidityRouter.modifyLiquidity(simpleKey, LIQUIDITY_PARAMS, abi.encode(0));
+    }
 }
