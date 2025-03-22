@@ -35,23 +35,23 @@ contract HookV1 is BaseHook, ERC4626 {
     uint256 public tickMin;
     uint256 public tickMax;
     address public aavePoolAddressesProvider;
-    IERC20 public token0;
-    IERC20 public token1;
+    Currency public token0;
+    Currency public token1;
     bool public liquidityInitialized;
     PoolKey public key;
 
     constructor(
         IPoolManager _poolManager,
-        address _token0,
-        address _token1,
+        Currency _token0,
+        Currency _token1,
         uint256 _tickMin,
         uint256 _tickMax,
         address _aavePoolAddressesProvider,
         string memory _shareName,
         string memory _shareSymbol
-    ) BaseHook(_poolManager) ERC4626(IERC20(_token0)) ERC20(_shareName, _shareSymbol) {
-        token0 = IERC20(_token0);
-        token1 = IERC20(_token1);
+    ) BaseHook(_poolManager) ERC4626(IERC20(Currency.unwrap(_token0))) ERC20(_shareName, _shareSymbol) {
+        token0 = _token0;
+        token1 = _token1;
         tickMin = _tickMin;
         tickMax = _tickMax;
         aavePoolAddressesProvider = _aavePoolAddressesProvider;
@@ -59,8 +59,8 @@ contract HookV1 is BaseHook, ERC4626 {
 
     // todo: the contract should support multiple pools and differentiate based on the passed poolKey
     function addPool(PoolKey calldata _key) public {
-        assert(Currency.unwrap(_key.currency0) == address(token0));
-        assert(Currency.unwrap(_key.currency1) == address(token1));
+        assert(_key.currency0 == token0);
+        assert(_key.currency1 == token1);
         key = _key;
     }
 
@@ -68,7 +68,7 @@ contract HookV1 is BaseHook, ERC4626 {
      * @dev overrides totalAssets to include total liquidity in both tokens
      */
     function totalAssets() public view override returns (uint256) {
-        return token0.balanceOf(address(this)) + token1.balanceOf(address(this));
+        return IERC20(Currency.unwrap(token0)).balanceOf(address(this)) + token1.balanceOf(address(this));
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -90,8 +90,11 @@ contract HookV1 is BaseHook, ERC4626 {
         });
     }
 
-    function addLiquidity(address token, uint256 amount) public {
+    function addLiquidity(uint256 liquidity) public {
+        // get pool price
+        // convert liquidity to ensure 
         // IERC20(token).transferFrom(msg.sender, address(this), amount);
+
     }
 
     function removeLiquidity(address token, uint256 amount) public {
