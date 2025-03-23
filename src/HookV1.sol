@@ -213,6 +213,7 @@ contract HookV1 is BaseHook, ERC4626, Test {
         (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
         
         // transfer tokens to the poolManager
+        // todo: maybe we don't need to actually call settle...
         CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
         CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
@@ -224,6 +225,40 @@ contract HookV1 is BaseHook, ERC4626, Test {
         override
         returns (bytes4, int128)
     {
+        console.log("After swap called");
+
+        // fetch existing liqudity
+        // withdraw liquidity from PoolManager
+        uint128 liquidity = poolManager.getLiquidity(key.toId());
+
+        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+            tickLower: tickMin,
+            tickUpper: tickMax,
+            liquidityDelta: int256(-int128(liquidity)),
+            salt: 0
+        });
+
+        (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
+
+        console.log(delta.amount0());
+        console.log(delta.amount1());
+
+        console.log(IERC20(Currency.unwrap(token0)).balanceOf(address(poolManager)));
+
+        // note: 
+        // this may not work as pool manager currently has only original LP tokens
+        // and swap hasn't taken effect yet
+        // to ensure 100% effectivenss we'd need to route all swaps through the hook and
+        // withdraw liquidity after swap is settled, this would mess up v4 optimizations
+        // but at the moment this seems like the only fully on-chain solution
+
+        // note: instead we are relying on PoolManager having more liquidity from other sources
+        // just need to verify token balances on PoolManager and transfer as much as possible
+        // the rest will be deposit to AAVE on the next swap / LP change
+        poolManager.take(token0, address(this), uint256(int256(delta.amount0())));
+        poolManager.take(token1, address(this), uint256(int256(delta.amount1())));
+        
+
         return (BaseHook.afterSwap.selector, 0);
     }
 

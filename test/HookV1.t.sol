@@ -100,6 +100,9 @@ contract HookV1Test is Test, Deployers {
         uint256 balance0 = token0.balanceOf(address(this));
         uint256 balance1 = token1.balanceOf(address(this));
 
+        deal(Currency.unwrap(token0), address(manager), 1000, false);
+        deal(Currency.unwrap(token1), address(manager), 1000, false);
+
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
         hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1000, salt: 0}));
@@ -126,6 +129,12 @@ contract HookV1Test is Test, Deployers {
         console.log("Swap delta amount0: ", swapDelta.amount0());
         console.log("Swap delta amount1: ", swapDelta.amount1());
 
+        uint256 balance0AfterSwap = token0.balanceOf(address(this));
+        uint256 balance1AfterSwap = token1.balanceOf(address(this));
 
+        console.log("balance diff after swap", balance0New - balance0AfterSwap);
+        console.log("balance diff after swap", balance1AfterSwap - balance1New);
+
+        // todo: add asserts about after swap state
     }
 }
