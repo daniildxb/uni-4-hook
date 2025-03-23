@@ -90,11 +90,37 @@ contract HookV1 is BaseHook, ERC4626 {
         });
     }
 
+    struct CallbackData {
+        bool isLiquidityAddition;
+        address sender;
+        PoolKey key;
+        IPoolManager.ModifyLiquidityParams params;
+        bytes hookData;
+        bool settleUsingBurn;
+        bool takeClaims;
+    }
+    bytes constant ZERO_BYTES = new bytes(0);
+
     function addLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
+        poolManager.unlock(
+            abi.encode(
+                CallbackData(true, msg.sender, key, params, ZERO_BYTES, false, false)
+            )
+        );
+        
         // get pool price
         // convert liquidity to ensure 
         // IERC20(token).transferFrom(msg.sender, address(this), amount);
 
+    }
+
+    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
+        CallbackData memory data = abi.decode(rawData, (CallbackData));
+        if (data.isLiquidityAddition) {
+            // add liquidity to aave
+        } else {
+            revert("not supported yet");
+        }
     }
 
     function removeLiquidity(address token, uint256 amount) public {
@@ -138,7 +164,7 @@ contract HookV1 is BaseHook, ERC4626 {
     // moves added liquidity to the aave pools
     function _afterAddLiquidity(
         address sender,
-        PoolKey calldata key,
+        PoolKey calldata _key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
         BalanceDelta feesAccrued,

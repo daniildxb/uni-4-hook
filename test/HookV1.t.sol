@@ -63,4 +63,13 @@ contract HookV1Test is Test, Deployers {
         vm.expectRevert();
         modifyLiquidityRouter.modifyLiquidity(simpleKey, LIQUIDITY_PARAMS, abi.encode(0));
     }
+
+    function test_add_liquidity_through_hook() public {
+        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({
+            tickLower: 100,
+            tickUpper: 0,
+            liquidityDelta: 0,
+            salt: 0
+        }));
+    }
 }
