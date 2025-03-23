@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
@@ -14,6 +14,8 @@ import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
 /**
  * @title Lending Hook
@@ -24,6 +26,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  */
 contract HookV1 is BaseHook, ERC4626 {
     using PoolIdLibrary for PoolKey;
+    using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
 
@@ -101,23 +104,43 @@ contract HookV1 is BaseHook, ERC4626 {
     }
     bytes constant ZERO_BYTES = new bytes(0);
 
+
+    // encodes liqudiity addition params and unlocks poolManager with them
     function addLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
         poolManager.unlock(
             abi.encode(
                 CallbackData(true, msg.sender, key, params, ZERO_BYTES, false, false)
             )
         );
-        
-        // get pool price
-        // convert liquidity to ensure 
-        // IERC20(token).transferFrom(msg.sender, address(this), amount);
-
     }
 
+    // handles actions based on the encoded data from the poolManager
     function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
         if (data.isLiquidityAddition) {
-            // add liquidity to aave
+            // create liquidity addition call
+            (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, data.params, data.hookData);
+
+            // transfer tokens from sender to this contract
+            IERC20(Currency.unwrap(key.currency0)).transferFrom(data.sender, address(this), uint256(int256(-delta.amount0())));
+            IERC20(Currency.unwrap(key.currency1)).transferFrom(data.sender, address(this), uint256(int256(-delta.amount1())));
+
+            // transfer tokens to the poolManager
+            CurrencySettler.settle(
+                key.currency0,
+                poolManager,
+                address(this),
+                uint256(int256(-delta.amount0())),
+                false
+            );
+            CurrencySettler.settle(
+                key.currency1,
+                poolManager,
+                address(this),
+                uint256(int256(-delta.amount1())),
+                false
+            );
+
         } else {
             revert("not supported yet");
         }

@@ -9,6 +9,8 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -65,11 +67,24 @@ contract HookV1Test is Test, Deployers {
     }
 
     function test_add_liquidity_through_hook() public {
+        console.log("Adding liquidity through hook");
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
+        console.log("address of runner", address(this));
+        console.log("Token0 balance before: ", balance0);
+        console.log("Token1 balance before: ", balance1);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
         hook.addLiquidity(IPoolManager.ModifyLiquidityParams({
-            tickLower: 100,
-            tickUpper: 0,
-            liquidityDelta: 0,
+            tickLower: 0,
+            tickUpper: 60,
+            liquidityDelta: 1,
             salt: 0
         }));
+
+        uint256 balance0New = token0.balanceOf(address(this));
+        uint256 balance1New = token1.balanceOf(address(this));
+        assertEq(balance0New, balance0 - 1);
+        assertEq(balance1New, balance1);
     }
 }
