@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
@@ -22,8 +23,8 @@ contract HookV1Test is Test, Deployers {
 
     Currency token0;
     Currency token1;
-    uint256 tickMin = 3000;
-    uint256 tickMax = 60;
+    int24 tickMin = -3000;
+    int24 tickMax = 3000;
     address aavePoolAddressesProvider = address(4);
     string shareName = "name";
     string shareSymbol = "symbol";
@@ -74,18 +75,57 @@ contract HookV1Test is Test, Deployers {
         console.log("Token1 balance before: ", balance1);
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
-        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1000, salt: 0}));
+        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 3000, liquidityDelta: 1000, salt: 0}));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
-        assertEq(balance0New, balance0 - 136); // hardcoded based on the ticks and current price
-        assertEq(balance1New, balance1);
 
+        console.log("balance diff", balance0 - balance0New);
+        console.log("balance diff", balance1 - balance1New);
+
+        uint256 expectedDiff = 139; // hardcoded based on the ticks and current price
+        assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
+        assertEq(balance1New, balance1 - expectedDiff);
+
+        // position is not provisioned on the liqudity add
         (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
             manager.getPositionInfo(simplePoolId, address(hook), int24(0), int24(60), 0);
 
         assertEq(liquidity, 0);
         assertEq(feeGrowthInside0LastX128, 0);
         assertEq(feeGrowthInside1LastX128, 0);
+    }
+
+    function test_liqudity_is_added_before_swap() public {
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
+
+        IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
+        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1000, salt: 0}));
+
+        uint256 balance0New = token0.balanceOf(address(this));
+        uint256 balance1New = token1.balanceOf(address(this));
+
+        console.log("balance diff", balance0 - balance0New);
+        console.log("balance diff", balance1 - balance1New);
+
+        uint256 expectedDiff = 139; // hardcoded based on the ticks and current price
+        assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
+        assertEq(balance1New, balance1 - expectedDiff);
+
+        console.log("hook balance0", token0.balanceOf(address(hook)));
+        console.log("hook balance1", token1.balanceOf(address(hook)));
+
+        // swap
+
+        bool zeroForOne = true;
+        int256 amountSpecified = 100; // negative number indicates exact input swap!
+        BalanceDelta swapDelta = swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
+        // ------------------- //
+        console.log("Swap delta amount0: ", swapDelta.amount0());
+        console.log("Swap delta amount1: ", swapDelta.amount1());
+
+
     }
 }

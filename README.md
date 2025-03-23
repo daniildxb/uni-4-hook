@@ -37,6 +37,7 @@ Given that the pool is not expected to have high liquidity compared to the exist
 * UniswapX integration
 * Progressive yield fee based on the tvl
 * Uni v4 dynamic fee system based on volume
+* Using shares as yield bearing tokens
 * Allow borrowing against LP position
 
 

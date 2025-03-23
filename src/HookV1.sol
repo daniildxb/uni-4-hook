@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
+import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
 import "forge-std/Test.sol";
 
 
@@ -150,6 +151,7 @@ contract HookV1 is BaseHook, ERC4626, Test {
     // some black magic copied from the Pool.sol::modifyLiquidity()
     function getPoolDelta(uint128 liquidityDelta) internal view returns (BalanceDelta delta) {
         (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
+        console.log("current tick", tick);
         if (tick < tickMin) {
             // current tick is below the passed range; liquidity can only become in range by crossing from left to
             // right, when we'll need _more_ currency0 (it's becoming more valuable) so user must provide it
@@ -178,23 +180,41 @@ contract HookV1 is BaseHook, ERC4626, Test {
         }
     }
 
+
     // -----------------------------------------------
     // NOTE: see IHooks.sol for function documentation
     // -----------------------------------------------
 
     // withdraws liquidity from aave and deposits into existing position
-    function _beforeSwap(address, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
+    function _beforeSwap(address sender, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
         internal
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        // CallbackData memory data = abi.decode(rawData, (CallbackData));
-        // (BalanceDelta delta, BalanceDelta feesAccrued) =
-        //     poolManager.modifyLiquidity(key, data.params, data.hookData);
+        console.log("Before swap called");
 
-        // // transfer tokens to the poolManager
-        // CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
-        // CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
+        // fetch token balances and put them into liquidity
+        uint256 token0Balance = IERC20(Currency.unwrap(_key.currency0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20(Currency.unwrap(_key.currency1)).balanceOf(address(this));
+
+
+        // need to convert existing balances to liquidity amount
+        // for this we need to get current pool price and calculate amount of liquidity between
+        (uint160 sqrtPriceX96, , ,) = poolManager.getSlot0(key.toId());
+        uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickMin), TickMath.getSqrtPriceAtTick(tickMax), token0Balance, token1Balance);
+
+        IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
+            tickLower: tickMin,
+            tickUpper: tickMax,
+            liquidityDelta: int256(int128(liquidityDelta)),
+            salt: 0
+        });
+
+        (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
+        
+        // transfer tokens to the poolManager
+        CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
+        CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
