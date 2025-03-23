@@ -2,20 +2,25 @@
 pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
+import "forge-std/Test.sol";
+
 
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {Slot0, Slot0Library} from "v4-core/src/types/Slot0.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 
 /**
  * @title Lending Hook
@@ -24,20 +29,21 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
  * into AAVE protocol.
  * Hook ensures that no liquidity can be added or removed directly from the pool, only through the hook
  */
-contract HookV1 is BaseHook, ERC4626 {
+contract HookV1 is BaseHook, ERC4626, Test {
     using PoolIdLibrary for PoolKey;
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using StateLibrary for IPoolManager;
+    using SafeCast for *;
 
     // NOTE: ---------------------------------------------------------
     // state variables should typically be unique to a pool
     // a single hook contract should be able to service multiple pools
     // ---------------------------------------------------------------
 
-    uint256 public tickMin;
-    uint256 public tickMax;
+    int24 public tickMin;
+    int24 public tickMax;
     address public aavePoolAddressesProvider;
     Currency public token0;
     Currency public token1;
@@ -48,8 +54,8 @@ contract HookV1 is BaseHook, ERC4626 {
         IPoolManager _poolManager,
         Currency _token0,
         Currency _token1,
-        uint256 _tickMin,
-        uint256 _tickMax,
+        int24 _tickMin,
+        int24 _tickMax,
         address _aavePoolAddressesProvider,
         string memory _shareName,
         string memory _shareSymbol
@@ -114,22 +120,24 @@ contract HookV1 is BaseHook, ERC4626 {
     // handles actions based on the encoded data from the poolManager
     function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
         CallbackData memory data = abi.decode(rawData, (CallbackData));
+        // move liquidity addition logic to the _beforeSwap - √
+        // leave funds at rest here so that they aren't actually added to the pool
+        // issue shares based on the amount of funds added
+        // provide liqudity in the beforeSwap hook
+        // remove liquidity in the afterSwap hook
         if (data.isLiquidityAddition) {
             // create liquidity addition call
-            (BalanceDelta delta, BalanceDelta feesAccrued) =
-                poolManager.modifyLiquidity(key, data.params, data.hookData);
 
+            // get delta
+            BalanceDelta delta = getPoolDelta(data.params.liquidityDelta.toInt128().toUint128());
+            console.log("delta", uint256(delta.amount0().toUint128()), uint256(delta.amount1().toUint128()));
             // transfer tokens from sender to this contract
             IERC20(Currency.unwrap(key.currency0)).transferFrom(
-                data.sender, address(this), uint256(int256(-delta.amount0()))
+                data.sender, address(this), uint256(int256(delta.amount0()))
             );
             IERC20(Currency.unwrap(key.currency1)).transferFrom(
-                data.sender, address(this), uint256(int256(-delta.amount1()))
+                data.sender, address(this), uint256(int256(delta.amount1()))
             );
-
-            // transfer tokens to the poolManager
-            CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
-            CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         } else {
             revert("not supported yet");
         }
@@ -137,6 +145,37 @@ contract HookV1 is BaseHook, ERC4626 {
 
     function removeLiquidity(address token, uint256 amount) public {
         // IERC20(token).transfer(msg.sender, amount);
+    }
+
+    // some black magic copied from the Pool.sol::modifyLiquidity()
+    function getPoolDelta(uint128 liquidityDelta) internal view returns (BalanceDelta delta) {
+        (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
+        if (tick < tickMin) {
+            // current tick is below the passed range; liquidity can only become in range by crossing from left to
+            // right, when we'll need _more_ currency0 (it's becoming more valuable) so user must provide it
+            delta = toBalanceDelta(
+                SqrtPriceMath.getAmount0Delta(
+                    TickMath.getSqrtPriceAtTick(tickMin), TickMath.getSqrtPriceAtTick(tickMax), liquidityDelta, false
+                ).toInt128(),
+                0
+            );
+        } else if (tick < tickMax) {
+            delta = toBalanceDelta(
+                SqrtPriceMath.getAmount0Delta(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickMax), liquidityDelta, false)
+                    .toInt128(),
+                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickMin), sqrtPriceX96, liquidityDelta, false)
+                    .toInt128()
+            );
+        } else {
+            // current tick is above the passed range; liquidity can only become in range by crossing from right to
+            // left, when we'll need _more_ currency1 (it's becoming more valuable) so user must provide it
+            delta = toBalanceDelta(
+                0,
+                SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtPriceAtTick(tickMin), TickMath.getSqrtPriceAtTick(tickMax), liquidityDelta, false
+                ).toInt128()
+            );
+        }
     }
 
     // -----------------------------------------------
@@ -149,6 +188,13 @@ contract HookV1 is BaseHook, ERC4626 {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
+        // CallbackData memory data = abi.decode(rawData, (CallbackData));
+        // (BalanceDelta delta, BalanceDelta feesAccrued) =
+        //     poolManager.modifyLiquidity(key, data.params, data.hookData);
+
+        // // transfer tokens to the poolManager
+        // CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
+        // CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 

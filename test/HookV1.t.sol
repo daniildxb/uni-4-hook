@@ -74,17 +74,17 @@ contract HookV1Test is Test, Deployers {
         console.log("Token1 balance before: ", balance1);
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
-        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1, salt: 0}));
+        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1000, salt: 0}));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
-        assertEq(balance0New, balance0 - 1);
+        assertEq(balance0New, balance0 - 136); // hardcoded based on the ticks and current price
         assertEq(balance1New, balance1);
 
         (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
             manager.getPositionInfo(simplePoolId, address(hook), int24(0), int24(60), 0);
 
-        assertEq(liquidity, 1);
+        assertEq(liquidity, 0);
         assertEq(feeGrowthInside0LastX128, 0);
         assertEq(feeGrowthInside1LastX128, 0);
     }
