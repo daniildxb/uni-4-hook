@@ -10,8 +10,7 @@ import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-
-
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
@@ -19,6 +18,7 @@ import {HookV1} from "../src/HookV1.sol";
 
 contract HookV1Test is Test, Deployers {
     using CurrencyLibrary for Currency;
+    using StateLibrary for IPoolManager;
 
     Currency token0;
     Currency token1;
@@ -28,7 +28,6 @@ contract HookV1Test is Test, Deployers {
     string shareName = "name";
     string shareSymbol = "symbol";
     HookV1 hook;
-
 
     PoolKey simpleKey; // vanilla pool key
     PoolId simplePoolId; // id for vanilla pool key
@@ -42,7 +41,6 @@ contract HookV1Test is Test, Deployers {
         hook.addPool(simpleKey);
     }
 
-
     function _deployHook() internal {
         address flags = address(
             uint160(
@@ -51,8 +49,9 @@ contract HookV1Test is Test, Deployers {
                     | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
-        bytes memory constructorArgs =
-            abi.encode(address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol); //Add all the necessary constructor arguments from the hook
+        bytes memory constructorArgs = abi.encode(
+            address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol
+        ); //Add all the necessary constructor arguments from the hook
         deployCodeTo("HookV1.sol:HookV1", constructorArgs, flags);
         hook = HookV1(flags);
     }
@@ -75,16 +74,18 @@ contract HookV1Test is Test, Deployers {
         console.log("Token1 balance before: ", balance1);
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
-        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({
-            tickLower: 0,
-            tickUpper: 60,
-            liquidityDelta: 1,
-            salt: 0
-        }));
+        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1, salt: 0}));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
         assertEq(balance0New, balance0 - 1);
         assertEq(balance1New, balance1);
+
+        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
+            manager.getPositionInfo(simplePoolId, address(hook), int24(0), int24(60), 0);
+
+        assertEq(liquidity, 1);
+        assertEq(feeGrowthInside0LastX128, 0);
+        assertEq(feeGrowthInside1LastX128, 0);
     }
 }
