@@ -21,6 +21,9 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+
 
 /**
  * @title Lending Hook
@@ -44,9 +47,11 @@ contract HookV1 is BaseHook, ERC4626, Test {
 
     int24 public tickMin;
     int24 public tickMax;
-    address public aavePoolAddressesProvider;
+    IPoolAddressesProvider public aavePoolAddressesProvider;
     Currency public token0;
     Currency public token1;
+    address aToken0;
+    address aToken1;
     bool public liquidityInitialized;
     PoolKey public key;
 
@@ -64,7 +69,13 @@ contract HookV1 is BaseHook, ERC4626, Test {
         token1 = _token1;
         tickMin = _tickMin;
         tickMax = _tickMax;
-        aavePoolAddressesProvider = _aavePoolAddressesProvider;
+        console.log("pool address");
+        aavePoolAddressesProvider = IPoolAddressesProvider(_aavePoolAddressesProvider);
+        console.log("atoken0");
+        aToken0 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token0)).aTokenAddress;
+        console.log("atoken1");
+        aToken1 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token1)).aTokenAddress;
+        console.log("constructor done");
     }
 
     // todo: the contract should support multiple pools and differentiate based on the passed poolKey
@@ -79,8 +90,8 @@ contract HookV1 is BaseHook, ERC4626, Test {
      */
     function totalAssets() public view override returns (uint256) {
         // this will return 0, since pool actually has no liquidity by default
-        uint256 token0Balance = IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20(Currency.unwrap(key.currency1)).balanceOf(address(this));
+        uint256 token0Balance = IERC20(aToken0).balanceOf(address(this));
+        uint256 token1Balance = IERC20(aToken1).balanceOf(address(this));
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(
@@ -153,8 +164,6 @@ contract HookV1 is BaseHook, ERC4626, Test {
 
         // need to verify user has shares
         uint256 shares = balanceOf(msg.sender);
-        // and if he has - calculate how much they are worth depending on the
-        // pool price
         uint256 totalLiquidity = totalAssets();
         uint256 sharesWorth = (shares * totalLiquidity) / totalSupply();
 
@@ -162,9 +171,8 @@ contract HookV1 is BaseHook, ERC4626, Test {
 
         redeem(uint256(params.liquidityDelta), msg.sender, msg.sender);
 
-
-        IERC20(Currency.unwrap(key.currency0)).transfer(msg.sender, uint256(int256(userDelta.amount0())));
-        IERC20(Currency.unwrap(key.currency1)).transfer(msg.sender, uint256(int256(userDelta.amount1())));
+        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token0), uint256(int256(userDelta.amount0())), msg.sender);
+        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token1), uint256(int256(userDelta.amount1())), msg.sender);
         // no need to call pool manager
     }
 
@@ -183,12 +191,18 @@ contract HookV1 is BaseHook, ERC4626, Test {
             console.log("adding liquidity called");
             BalanceDelta delta = getPoolDelta(data.params.liquidityDelta.toInt128());
             // transfer tokens from sender to this contract
+            uint256 amount0 = uint256(int256(-delta.amount0()));
+            uint256 amount1 = uint256(int256(-delta.amount1()));
             IERC20(Currency.unwrap(key.currency0)).transferFrom(
-                data.sender, address(this), uint256(-int256(delta.amount0()))
+                data.sender, address(this), amount0
             );
             IERC20(Currency.unwrap(key.currency1)).transferFrom(
-                data.sender, address(this), uint256(-int256(delta.amount1()))
+                data.sender, address(this), amount1
             );
+            IERC20(Currency.unwrap(key.currency0)).approve(aavePoolAddressesProvider.getPool(), amount0);
+            IERC20(Currency.unwrap(key.currency1)).approve(aavePoolAddressesProvider.getPool(), amount1);
+            IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency0), amount0, address(this), 0);
+            IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency1), amount1, address(this), 0);
         } else {
             console.log("action", data.action);
             revert("not supported yet");
@@ -240,8 +254,9 @@ contract HookV1 is BaseHook, ERC4626, Test {
         console.log("Before swap called");
 
         // fetch token balances and put them into liquidity
-        uint256 token0Balance = IERC20(Currency.unwrap(_key.currency0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20(Currency.unwrap(_key.currency1)).balanceOf(address(this));
+
+        uint256 token0Balance = IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token0), type(uint256).max, address(this));
+        uint256 token1Balance = IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token1), type(uint256).max, address(this));
 
         // need to convert existing balances to liquidity amount
         // for this we need to get current pool price and calculate amount of liquidity between
@@ -309,6 +324,15 @@ contract HookV1 is BaseHook, ERC4626, Test {
         poolManager.take(token0, address(this), uint256(int256(delta.amount0())));
         poolManager.take(token1, address(this), uint256(int256(delta.amount1())));
 
+
+        // deposit to aave
+        uint256 amount0 = IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this));
+        uint256 amount1 = IERC20(Currency.unwrap(key.currency1)).balanceOf(address(this));
+        IERC20(Currency.unwrap(key.currency0)).approve(aavePoolAddressesProvider.getPool(), amount0);
+        IERC20(Currency.unwrap(key.currency1)).approve(aavePoolAddressesProvider.getPool(), amount1);
+        IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency0), amount0, address(this), 0);
+        IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency1), amount1, address(this), 0);
+            
         return (BaseHook.afterSwap.selector, 0);
     }
 

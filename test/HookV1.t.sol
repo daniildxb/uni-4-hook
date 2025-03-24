@@ -28,7 +28,7 @@ contract HookV1Test is Test, Deployers {
     Currency token1;
     int24 tickMin = -3000;
     int24 tickMax = 3000;
-    address aavePoolAddressesProvider = address(4);
+    address aavePoolAddressesProvider;
     string shareName = "name";
     string shareSymbol = "symbol";
     HookV1 hook;
@@ -37,18 +37,26 @@ contract HookV1Test is Test, Deployers {
     PoolId simplePoolId; // id for vanilla pool key
 
     function setUp() public {
+        console.log("1");
         deployFreshManagerAndRouters();
         (token0, token1) = deployMintAndApprove2Currencies();
 
+        console.log("2");
         MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0");
+        console.log("3");
         MockAToken atoken1 = new MockAToken(Currency.unwrap(token1), "aToken1", "aToken1");
 
+        console.log("4");
         MockAavePool aavePool = new MockAavePool(Currency.unwrap(token0), aToken0, Currency.unwrap(token1), atoken1);
-        MockAavePoolAddressesProvider provider = new MockAavePoolAddressesProvider(address(aavePool));
+        console.log("5");
+        aavePoolAddressesProvider = address(new MockAavePoolAddressesProvider(address(aavePool)));
 
+        console.log("6");
         _deployHook();
 
+        console.log("7");
         (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(hook), 3000, SQRT_PRICE_1_1);
+        console.log("8");
         hook.addPool(simpleKey);
     }
 
@@ -112,10 +120,10 @@ contract HookV1Test is Test, Deployers {
         hook.removeLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 3000, liquidityDelta: 1000, salt: 0}));
 
         // 1 unit of assets is lost in the rounding
-        assertEq(token0.balanceOf(address(this)), balance0 - 1);
-        assertEq(token1.balanceOf(address(this)), balance1 - 1);
+        assertEq(token0.balanceOf(address(this)), balance0 - 1, "test runner token0 balance after LP removal");
+        assertEq(token1.balanceOf(address(this)), balance1 - 1, "test runner token1 balance after LP removal");
         uint256 sharesAfterRedeem = IERC20(address(hook)).balanceOf(address(this));
-        assertEq(sharesAfterRedeem, 0);
+        assertEq(sharesAfterRedeem, 0, "test runner shares after LP removal");
 
     }
 
