@@ -12,6 +12,9 @@ import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {MockAToken} from "./utils/mocks/MockAToken.sol";
+import {MockAavePool} from "./utils/mocks/MockAavePool.sol";
+import {MockAavePoolAddressesProvider} from "./utils/mocks/MockAavePoolAddressesProvider.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
@@ -36,6 +39,13 @@ contract HookV1Test is Test, Deployers {
     function setUp() public {
         deployFreshManagerAndRouters();
         (token0, token1) = deployMintAndApprove2Currencies();
+
+        MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0");
+        MockAToken atoken1 = new MockAToken(Currency.unwrap(token1), "aToken1", "aToken1");
+
+        MockAavePool aavePool = new MockAavePool(Currency.unwrap(token0), aToken0, Currency.unwrap(token1), atoken1);
+        MockAavePoolAddressesProvider provider = new MockAavePoolAddressesProvider(address(aavePool));
+
         _deployHook();
 
         (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(hook), 3000, SQRT_PRICE_1_1);
