@@ -83,7 +83,7 @@ contract HookV1Test is Test, Deployers {
         console.log("balance diff", balance0 - balance0New);
         console.log("balance diff", balance1 - balance1New);
 
-        uint256 expectedDiff = 139; // hardcoded based on the ticks and current price
+        uint256 expectedDiff = 140; // hardcoded based on the ticks and current price
         assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
         assertEq(balance1New, balance1 - expectedDiff);
 
@@ -98,6 +98,15 @@ contract HookV1Test is Test, Deployers {
         uint256 sharesMinted = IERC20(address(hook)).balanceOf(address(this));
         // whn issuing initial shares they are issued 1:1 to assets (liquidity)
         assertEq(sharesMinted, 1000);
+
+        hook.removeLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 3000, liquidityDelta: 1000, salt: 0}));
+
+        // 1 unit of assets is lost in the rounding
+        assertEq(token0.balanceOf(address(this)), balance0 - 1);
+        assertEq(token1.balanceOf(address(this)), balance1 - 1);
+        uint256 sharesAfterRedeem = IERC20(address(hook)).balanceOf(address(this));
+        assertEq(sharesAfterRedeem, 0);
+
     }
 
     function test_liqudity_is_added_before_swap() public {
@@ -117,7 +126,7 @@ contract HookV1Test is Test, Deployers {
         console.log("balance diff", balance0 - balance0New);
         console.log("balance diff", balance1 - balance1New);
 
-        uint256 expectedDiff = 139; // hardcoded based on the ticks and current price
+        uint256 expectedDiff = 140; // hardcoded based on the ticks and current price
         assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
         assertEq(balance1New, balance1 - expectedDiff);
 
