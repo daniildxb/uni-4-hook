@@ -94,6 +94,10 @@ contract HookV1Test is Test, Deployers {
         assertEq(liquidity, 0);
         assertEq(feeGrowthInside0LastX128, 0);
         assertEq(feeGrowthInside1LastX128, 0);
+
+        uint256 sharesMinted = IERC20(address(hook)).balanceOf(address(this));
+        // whn issuing initial shares they are issued 1:1 to assets (liquidity)
+        assertEq(sharesMinted, 1000);
     }
 
     function test_liqudity_is_added_before_swap() public {

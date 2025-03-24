@@ -76,10 +76,22 @@ contract HookV1 is BaseHook, ERC4626, Test {
     }
 
     /**
-     * @dev overrides totalAssets to include total liquidity in both tokens
+     * @dev we use liquidity as an underlying asset
      */
     function totalAssets() public view override returns (uint256) {
-        return IERC20(Currency.unwrap(token0)).balanceOf(address(this)) + token1.balanceOf(address(this));
+        // this will return 0, since pool actually has no liquidity by default
+        uint256 token0Balance = IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20(Currency.unwrap(key.currency1)).balanceOf(address(this));
+
+        (uint160 sqrtPriceX96, , ,) = poolManager.getSlot0(key.toId());
+        uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickMin), TickMath.getSqrtPriceAtTick(tickMax), token0Balance, token1Balance);
+        return uint256(liquidityDelta);
+    }
+
+    // override erc4626 deposit so that we don't transfer actual tokens
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        _mint(receiver, shares);
+        emit Deposit(caller, receiver, assets, shares);
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -115,7 +127,11 @@ contract HookV1 is BaseHook, ERC4626, Test {
 
     // encodes liqudiity addition params and unlocks poolManager with them
     function addLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
+        // we are issuing shares based on the liquidity
+        deposit(uint256(params.liquidityDelta), msg.sender);
+
         poolManager.unlock(abi.encode(CallbackData(true, msg.sender, key, params, ZERO_BYTES, false, false)));
+        // everything below is executed **AFTER** unlockCallback is called
     }
 
     // handles actions based on the encoded data from the poolManager
