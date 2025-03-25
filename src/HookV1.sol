@@ -158,18 +158,21 @@ contract HookV1 is BaseHook, ERC4626, Test {
         // everything below is executed **AFTER** unlockCallback is called
     }
 
-    function removeLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
+    function removeLiquidity(uint256 shares) public {
         // we are burning shares based on the liquidity
         console.log("liquidity removal called");
 
         // need to verify user has shares
-        uint256 shares = balanceOf(msg.sender);
+        uint256 maxShares = balanceOf(msg.sender);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxRedeem(msg.sender, shares, maxShares);
+        }
         uint256 totalLiquidity = totalAssets();
         uint256 sharesWorth = (shares * totalLiquidity) / totalSupply();
 
         BalanceDelta userDelta = getPoolDelta(-sharesWorth.toInt128());
 
-        redeem(uint256(params.liquidityDelta), msg.sender, msg.sender);
+        redeem(shares, msg.sender, msg.sender);
 
         IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token0), uint256(int256(userDelta.amount0())), msg.sender);
         IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token1), uint256(int256(userDelta.amount1())), msg.sender);

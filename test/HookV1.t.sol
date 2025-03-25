@@ -117,7 +117,7 @@ contract HookV1Test is Test, Deployers {
         // whn issuing initial shares they are issued 1:1 to assets (liquidity)
         assertEq(sharesMinted, 1000);
 
-        hook.removeLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 3000, liquidityDelta: 1000, salt: 0}));
+        hook.removeLiquidity(1000);
 
         // 1 unit of assets is lost in the rounding
         assertEq(token0.balanceOf(address(this)), balance0 - 1, "test runner token0 balance after LP removal");
