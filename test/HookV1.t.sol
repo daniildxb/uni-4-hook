@@ -64,8 +64,6 @@ contract HookV1Test is Test, Deployers {
         address flags = address(
             uint160(
                 Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                    | Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
-                    | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(
@@ -93,7 +91,7 @@ contract HookV1Test is Test, Deployers {
         console.log("Token1 balance before: ", balance1);
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
-        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 3000, liquidityDelta: 1000, salt: 0}));
+        hook.deposit(1000, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
@@ -117,7 +115,7 @@ contract HookV1Test is Test, Deployers {
         // whn issuing initial shares they are issued 1:1 to assets (liquidity)
         assertEq(sharesMinted, 1000);
 
-        hook.removeLiquidity(1000);
+        hook.redeem(1000, address(this), address(this));
 
         // 1 unit of assets is lost in the rounding
         assertEq(token0.balanceOf(address(this)), balance0 - 1, "test runner token0 balance after LP removal");
@@ -136,7 +134,7 @@ contract HookV1Test is Test, Deployers {
 
         IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
-        hook.addLiquidity(IPoolManager.ModifyLiquidityParams({tickLower: 0, tickUpper: 60, liquidityDelta: 1000, salt: 0}));
+        hook.deposit(1000, msg.sender);
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));

@@ -14,7 +14,7 @@ import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC4626Wrapper} from "./ERC4626Wrapper.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
@@ -32,7 +32,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesPro
  * into AAVE protocol.
  * Hook ensures that no liquidity can be added or removed directly from the pool, only through the hook
  */
-contract HookV1 is BaseHook, ERC4626, Test {
+contract HookV1 is BaseHook, ERC4626Wrapper, Test {
     using PoolIdLibrary for PoolKey;
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
@@ -64,7 +64,7 @@ contract HookV1 is BaseHook, ERC4626, Test {
         address _aavePoolAddressesProvider,
         string memory _shareName,
         string memory _shareSymbol
-    ) BaseHook(_poolManager) ERC4626(IERC20(Currency.unwrap(_token0))) ERC20(_shareName, _shareSymbol) {
+    ) BaseHook(_poolManager) ERC4626Wrapper(IERC20(Currency.unwrap(_token0))) ERC20(_shareName, _shareSymbol) {
         token0 = _token0;
         token1 = _token1;
         tickMin = _tickMin;
@@ -85,6 +85,10 @@ contract HookV1 is BaseHook, ERC4626, Test {
         key = _key;
     }
 
+    //
+    //  <---- ERC4626 OVERRIDES ---->
+    //
+
     /**
      * @dev we use liquidity as an underlying asset
      */
@@ -104,30 +108,20 @@ contract HookV1 is BaseHook, ERC4626, Test {
         return uint256(liquidityDelta);
     }
 
-    // override erc4626 deposit so that we don't transfer actual tokens
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
-        _mint(receiver, shares);
-        emit Deposit(caller, receiver, assets, shares);
-    }
-
-    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
-        internal
-        override
-    {
-        _burn(owner, shares);
-        emit Withdraw(caller, receiver, owner, assets, shares);
-    }
+    //
+    //  <---- HOOK METHODS ---->
+    //
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeAddLiquidity: true,
-            afterAddLiquidity: true,
-            beforeRemoveLiquidity: true,
-            afterRemoveLiquidity: true,
-            beforeSwap: true,
-            afterSwap: true,
+            beforeAddLiquidity: true, // <----
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: true, // <----
+            afterSwap: true, // <----
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: false,
@@ -137,28 +131,42 @@ contract HookV1 is BaseHook, ERC4626, Test {
         });
     }
 
-    struct CallbackData {
-        uint8 action;
-        address sender;
-        PoolKey key;
-        IPoolManager.ModifyLiquidityParams params;
-        bytes hookData;
-        bool settleUsingBurn;
-        bool takeClaims;
-    }
-
-    bytes constant ZERO_BYTES = new bytes(0);
-
     // encodes liqudiity addition params and unlocks poolManager with them
-    function addLiquidity(IPoolManager.ModifyLiquidityParams calldata params) public {
-        // we are issuing shares based on the liquidity
-        deposit(uint256(params.liquidityDelta), msg.sender);
+    function deposit(uint256 liquidity, address receiver) public override returns (uint256) {
+        console.log("adding liquidity called");
+        // erc4626 deposit
+        uint256 maxAssets = maxDeposit(receiver);
+        if (liquidity > maxAssets) {
+            revert ERC4626ExceededMaxDeposit(receiver, liquidity, maxAssets);
+        }
+        uint256 shares = previewDeposit(liquidity);
 
-        poolManager.unlock(abi.encode(CallbackData(1, msg.sender, key, params, ZERO_BYTES, false, false)));
-        // everything below is executed **AFTER** unlockCallback is called
+        // getting actual token values
+        // they are guaranteed to be negative
+        BalanceDelta delta = getPoolDelta(liquidity.toInt128());
+        // transfer tokens from sender to this contract
+        uint256 amount0 = uint256(int256(-delta.amount0()));
+        uint256 amount1 = uint256(int256(-delta.amount1()));
+
+        // supply to aave
+        IERC20(Currency.unwrap(key.currency0)).transferFrom(
+            msg.sender, address(this), amount0
+        );
+        IERC20(Currency.unwrap(key.currency1)).transferFrom(
+            msg.sender, address(this), amount1
+        );
+        IERC20(Currency.unwrap(key.currency0)).approve(aavePoolAddressesProvider.getPool(), amount0);
+        IERC20(Currency.unwrap(key.currency1)).approve(aavePoolAddressesProvider.getPool(), amount1);
+        IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency0), amount0, address(this), 0);
+        IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency1), amount1, address(this), 0);
+        // we are issuing shares based on the liquidity
+        
+        _mint(receiver, shares);
+        return shares;
     }
 
-    function removeLiquidity(uint256 shares) public {
+    // todo: enforce approval check
+    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256 assets) {
         // we are burning shares based on the liquidity
         console.log("liquidity removal called");
 
@@ -167,49 +175,16 @@ contract HookV1 is BaseHook, ERC4626, Test {
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(msg.sender, shares, maxShares);
         }
+
         uint256 totalLiquidity = totalAssets();
-        uint256 sharesWorth = (shares * totalLiquidity) / totalSupply();
+        assets = (shares * totalLiquidity) / totalSupply();
 
-        BalanceDelta userDelta = getPoolDelta(-sharesWorth.toInt128());
+        BalanceDelta userDelta = getPoolDelta(-assets.toInt128());
 
-        redeem(shares, msg.sender, msg.sender);
+        _withdraw(msg.sender, receiver, owner, assets, shares);
 
-        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token0), uint256(int256(userDelta.amount0())), msg.sender);
-        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token1), uint256(int256(userDelta.amount1())), msg.sender);
-        // no need to call pool manager
-    }
-
-    // handles actions based on the encoded data from the poolManager
-    function unlockCallback(bytes calldata rawData) external returns (bytes memory) {
-        CallbackData memory data = abi.decode(rawData, (CallbackData));
-        // move liquidity addition logic to the _beforeSwap - √
-        // leave funds at rest here so that they aren't actually added to the pool
-        // issue shares based on the amount of funds added
-        // provide liqudity in the beforeSwap hook
-        // remove liquidity in the afterSwap hook
-        if (data.action == 1) {
-            // create liquidity addition call
-
-            // get delta
-            console.log("adding liquidity called");
-            BalanceDelta delta = getPoolDelta(data.params.liquidityDelta.toInt128());
-            // transfer tokens from sender to this contract
-            uint256 amount0 = uint256(int256(-delta.amount0()));
-            uint256 amount1 = uint256(int256(-delta.amount1()));
-            IERC20(Currency.unwrap(key.currency0)).transferFrom(
-                data.sender, address(this), amount0
-            );
-            IERC20(Currency.unwrap(key.currency1)).transferFrom(
-                data.sender, address(this), amount1
-            );
-            IERC20(Currency.unwrap(key.currency0)).approve(aavePoolAddressesProvider.getPool(), amount0);
-            IERC20(Currency.unwrap(key.currency1)).approve(aavePoolAddressesProvider.getPool(), amount1);
-            IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency0), amount0, address(this), 0);
-            IPool(aavePoolAddressesProvider.getPool()).supply(Currency.unwrap(key.currency1), amount1, address(this), 0);
-        } else {
-            console.log("action", data.action);
-            revert("not supported yet");
-        }
+        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token0), uint256(int256(userDelta.amount0())), receiver);
+        IPool(aavePoolAddressesProvider.getPool()).withdraw(Currency.unwrap(token1), uint256(int256(userDelta.amount1())), receiver);
     }
 
     // some black magic copied from the Pool.sol::modifyLiquidity()
@@ -349,39 +324,5 @@ contract HookV1 is BaseHook, ERC4626, Test {
         require(sender == address(this), "Add Liquidity through Hook");
         liquidityInitialized = true;
         return this.beforeAddLiquidity.selector;
-    }
-
-    // moves added liquidity to the aave pools
-    function _afterAddLiquidity(
-        address sender,
-        PoolKey calldata _key,
-        IPoolManager.ModifyLiquidityParams calldata params,
-        BalanceDelta delta,
-        BalanceDelta feesAccrued,
-        bytes calldata hookData
-    ) internal override returns (bytes4, BalanceDelta) {
-        return (BaseHook.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
-    }
-
-    // ensures that liquidity is only removed through the hook
-    function _beforeRemoveLiquidity(
-        address,
-        PoolKey calldata _key,
-        IPoolManager.ModifyLiquidityParams calldata,
-        bytes calldata
-    ) internal override returns (bytes4) {
-        return BaseHook.beforeRemoveLiquidity.selector;
-    }
-
-    // moves remaining funds back to aave (todo is it needed if we only withdraw specific amounts ?)
-    function _afterRemoveLiquidity(
-        address,
-        PoolKey calldata _key,
-        IPoolManager.ModifyLiquidityParams calldata,
-        BalanceDelta,
-        BalanceDelta,
-        bytes calldata
-    ) internal override returns (bytes4, BalanceDelta) {
-        return (BaseHook.beforeRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 }
