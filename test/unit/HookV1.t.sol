@@ -1,77 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {MockAToken} from "./utils/mocks/MockAToken.sol";
-import {MockAavePool} from "./utils/mocks/MockAavePool.sol";
-import {MockAavePoolAddressesProvider} from "./utils/mocks/MockAavePoolAddressesProvider.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
-import {HookV1} from "../src/HookV1.sol";
+import {BaseTest} from "../BaseTest.sol";
 
-contract HookV1Test is Test, Deployers {
+contract HookV1Test is BaseTest {
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
-
-    Currency token0;
-    Currency token1;
-    int24 tickMin = -3000;
-    int24 tickMax = 3000;
-    address aavePoolAddressesProvider;
-    string shareName = "name";
-    string shareSymbol = "symbol";
-    HookV1 hook;
-
-    PoolKey simpleKey; // vanilla pool key
-    PoolId simplePoolId; // id for vanilla pool key
-
-    function setUp() public {
-        console.log("1");
-        deployFreshManagerAndRouters();
-        (token0, token1) = deployMintAndApprove2Currencies();
-
-        console.log("2");
-        MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0");
-        console.log("3");
-        MockAToken atoken1 = new MockAToken(Currency.unwrap(token1), "aToken1", "aToken1");
-
-        console.log("4");
-        MockAavePool aavePool = new MockAavePool(Currency.unwrap(token0), aToken0, Currency.unwrap(token1), atoken1);
-        console.log("5");
-        aavePoolAddressesProvider = address(new MockAavePoolAddressesProvider(address(aavePool)));
-
-        console.log("6");
-        _deployHook();
-
-        console.log("7");
-        (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(hook), 3000, SQRT_PRICE_1_1);
-        console.log("8");
-        hook.addPool(simpleKey);
-    }
-
-    function _deployHook() internal {
-        address flags = address(
-            uint160(
-                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-            ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
-        );
-        bytes memory constructorArgs = abi.encode(
-            address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol
-        ); //Add all the necessary constructor arguments from the hook
-        deployCodeTo("HookV1.sol:HookV1", constructorArgs, flags);
-        hook = HookV1(flags);
-    }
 
     function test_construction() public {
         assertNotEq(address(hook), address(0));
@@ -122,7 +65,6 @@ contract HookV1Test is Test, Deployers {
         assertEq(token1.balanceOf(address(this)), balance1 - 1, "test runner token1 balance after LP removal");
         uint256 sharesAfterRedeem = IERC20(address(hook)).balanceOf(address(this));
         assertEq(sharesAfterRedeem, 0, "test runner shares after LP removal");
-
     }
 
     function test_liqudity_is_added_before_swap() public {

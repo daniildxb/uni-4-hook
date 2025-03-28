@@ -7,26 +7,20 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
-    * @title ERC4626Wrapper
-    * @dev This contract is a wrapper for the ERC4626 contract.
-    * It overrides pretty much all entry points to it, to be able to use share calculations
+ * @title ERC4626Wrapper
+ * @dev This contract is a wrapper for the ERC4626 contract.
+ * It overrides pretty much all entry points to it, to be able to use share calculations
  */
 abstract contract ERC4626Wrapper is ERC4626 {
-
     constructor(IERC20 asset) ERC4626(asset) {}
 
-    function deposit(uint256 assets, address receiver) public override virtual returns (uint256) {
-    }
+    function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {}
 
-    function mint(uint256 shares, address receiver) public override virtual returns (uint256) {
-    }
+    function mint(uint256 shares, address receiver) public virtual override returns (uint256) {}
 
-    function withdraw(uint256 assets, address receiver, address owner) public override virtual returns (uint256) {
-    } 
+    function withdraw(uint256 assets, address receiver, address owner) public virtual override returns (uint256) {}
 
-    function redeem(uint256 shares, address receiver, address owner) public override virtual returns (uint256) {
-    }
-
+    function redeem(uint256 shares, address receiver, address owner) public virtual override returns (uint256) {}
 
     // override erc4626 deposit so that we don't transfer actual tokens
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {

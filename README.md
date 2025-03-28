@@ -48,3 +48,20 @@ To avoid DOS attacks there are multiple ways we could allow users setting their 
 2. Limitting amount of positions in the pool
 3. Issuing shares per tick in the pool
 
+
+
+## Commands
+
+
+### Running tests
+
+```shell
+$ forge test --match-contract HookV1Test -v
+```
+
+
+### Running fork tests
+
+```shell
+$ forge test --match-contract HookV1Test -v --fork-url $SEPOLIA_RPC_URL --fork-block-number 7987851
+```

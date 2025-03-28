@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 
 contract MockAavePoolAddressesProvider is Test {
     address public pool;
-    
+
     constructor(address _pool) {
         pool = _pool;
     }
