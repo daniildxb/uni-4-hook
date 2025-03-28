@@ -12,6 +12,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 
+
 /// @notice Mines the address and deploys the HookV1.sol Hook contract
 contract DeployScript is Script, Deployers {
     using PoolIdLibrary for PoolKey;
@@ -29,8 +30,8 @@ contract DeployScript is Script, Deployers {
         Currency token1 = Currency.wrap(address(0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0));
         // usdc
         Currency token0 = Currency.wrap(address(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8));
-        int24 _tickMin = 0;
-        int24 _tickMax = 3000;
+        int24 _tickMin = -60;
+        int24 _tickMax = 60;
         address aavePoolAddressesProvider = address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A);
         string memory shareName = "LP";
         string memory shareSymbol = "LP";
@@ -51,25 +52,17 @@ contract DeployScript is Script, Deployers {
         HookV1 hook = new HookV1{salt: salt}(
             POOLMANAGER, token0, token1, _tickMin, _tickMax, aavePoolAddressesProvider, shareName, shareSymbol
         );
-        vm.stopBroadcast();
 
         require(address(hook) == hookAddress, "HookV1: hook address mismatch");
 
         // create pool
         uint24 fee = 3000;
-        // PoolKey memory key = PoolKey({
-        //     currency0: token0,
-        //     currency1: token1,
-        //     fee: fee,
-        //     tickSpacing: int24(fee / 100 * 2),
-        //     hooks: IHooks(hook)
-        // });
-        // it fails for some reason :(
-        // need to debug using tests
-        (key,) = initPool(token0, token1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
-
+        PoolId id;
+        (key, id) = initPool(token0, token1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         // add pool
         hook.addPool(key);
+        console.log(vm.toString(PoolId.unwrap(id)));
+        vm.stopBroadcast();
     }
     
 }

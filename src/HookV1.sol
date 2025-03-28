@@ -8,9 +8,8 @@ import "forge-std/Test.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {Slot0, Slot0Library} from "v4-core/src/types/Slot0.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -180,7 +179,7 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
     }
 
     // some black magic copied from the Pool.sol::modifyLiquidity()
-    function getPoolDelta(int128 liquidityDelta) internal view returns (BalanceDelta delta) {
+    function getPoolDelta(int128 liquidityDelta) public view returns (BalanceDelta delta) {
         (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
         console.log("current tick", tick);
         if (tick < tickMin) {
@@ -209,6 +208,24 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
                 ).toInt128()
             );
         }
+    }
+
+    // VIEWS
+    
+    function getTokenAmountsForLiquidity(uint256 liqudity) public view returns (int128 amount0, int128 amount1) {
+        BalanceDelta delta = getPoolDelta(liqudity.toInt128());
+        return (delta.amount0(), delta.amount1());
+    }
+
+    function getLiquidityForTokenAmount0(uint256 amount0, uint256 amount1) public view returns (uint128 liquidity) {
+        (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
+        liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickMin),
+            TickMath.getSqrtPriceAtTick(tickMax),
+            amount0,
+            amount1
+        );
     }
 
     // -----------------------------------------------
