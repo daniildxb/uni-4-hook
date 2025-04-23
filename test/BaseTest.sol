@@ -24,6 +24,7 @@ contract BaseTest is Test, Deployers {
 
     Currency token0;
     Currency token1;
+    // todo: update to use 60 / -60 ticks an 0.01% fee
     int24 tickMin = -3000;
     int24 tickMax = 3000;
     address aavePoolAddressesProvider;

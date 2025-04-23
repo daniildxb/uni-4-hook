@@ -11,10 +11,13 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
 import {BaseTest} from "../BaseTest.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract HookV1Test is BaseTest {
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
+    using SafeERC20 for IERC20;
+
 
     function test_construction() public {
         assertNotEq(address(hook), address(0));
@@ -27,13 +30,16 @@ contract HookV1Test is BaseTest {
 
     function test_add_liquidity_through_hook() public {
         console.log("Adding liquidity through hook");
+        deal(Currency.unwrap(token0), address(manager), 1000, false);
+        deal(Currency.unwrap(token1), address(manager), 1000, false);
+
         uint256 balance0 = token0.balanceOf(address(this));
         uint256 balance1 = token1.balanceOf(address(this));
         console.log("address of runner", address(this));
         console.log("Token0 balance before: ", balance0);
         console.log("Token1 balance before: ", balance1);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
+        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), 1000);
+        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), 1000);
         hook.deposit(1000, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
@@ -74,8 +80,8 @@ contract HookV1Test is BaseTest {
         deal(Currency.unwrap(token0), address(manager), 1000, false);
         deal(Currency.unwrap(token1), address(manager), 1000, false);
 
-        IERC20(Currency.unwrap(token0)).approve(address(hook), 1000);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), 1000);
+        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), 1000);
+        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), 1000);
         hook.deposit(1000, msg.sender);
 
         uint256 balance0New = token0.balanceOf(address(this));
@@ -95,6 +101,10 @@ contract HookV1Test is BaseTest {
 
         bool zeroForOne = true;
         int256 amountSpecified = 100; // negative number indicates exact input swap!
+
+        IERC20(Currency.unwrap(token0)).forceApprove(address(swapRouter), 1000);
+        IERC20(Currency.unwrap(token1)).forceApprove(address(swapRouter), 1000);
+
         BalanceDelta swapDelta = swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
         // ------------------- //
         console.log("Swap delta amount0: ", swapDelta.amount0());

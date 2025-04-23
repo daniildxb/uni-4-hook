@@ -63,5 +63,5 @@ $ forge test --match-contract HookV1Test -v
 ### Running fork tests
 
 ```shell
-$ forge test --match-contract HookV1Test -v --fork-url $SEPOLIA_RPC_URL --fork-block-number 7987851
+$ forge test --match-contract HookV1Fork -v --fork-url $ETHEREUM_RPC_URL --fork-block-number 22268432
 ```

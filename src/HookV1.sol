@@ -22,6 +22,7 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Lending Hook
@@ -37,6 +38,7 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
     using BalanceDeltaLibrary for BalanceDelta;
     using StateLibrary for IPoolManager;
     using SafeCast for *;
+    using SafeERC20 for IERC20;
 
     // NOTE: ---------------------------------------------------------
     // state variables should typically be unique to a pool
@@ -146,8 +148,8 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
         uint256 amount1 = uint256(int256(-delta.amount1()));
 
         // supply to aave
-        IERC20(Currency.unwrap(key.currency0)).transferFrom(msg.sender, address(this), amount0);
-        IERC20(Currency.unwrap(key.currency1)).transferFrom(msg.sender, address(this), amount1);
+        IERC20(Currency.unwrap(key.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
+        IERC20(Currency.unwrap(key.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
         _depositToAave(Currency.unwrap(key.currency0), amount0);
         _depositToAave(Currency.unwrap(key.currency1), amount1);
         // we are issuing shares based on the liquidity
@@ -217,15 +219,23 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
         return (delta.amount0(), delta.amount1());
     }
 
-    function getLiquidityForTokenAmount0(uint256 amount0, uint256 amount1) public view returns (uint128 liquidity) {
+    function getLiquidityForTokenAmounts(uint256 _amount0, uint256 _amount1) public view returns (uint128 liquidity, int128 amount0, int128 amount1) {
         (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
         liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickMin),
             TickMath.getSqrtPriceAtTick(tickMax),
-            amount0,
-            amount1
+            _amount0,
+            _amount1
         );
+
+        BalanceDelta delta = getPoolDelta(liquidity.toInt128());
+        amount0 = delta.amount0();
+        amount1 = delta.amount1();
+    }
+
+    function getTokenAmountsFromDelta(BalanceDelta delta) public view returns (int128 amount0, int128 amount1) {
+        return (delta.amount0(), delta.amount1());
     }
 
     // -----------------------------------------------
@@ -257,8 +267,16 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
 
         // transfer tokens to the poolManager
         // todo: maybe we don't need to actually call settle...
-        CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
-        CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
+        poolManager.sync(key.currency0);
+        IERC20(Currency.unwrap(key.currency0)).safeTransfer(address(poolManager), uint256(int256(-delta.amount0())));
+        poolManager.settle();
+
+        poolManager.sync(key.currency1);
+        IERC20(Currency.unwrap(key.currency1)).safeTransfer(address(poolManager), uint256(int256(-delta.amount1())));
+        poolManager.settle();
+        // for some reason currency settler fails with USDT
+        // CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
+        // CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
@@ -324,7 +342,7 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
 
     // Reusable function to deposit tokens into AAVE
     function _depositToAave(address token, uint256 amount) private {
-        IERC20(token).approve(aavePoolAddressesProvider.getPool(), amount);
+        IERC20(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
         IPool(aavePoolAddressesProvider.getPool()).supply(token, amount, address(this), 0);
     }
 
