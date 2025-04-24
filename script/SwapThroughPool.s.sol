@@ -2,25 +2,45 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {HookV1} from "../src/HookV1.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
+import {Config} from "./base/Config.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
-/// @notice Provides liquidity to an existing pool
-contract WithdrawScript is Script, Deployers {
-    HookV1 hook = HookV1(0x2cA0585b25371Ca433bC56254338392c6ca508C0);
-    address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
+/// @notice Swaps through the pool
+contract SwapThroughPoolScript is Script, Deployers, Config {
+    using CurrencyLibrary for Currency;
+    using SafeERC20 for IERC20;
+
+    Config.ConfigData config;
+    // amount to receive after swap !!
+    int256 amountToSwap = 1 * 1e6;
 
     function run() public {
+        uint256 chainId = vm.envUint("CHAIN_ID");
+        config = getConfigPerNetwork(chainId);
+        console.log("1");
         uint256 shares = hook.balanceOf(receiver);
-
+        console.log("2");
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        console.log("3");
+        deploySwapRouter();
+        console.log("4");
 
-        hook.redeem(shares, receiver, receiver);
+        // approve the swap router
+        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(swapRouter), uint256(amountToSwap + 100));
+        console.log("5");
+        swap(poolKey, true, amountToSwap, ZERO_BYTES);
+        console.log("6");
         vm.stopBroadcast();
     }
 
+    // do it only once and then reuse
+    function deploySwapRouter() public {
+        swapRouter = new PoolSwapTest(IPoolManager(config.poolManager));
+    }
 }

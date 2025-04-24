@@ -2,25 +2,18 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {HookV1} from "../src/HookV1.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Config} from "./base/Config.sol";
 
 
 /// @notice Provides liquidity to an existing pool
-contract ProvideLiquidityScript is Script, Deployers {
+contract ProvideLiquidityScript is Script, Deployers, Config {
     using SafeCast for *;
     using SafeERC20 for IERC20;
-
-    // bytes poolId = "0x0ceeccec20df53aa75ce40041ae3526feb5bcc9647e651fda799b8e904528c7d";
-    bytes poolId = "0x0ceeccec20df53aa75ce40041ae3526feb5bcc9647e651fda799b8e904528c7d";
-
-    // HookV1 hook = HookV1(0xC5f78930B92Dd7dc3DA2745d6974c228C8BE88c0);
-    HookV1 hook = HookV1(0xC5f78930B92Dd7dc3DA2745d6974c228C8BE88c0);
-    address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
 
     function run() public {
         // usdc
