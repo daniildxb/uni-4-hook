@@ -6,11 +6,11 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Config} from "./base/Config.sol";
 
-
 /// @notice Withdraws liquidity from an existing pool
+/// todo: handle recent changes to config structur
 contract WithdrawFromPoolScript is Script, Deployers, Config {
     using SafeCast for *;
     using SafeERC20 for IERC20;
@@ -20,11 +20,7 @@ contract WithdrawFromPoolScript is Script, Deployers, Config {
         console.log("shares", shares);
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
-        hook.redeem(
-            shares,
-            receiver,
-            receiver
-        );
+        hook.redeem(shares, receiver, receiver);
 
         vm.stopBroadcast();
     }

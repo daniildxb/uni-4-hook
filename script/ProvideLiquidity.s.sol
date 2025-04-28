@@ -6,9 +6,9 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Config} from "./base/Config.sol";
-
+import {HookV1} from "../src/HookV1.sol";
 
 /// @notice Provides liquidity to an existing pool
 contract ProvideLiquidityScript is Script, Deployers, Config {
@@ -19,8 +19,12 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
         // usdc
         uint256 maxTokenAmount0 = 10 * 1e6;
         uint256 maxTokenAmount1 = 10 * 1e6;
+        uint256 chainId = vm.envUint("CHAIN_ID");
 
-        (uint128 liquidity, int128 amount0, int128 amount1) = hook.getLiquidityForTokenAmounts(maxTokenAmount0, maxTokenAmount1);
+        Config.ConfigData memory config = getConfigPerNetwork(chainId);
+        HookV1 hook = HookV1(address(config.poolKey.hooks));
+        (uint128 liquidity, int128 amount0, int128 amount1) =
+            hook.getLiquidityForTokenAmounts(maxTokenAmount0, maxTokenAmount1);
         // Provide liquidity to the pool
         console.log("amount0", amount0);
         console.log("amount1", amount1);
@@ -31,10 +35,7 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
         IERC20(Currency.unwrap(hook.token1())).forceApprove(address(hook), 100 * 1e6);
         console.log("a");
         console.log("liquidity", uint256(liquidity));
-        hook.deposit(
-            uint256(liquidity),
-            receiver
-        );
+        hook.deposit(uint256(liquidity), receiver);
 
         // hook.moveLiquidityToPool();
         vm.stopBroadcast();

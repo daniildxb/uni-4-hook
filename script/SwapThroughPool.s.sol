@@ -8,10 +8,10 @@ import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice Swaps through the pool
+/// todo: handle recent changes to config structure
 contract SwapThroughPoolScript is Script, Deployers, Config {
     using CurrencyLibrary for Currency;
     using SafeERC20 for IERC20;
@@ -32,9 +32,9 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("4");
 
         // approve the swap router
-        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(swapRouter), uint256(amountToSwap + 100));
+        IERC20(Currency.unwrap(hook.token1())).forceApprove(address(swapRouter), uint256(amountToSwap + 100));
         console.log("5");
-        swap(poolKey, true, amountToSwap, ZERO_BYTES);
+        swap(poolKey, false, amountToSwap, ZERO_BYTES);
         console.log("6");
         vm.stopBroadcast();
     }

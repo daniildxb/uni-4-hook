@@ -36,7 +36,6 @@ contract BaseTest is Test, Deployers {
     PoolKey simpleKey; // vanilla pool key
     PoolId simplePoolId; // id for vanilla pool key
 
-
     function setUp() public virtual {
         console.log("1");
         deployFreshManagerAndRouters();

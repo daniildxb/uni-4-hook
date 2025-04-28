@@ -6,16 +6,15 @@ import {HookV1Test} from "../unit/HookV1.t.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import { PoolSwapTest } from "v4-core/src/test/PoolSwapTest.sol";
-import { SwapRouterNoChecks } from "v4-core/src/test/SwapRouterNoChecks.sol";
-import { PoolModifyLiquidityTest } from "v4-core/src/test/PoolModifyLiquidityTest.sol";
-import { PoolModifyLiquidityTestNoChecks } from "v4-core/src/test/PoolModifyLiquidityTestNoChecks.sol";
-import { PoolDonateTest } from "v4-core/src/test/PoolDonateTest.sol";
-import { PoolTakeTest } from "v4-core/src/test/PoolTakeTest.sol";
-import { PoolClaimsTest } from "v4-core/src/test/PoolClaimsTest.sol";
-import { PoolNestedActionsTest } from "v4-core/src/test/PoolNestedActionsTest.sol";
-import { ActionsRouter } from "v4-core/src/test/ActionsRouter.sol";
-
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
+import {SwapRouterNoChecks} from "v4-core/src/test/SwapRouterNoChecks.sol";
+import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.sol";
+import {PoolModifyLiquidityTestNoChecks} from "v4-core/src/test/PoolModifyLiquidityTestNoChecks.sol";
+import {PoolDonateTest} from "v4-core/src/test/PoolDonateTest.sol";
+import {PoolTakeTest} from "v4-core/src/test/PoolTakeTest.sol";
+import {PoolClaimsTest} from "v4-core/src/test/PoolClaimsTest.sol";
+import {PoolNestedActionsTest} from "v4-core/src/test/PoolNestedActionsTest.sol";
+import {ActionsRouter} from "v4-core/src/test/ActionsRouter.sol";
 
 contract HookV1ForkTest is HookV1Test {
     function setUp() public virtual override {
@@ -29,7 +28,6 @@ contract HookV1ForkTest is HookV1Test {
         _deployHook();
         (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         hook.addPool(simpleKey);
-
 
         deal(Currency.unwrap(token0), address(this), 1000, false);
         deal(Currency.unwrap(token1), address(this), 1000, false);

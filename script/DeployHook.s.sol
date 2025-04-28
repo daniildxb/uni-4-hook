@@ -12,7 +12,6 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
 
-
 /// @notice Mines the address and deploys the HookV1.sol Hook contract
 contract DeployScript is Script, Deployers, Config {
     using PoolIdLibrary for PoolKey;
@@ -23,8 +22,6 @@ contract DeployScript is Script, Deployers, Config {
         //  hook contracts must have specific flags encoded in the address
         uint160 flags =
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
-
-
 
         uint256 chainId = vm.envUint("CHAIN_ID");
 
@@ -40,7 +37,14 @@ contract DeployScript is Script, Deployers, Config {
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(
-            IPoolManager(config.poolManager), config.token0, config.token1, _tickMin, _tickMax, config.aavePoolAddressesProvider, shareName, shareSymbol
+            IPoolManager(config.poolManager),
+            config.token0,
+            config.token1,
+            _tickMin,
+            _tickMax,
+            config.aavePoolAddressesProvider,
+            shareName,
+            shareSymbol
         );
 
         // Move the mining and deployment into the run function where execution occurs
@@ -50,7 +54,14 @@ contract DeployScript is Script, Deployers, Config {
         // Deploy the hook using CREATE2
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         HookV1 hook = new HookV1{salt: salt}(
-            IPoolManager(config.poolManager), config.token0, config.token1, _tickMin, _tickMax, config.aavePoolAddressesProvider, shareName, shareSymbol
+            IPoolManager(config.poolManager),
+            config.token0,
+            config.token1,
+            _tickMin,
+            _tickMax,
+            config.aavePoolAddressesProvider,
+            shareName,
+            shareSymbol
         );
 
         require(address(hook) == hookAddress, "HookV1: hook address mismatch");
@@ -66,5 +77,4 @@ contract DeployScript is Script, Deployers, Config {
         console.log(vm.toString(PoolId.unwrap(id)));
         vm.stopBroadcast();
     }
-    
 }

@@ -22,7 +22,7 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Lending Hook
@@ -213,20 +213,20 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
     }
 
     // VIEWS
-    
+
     function getTokenAmountsForLiquidity(uint256 liqudity) public view returns (int128 amount0, int128 amount1) {
         BalanceDelta delta = getPoolDelta(liqudity.toInt128());
         return (delta.amount0(), delta.amount1());
     }
 
-    function getLiquidityForTokenAmounts(uint256 _amount0, uint256 _amount1) public view returns (uint128 liquidity, int128 amount0, int128 amount1) {
+    function getLiquidityForTokenAmounts(uint256 _amount0, uint256 _amount1)
+        public
+        view
+        returns (uint128 liquidity, int128 amount0, int128 amount1)
+    {
         (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) = poolManager.getSlot0(key.toId());
         liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(tickMin),
-            TickMath.getSqrtPriceAtTick(tickMax),
-            _amount0,
-            _amount1
+            sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickMin), TickMath.getSqrtPriceAtTick(tickMax), _amount0, _amount1
         );
 
         BalanceDelta delta = getPoolDelta(liquidity.toInt128());

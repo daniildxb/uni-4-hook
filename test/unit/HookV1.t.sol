@@ -11,13 +11,12 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
 import {BaseTest} from "../BaseTest.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract HookV1Test is BaseTest {
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
     using SafeERC20 for IERC20;
-
 
     function test_construction() public {
         assertNotEq(address(hook), address(0));
