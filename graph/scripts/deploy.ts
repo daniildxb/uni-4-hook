@@ -7,28 +7,14 @@ import { networks as ALLOWED_NETWORKS } from "../src/config";
 dotenv.config();
 
 interface EnvVariables {
-  GOLDSKY_API_KEY: string;
-  SUBGRAPH_SLUG: string;
-}
-
-interface DeployArgs {
-  network?: string;
-  [key: string]: string | undefined;
+  GOLDSKY_API_KEY?: string;
+  SUBGRAPH_SLUG?: string;
 }
 
 const { GOLDSKY_API_KEY, SUBGRAPH_SLUG } = process.env as EnvVariables;
 
 type Network = (typeof ALLOWED_NETWORKS)[number];
 
-const parseArgs = (): DeployArgs => {
-  return process.argv.reduce<DeployArgs>((acc, arg) => {
-    if (/:/.test(arg)) {
-      const [key, value] = arg.split(":");
-      acc[key] = value;
-    }
-    return acc;
-  }, {});
-};
 
 const validateEnv = (): void => {
   if (!GOLDSKY_API_KEY) {

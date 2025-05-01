@@ -7,20 +7,24 @@ This subgraph indexes events from the Uniswap V4 Lending Hook contract, tracking
 The subgraph tracks:
 
 ### Protocol data
+
 - Total Value Locked (TVL)
 - Fees + daily/hourly snapshots
 - Multiple pools (if deployed)
 
 ### Pool data
+
 - Deposits and withdrawals
 - Current liquidity
 - Swap fees
 - Lending yield
 
 ### User data
+
 - Positions linked to users
 
 ### Position data
+
 - Deposits
 - Withdrawals
 - Current amounts
@@ -41,6 +45,7 @@ The subgraph tracks:
 ## Deployment
 
 ### Prerequisites
+
 - Node.js and npm/yarn installed
 - Access to The Graph deployment endpoint
 - Contract deployed on target network
@@ -48,17 +53,20 @@ The subgraph tracks:
 ### Setup
 
 1. Install dependencies:
+
 ```bash
 cd graph
 npm install
 ```
 
 2. Generate AssemblyScript types from schema and ABIs:
+
 ```bash
 npm run codegen
 ```
 
 3. Build the subgraph:
+
 ```bash
 npm run build
 ```
@@ -68,7 +76,7 @@ npm run build
 This subgraph supports deployment to multiple networks:
 
 - Sepolia: `npm run prepare:sepolia`
-- Arbitrum: `npm run prepare:arbitrum`
+- arbitrum-one: `npm run prepare:arbitrum-one`
 - Mainnet: `npm run prepare:mainnet`
 
 Each command creates a network-specific subgraph manifest.
@@ -82,8 +90,8 @@ Deploy to The Graph hosted service:
 npm run prepare:sepolia
 graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ <SUBGRAPH_NAME>
 
-# For Arbitrum
-npm run prepare:arbitrum
+# For arbitrum-one
+npm run prepare:arbitrum-one
 graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ <SUBGRAPH_NAME>
 
 # For Mainnet
@@ -108,6 +116,7 @@ npm run deploy-local
 ## Example Queries
 
 ### Get Protocol TVL and Fees
+
 ```graphql
 {
   protocol(id: "uniswap-v4-lending-hook") {
@@ -118,6 +127,7 @@ npm run deploy-local
 ```
 
 ### Get Pool Data
+
 ```graphql
 {
   pools {
@@ -136,6 +146,7 @@ npm run deploy-local
 ```
 
 ### Get User Positions
+
 ```graphql
 {
   user(id: "0x...") {

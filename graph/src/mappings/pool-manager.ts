@@ -3,16 +3,8 @@ import {
   Initialize as InitializeEvent,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
-import {
-  Protocol,
-  Pool,
-  Swap,
-} from "../../generated/schema";
-import {
-  loadToken,
-  createProtocol,
-  ZERO_BI,
-} from "../helpers";
+import { Protocol, Pool, Swap } from "../../generated/schema";
+import { loadToken, createProtocol, ZERO_BI } from "../helpers";
 
 export function handleInitialize(event: InitializeEvent): void {
   // Load or create protocol
@@ -24,6 +16,12 @@ export function handleInitialize(event: InitializeEvent): void {
   // Extract pool details from the event
   let poolId = event.params.id.toHexString();
 
+  let expectedPoolId = `0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360`;
+
+  if (poolId.toLowerCase() !== expectedPoolId.toLowerCase()) {
+    // Pool ID does not match expected format, return
+    return;
+  }
   // Check if pool already exists
   let pool = Pool.load(poolId);
   if (pool !== null) {
@@ -85,13 +83,22 @@ export function handleSwap(event: SwapEvent): void {
   // currentPrice, token0AmountPerShare, token1AmountPerShare, cumulativeSwapFeeUSD
 
   let poolId = event.params.id.toHexString();
+
+  let expectedPoolId = `0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360`;
+
+  if (poolId.toLowerCase() !== expectedPoolId.toLowerCase()) {
+    // Pool ID does not match expected format, return
+    return;
+  }
   let pool = Pool.load(poolId);
-if (pool === null) {
+  if (pool === null) {
     // Pool not found, return
     return;
-}
+  }
   pool.currentPrice = event.params.sqrtPriceX96;
-  pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(BigInt.fromI32(event.params.fee));
+  pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(
+    BigInt.fromI32(event.params.fee)
+  );
 
   // create swap entity
   let swap = new Swap(event.transaction.hash.toHexString());
