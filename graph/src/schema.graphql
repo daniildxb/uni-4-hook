@@ -1,0 +1,128 @@
+type Protocol @entity(immutable: false) {
+  id: ID!
+  name: String!
+  pools: [Pool!]! @derivedFrom(field: "protocol")
+  totalValueLockedUSD: BigInt!
+  cumulativeFeeUSD: BigInt!
+  snapshots: [ProtocolDailySnapshots!]! @derivedFrom(field: "protocol")
+}
+
+type ProtocolDailySnapshots @entity(immutable: false) {
+  id: ID!
+  protocol: Protocol!
+  date: Int!
+  totalValueLockedUSD: BigInt!
+  cumulativeFeeUSD: BigInt!
+}
+
+type Pool @entity(immutable: false) {
+  id: ID!
+  protocol: Protocol!
+  hook: Bytes!
+  poolId: Bytes!
+  token0: Token!
+  token1: Token!
+  tickSpacing: BigInt!
+  fee: BigInt!
+  currentPrice: BigInt!
+  token0AmountPerShare: BigDecimal!
+  token1AmountPerShare: BigDecimal!
+  totalValueLockedUSD: BigInt!
+  cumulativeSwapFeeUSD: BigInt!
+  cumulativeLendingYieldUSD: BigInt!
+  deposits: [Deposit!]! @derivedFrom(field: "pool")
+  withdrawals: [Withdrawal!]! @derivedFrom(field: "pool")
+  swaps: [Swap!]! @derivedFrom(field: "pool")
+  positions: [Position!]! @derivedFrom(field: "pool")
+  snapshots: [PoolDailySnapshots!]! @derivedFrom(field: "pool")
+  createdAtTimestamp: BigInt!
+  createdAtBlockNumber: BigInt!
+  updatedAtTimestamp: BigInt!
+  updatedAtBlockNumber: BigInt!
+}
+
+type PoolDailySnapshots @entity(immutable: false) {
+  id: ID!
+  pool: Pool!
+  date: Int!
+  totalValueLockedUSD: BigInt!
+  dailySwapFeeUSD: BigInt!
+  dailyLendingYieldUSD: BigInt!
+  txCount: BigInt!
+}
+
+type Token @entity(immutable: false) {
+  id: ID!
+  symbol: String!
+  name: String!
+  decimals: Int!
+}
+
+type Account @entity(immutable: false) {
+  id: ID!
+  positions: [Position!]! @derivedFrom(field: "account")
+}
+
+type Position @entity(immutable: false) {
+  id: ID!
+  account: Account!
+  pool: Pool!
+  # liquidity
+  shares: BigInt!
+  deposits: [Deposit!]! @derivedFrom(field: "position")
+  withdrawals: [Withdrawal!]! @derivedFrom(field: "position")
+  transfers: [Transfer!]! @derivedFrom(field: "position")
+  createdAtTimestamp: BigInt!
+  createdAtBlockNumber: BigInt!
+  updatedAtTimestamp: BigInt!
+  updatedAtBlockNumber: BigInt!
+}
+
+type Deposit @entity(immutable: false) {
+  id: ID!
+  account: Account!
+  pool: Pool!
+  position: Position!
+  token0Amount: BigInt!
+  token1Amount: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+}
+
+type Withdrawal @entity(immutable: false) {
+  id: ID!
+  account: Account!
+  pool: Pool!
+  position: Position!
+  token0Amount: BigInt!
+  token1Amount: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+}
+
+type Transfer @entity(immutable: false) {
+  id: ID!
+  sender: Account!
+  receiver: Account!
+  pool: Pool!
+  position: Position!
+  token0Amount: BigInt!
+  token1Amount: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+}
+
+type Swap @entity(immutable: false) {
+  id: ID!
+  pool: Pool!
+  # delta of amounts of the pool
+  amount0: BigInt!
+  amount1: BigInt!
+  fee: BigInt!
+  sender: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+}

@@ -17,3 +17,11 @@ docs/
 
 # Node modules
 node_modules/
+**/.claude/settings.local.json
+
+# Graph-related
+graph/node_modules/
+graph/generated/
+graph/build/
+graph/subgraph*.yaml
+!graph/subgraph.yaml

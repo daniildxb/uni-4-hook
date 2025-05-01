@@ -32,6 +32,15 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * Hook ensures that no liquidity can be added or removed directly from the pool, only through the hook
  */
 contract HookV1 is BaseHook, ERC4626Wrapper, Test {
+    event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
+    event Withdraw(
+        address indexed sender,
+        address indexed receiver,
+        address indexed owner,
+        uint256 assets0,
+        uint256 assets1,
+        uint256 shares
+    );
     using PoolIdLibrary for PoolKey;
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
@@ -155,6 +164,7 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
         // we are issuing shares based on the liquidity
 
         _mint(receiver, shares);
+        emit Deposit(msg.sender, receiver, amount0, amount1, shares);
         return shares;
     }
 

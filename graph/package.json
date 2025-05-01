@@ -1,0 +1,28 @@
+{
+  "name": "uni-v4-lending-hook-subgraph",
+  "version": "0.1.0",
+  "scripts": {
+    "deploy": "ts-node ./scripts/deploy.ts --",
+    "test": "npm run build -- localhost && graph test",
+    "build": "ts-node ./scripts/build.ts --",
+    "generate-const": "ts-node ./scripts/createConstants.ts --",
+    "generate-types": "ts-node ./scripts/generateTypes.ts --",
+    "generate-wasm": "ts-node ./scripts/generateWasm.ts --",
+    "generate-yaml": "ts-node ./scripts/generateYaml.ts --",
+    "setup": "ts-node ./scripts/setup.ts --"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.0",
+    "@graphprotocol/graph-ts": "0.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "dotenv": "^16.4.5",
+    "matchstick-as": "^0.6.0",
+    "mustache": "^4.2.0",
+    "prettier": "^3.3.2",
+    "sort-package-json": "^1.57.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
