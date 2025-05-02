@@ -16,7 +16,8 @@ import {MockAavePoolAddressesProvider} from "./utils/mocks/MockAavePoolAddresses
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
-import {HookV1} from "../src/HookV1.sol";
+// Import the modular hook instead of the original HookV1
+import {ModularHookV1} from "../src/ModularHookV1.sol";
 
 contract BaseTest is Test, Deployers {
     using CurrencyLibrary for Currency;
@@ -30,7 +31,7 @@ contract BaseTest is Test, Deployers {
     address aavePoolAddressesProvider;
     string shareName = "name";
     string shareSymbol = "symbol";
-    HookV1 hook;
+    ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
 
     PoolKey simpleKey; // vanilla pool key
@@ -67,7 +68,7 @@ contract BaseTest is Test, Deployers {
         bytes memory constructorArgs = abi.encode(
             address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol
         ); //Add all the necessary constructor arguments from the hook
-        deployCodeTo("HookV1.sol:HookV1", constructorArgs, flags);
-        hook = HookV1(flags);
+        deployCodeTo("ModularHookV1.sol:ModularHookV1", constructorArgs, flags); // Changed from HookV1 to ModularHookV1
+        hook = ModularHookV1(flags); // Changed from HookV1 to ModularHookV1
     }
 }

@@ -20,7 +20,6 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
     // amount to receive after swap !!
     int256 amountToSwap = 1 * 1e6;
 
-
     function run() public {
         uint256 chainId = vm.envUint("CHAIN_ID");
         Config.ConfigData memory config = getConfigPerNetwork(chainId);

@@ -41,6 +41,7 @@ contract HookV1 is BaseHook, ERC4626Wrapper, Test {
         uint256 assets1,
         uint256 shares
     );
+
     using PoolIdLibrary for PoolKey;
     using CurrencySettler for Currency;
     using CurrencyLibrary for Currency;
