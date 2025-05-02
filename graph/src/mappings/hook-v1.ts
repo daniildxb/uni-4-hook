@@ -1,3 +1,4 @@
+import { log } from "@graphprotocol/graph-ts";
 import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
@@ -14,10 +15,11 @@ export function handleDeposit(event: DepositEvent): void {
   // Load the pool (must be created during initialize event)
   // let hookAddress = event.address.toHexString();
   // todo: store poolId <> hook mapping somewhere, or emit poolId in the event
-  let poolId = `0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360`;
+  let poolId = "0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360";
   let pool = Pool.load(poolId);
 
   if (pool === null) {
+    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
     // This should not happen as pool should be created during initialization
     return;
   }

@@ -19,7 +19,6 @@ type Pool @entity(immutable: false) {
   id: ID!
   protocol: Protocol!
   hook: Bytes!
-  poolId: Bytes!
   token0: Token!
   token1: Token!
   tickSpacing: BigInt!
