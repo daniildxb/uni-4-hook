@@ -17,8 +17,8 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
 
     function run() public {
         // usdc
-        uint256 maxTokenAmount0 = 10 * 1e6;
-        uint256 maxTokenAmount1 = 10 * 1e6;
+        uint256 maxTokenAmount0 = 10 * 1e5;
+        uint256 maxTokenAmount1 = 10 * 1e5;
         uint256 chainId = vm.envUint("CHAIN_ID");
 
         Config.ConfigData memory config = getConfigPerNetwork(chainId);
