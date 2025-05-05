@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import {CustodyHook} from "./CustodyHook.sol";
-import {FeeTrackingHook} from "./FeeTrackingHook.sol";
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
@@ -24,14 +23,13 @@ import {TickMath} from "v4-core/src/libraries/TickMath.sol";
  * @title Aave Hook
  * @notice Hook that integrates with Aave lending protocol
  */
-abstract contract AaveHook is CustodyHook, FeeTrackingHook {
+abstract contract AaveHook is CustodyHook {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeCast for *;
     using SafeERC20 for IERC20;
     using StateLibrary for IPoolManager;
-
 
     IPoolAddressesProvider public aavePoolAddressesProvider;
     address public aToken0;
@@ -55,7 +53,7 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
     /**
      * @dev Returns the total assets held by the hook, using aToken balances
      */
-    function totalAssets() public view override returns (uint256) {
+    function totalAssets() public view virtual override returns (uint256) {
         uint256 token0Balance = IERC20(aToken0).balanceOf(address(this));
         uint256 token1Balance = IERC20(aToken1).balanceOf(address(this));
 
@@ -95,6 +93,7 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
      */
     function _beforeSwap(address sender, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
         internal
+        virtual
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
@@ -112,9 +111,6 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
         });
 
         (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
-
-        // Track any fees accrued for fee distribution
-        // _trackFeeAccrual(feesAccrued);
 
         // transfer tokens to the poolManager
         // todo: maybe we don't need to actually call settle...
@@ -136,6 +132,7 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
      */
     function _afterSwap(address, PoolKey calldata _key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
         internal
+        virtual
         override
         returns (bytes4, int128)
     {
@@ -151,9 +148,6 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
         });
 
         (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
-
-        // Track any fees accrued for fee distribution
-        // _trackFeeAccrual(feesAccrued);
 
         // Take tokens from pool manager
         poolManager.take(token0, address(this), uint256(int256(delta.amount0())));
@@ -172,20 +166,17 @@ abstract contract AaveHook is CustodyHook, FeeTrackingHook {
      * @dev Implementation of the deposit processing for CustodyHook
      * Deposits tokens to Aave
      */
-    function _afterDeposit(address token0, uint256 amount0, address token1, uint256 amount1) internal override {
-        _depositToAave(token0, amount0);
-        _depositToAave(token1, amount1);
+    function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual override {
+        _depositToAave(Currency.unwrap(key.currency0), amount0);
+        _depositToAave(Currency.unwrap(key.currency1), amount1);
     }
 
     /**
      * @dev Implementation of the withdrawal processing for CustodyHook
      * Withdraws tokens from Aave and sends them to the receiver
      */
-    function _afterWithdrawal(address token0, uint256 amount0, address token1, uint256 amount1, address receiver)
-        internal
-        override
-    {
-        _withdrawFromAave(token0, amount0, receiver);
-        _withdrawFromAave(token1, amount1, receiver);
+    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual override {
+        _withdrawFromAave(Currency.unwrap(key.currency0), amount0, receiver);
+        _withdrawFromAave(Currency.unwrap(key.currency1), amount1, receiver);
     }
 }

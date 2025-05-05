@@ -27,6 +27,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /**
  * @title Lending Hook
  * @notice Hook for lending assets in Uniswap V4 pools
+ * To be removed in favour of modular contracts
  * In addition to regular hook methods, this hook takes ownership of user LP position and lends it
  * into AAVE protocol.
  * Hook ensures that no liquidity can be added or removed directly from the pool, only through the hook

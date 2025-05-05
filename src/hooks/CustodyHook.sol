@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {BaseHookV1} from "../BaseHookV1.sol";
+import {ExtendedHook} from "./ExtendedHook.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
@@ -18,7 +19,7 @@ import {ERC4626Wrapper} from "../ERC4626Wrapper.sol";
  * @notice Hook that enforces liquidity provision only through the hook
  * Manages custody of LP positions for users
  */
-abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
+abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
@@ -34,10 +35,22 @@ abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
         string memory _shareName,
         string memory _shareSymbol
     )
-        BaseHookV1(_poolManager, _token0, _token1, _tickMin, _tickMax)
+        ExtendedHook(_poolManager, _token0, _token1, _tickMin, _tickMax)
         ERC4626Wrapper(IERC20(Currency.unwrap(_token0)))
         ERC20(_shareName, _shareSymbol)
     {}
+
+    // ensures that liquidity is only added through the hook
+    function _beforeAddLiquidity(
+        address sender,
+        PoolKey calldata _key,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) internal override returns (bytes4) {
+        require(sender == address(this), "Add Liquidity through Hook");
+        liquidityInitialized = true;
+        return this.beforeAddLiquidity.selector;
+    }
 
     /**
      * @dev Hook users deposit liquidity through this function
@@ -59,7 +72,7 @@ abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
         uint256 amount0 = uint256(int256(-delta.amount0()));
         uint256 amount1 = uint256(int256(-delta.amount1()));
 
-        _beforeDeposit(Currency.unwrap(key.currency0), amount0, Currency.unwrap(key.currency1), amount1);
+        _beforeHookDeposit(amount0, amount1);
 
         // Receive tokens from user
         IERC20(Currency.unwrap(key.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
@@ -71,7 +84,7 @@ abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
         _mint(receiver, shares);
         emit Deposit(msg.sender, receiver, amount0, amount1, shares);
 
-        _afterDeposit(Currency.unwrap(key.currency0), amount0, Currency.unwrap(key.currency1), amount1);
+        _afterHookDeposit(amount0, amount1);
 
         return shares;
     }
@@ -96,25 +109,13 @@ abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
         // Calculate token amounts based on pool state
         BalanceDelta userDelta = getPoolDelta(-assets.toInt128());
 
-        _beforeWithdrawal(
-            Currency.unwrap(token0),
-            uint256(int256(userDelta.amount0())),
-            Currency.unwrap(token1),
-            uint256(int256(userDelta.amount1())),
-            receiver
-        );
+        _beforeHookWithdrawal(uint256(int256(userDelta.amount0())), uint256(int256(userDelta.amount1())), receiver);
 
         // Handle ERC4626 accounting
         _withdraw(msg.sender, receiver, owner, assets, shares);
 
         // Process the withdrawal (to be implemented by child contracts)
-        _afterWithdrawal(
-            Currency.unwrap(token0),
-            uint256(int256(userDelta.amount0())),
-            Currency.unwrap(token1),
-            uint256(int256(userDelta.amount1())),
-            receiver
-        );
+        _afterHookWithdrawal(uint256(int256(userDelta.amount0())), uint256(int256(userDelta.amount1())), receiver);
 
         return assets;
     }
@@ -122,26 +123,20 @@ abstract contract CustodyHook is BaseHookV1, ERC4626Wrapper {
     /**
      * @dev Hook for processing deposits, to be implemented by child contracts
      */
-    function _beforeDeposit(address token0, uint256 amount0, address token1, uint256 amount1) internal virtual {}
+    function _beforeHookDeposit(uint256 amount0, uint256 amount1) internal virtual;
 
     /**
      * @dev Hook for processing deposits, to be implemented by child contracts
      */
-    function _afterDeposit(address token0, uint256 amount0, address token1, uint256 amount1) internal virtual {}
+    function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual;
 
     /**
      * @dev Hook for processing withdrawals, to be implemented by child contracts
      */
-    function _beforeWithdrawal(address token0, uint256 amount0, address token1, uint256 amount1, address receiver)
-        internal
-        virtual
-    {}
+    function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual;
 
     /**
      * @dev Hook for processing withdrawals, to be implemented by child contracts
      */
-    function _afterWithdrawal(address token0, uint256 amount0, address token1, uint256 amount1, address receiver)
-        internal
-        virtual
-    {}
+    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual;
 }

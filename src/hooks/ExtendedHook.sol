@@ -12,7 +12,6 @@ import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {ERC4626Wrapper} from "./ERC4626Wrapper.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
@@ -25,7 +24,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @title Base Hook
  * @notice Base contract for Uniswap V4 hooks that provides common functionality
  */
-abstract contract BaseHookV1 is BaseHook {
+abstract contract ExtendedHook is BaseHook {
     event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
     event Withdraw(
         address indexed sender,

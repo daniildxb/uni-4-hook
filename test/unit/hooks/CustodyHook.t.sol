@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+import "forge-std/Test.sol";
+
+/* todo:
+    Test deposits issuing shares * taking tokens
+    Test withdrawals burning shares  * returning tokens
+*/
