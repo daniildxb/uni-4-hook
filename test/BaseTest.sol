@@ -33,6 +33,8 @@ contract BaseTest is Test, Deployers {
     string shareSymbol = "symbol";
     ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
+    uint256 fee_bps = 1000; // 10%
+    address feeCollector = address(0x1);
 
     PoolKey simpleKey; // vanilla pool key
     PoolId simplePoolId; // id for vanilla pool key
@@ -66,7 +68,16 @@ contract BaseTest is Test, Deployers {
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(
-            address(manager), token0, token1, tickMin, tickMax, aavePoolAddressesProvider, shareName, shareSymbol
+            address(manager),
+            token0,
+            token1,
+            tickMin,
+            tickMax,
+            aavePoolAddressesProvider,
+            shareName,
+            shareSymbol,
+            feeCollector,
+            fee_bps
         ); //Add all the necessary constructor arguments from the hook
         deployCodeTo("ModularHookV1.sol:ModularHookV1", constructorArgs, flags); // Changed from HookV1 to ModularHookV1
         hook = ModularHookV1(flags); // Changed from HookV1 to ModularHookV1

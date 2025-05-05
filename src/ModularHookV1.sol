@@ -11,8 +11,8 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 
 /**
  * @title Modular Hook V1
- * @notice Combined hook implementing Aave integration, custody features, and fee tracking
- * Functionally equivalent to the original HookV1 but with modular architecture
+ * @notice Most of the functionality is inherited, only defines permissions
+ * and overrides for abstract methods
  */
 contract ModularHookV1 is AaveFeesHook {
     using CurrencyLibrary for Currency;
@@ -27,7 +27,9 @@ contract ModularHookV1 is AaveFeesHook {
         int24 _tickMax,
         address _aavePoolAddressesProvider,
         string memory _shareName,
-        string memory _shareSymbol
+        string memory _shareSymbol,
+        address _feeCollector,
+        uint256 _fee_bps
     )
         AaveFeesHook(
             _poolManager,
@@ -37,7 +39,9 @@ contract ModularHookV1 is AaveFeesHook {
             _tickMax,
             _aavePoolAddressesProvider,
             _shareName,
-            _shareSymbol
+            _shareSymbol,
+            _feeCollector,
+            _fee_bps
         )
     {}
 

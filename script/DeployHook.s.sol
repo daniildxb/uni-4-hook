@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {HookV1} from "../src/HookV1.sol";
+import {ModularHookV1} from "src/ModularHookV1.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
@@ -12,7 +12,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
 
-/// @notice Mines the address and deploys the HookV1.sol Hook contract
+/// @notice Mines the address and deploys the ModularHookV1.sol Hook contract
 contract DeployScript is Script, Deployers, Config {
     using PoolIdLibrary for PoolKey;
 
@@ -44,16 +44,18 @@ contract DeployScript is Script, Deployers, Config {
             _tickMax,
             config.aavePoolAddressesProvider,
             shareName,
-            shareSymbol
+            shareSymbol,
+            receiver,
+            fee_bps
         );
 
         // Move the mining and deployment into the run function where execution occurs
         (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_DEPLOYER, flags, type(HookV1).creationCode, constructorArgs);
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(ModularHookV1).creationCode, constructorArgs);
 
         // Deploy the hook using CREATE2
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        HookV1 hook = new HookV1{salt: salt}(
+        ModularHookV1 hook = new ModularHookV1{salt: salt}(
             IPoolManager(config.poolManager),
             config.token0,
             config.token1,
@@ -61,7 +63,9 @@ contract DeployScript is Script, Deployers, Config {
             _tickMax,
             config.aavePoolAddressesProvider,
             shareName,
-            shareSymbol
+            shareSymbol,
+            receiver,
+            fee_bps
         );
 
         require(address(hook) == hookAddress, "HookV1: hook address mismatch");

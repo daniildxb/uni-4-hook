@@ -115,6 +115,8 @@ contract HookV1Test is BaseTest {
         console.log("balance diff after swap", balance0New - balance0AfterSwap);
         console.log("balance diff after swap", balance1AfterSwap - balance1New);
 
+        BalanceDelta swapDelta2 = swap(simpleKey, false, amountSpecified, ZERO_BYTES);
+
         // todo: add asserts about after swap state
     }
 }

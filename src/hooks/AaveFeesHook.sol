@@ -16,9 +16,9 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
- * @title Modular Hook V1
- * @notice Combined hook implementing Aave integration, custody features, and fee tracking
- * Functionally equivalent to the original HookV1 but with modular architecture
+ * @title Contract that integrates Aave Hook with Fee Tracking Hook
+ * @notice lifecycle hooks for Hook Deposits are defined empty as neither contract in
+ * the inheritance chain implements them and we need to add modifiers for potential changes
  */
 abstract contract AaveFeesHook is AaveHook, FeeTrackingHook {
     using PoolIdLibrary for PoolKey;
@@ -36,9 +36,12 @@ abstract contract AaveFeesHook is AaveHook, FeeTrackingHook {
         int24 _tickMax,
         address _aavePoolAddressesProvider,
         string memory _shareName,
-        string memory _shareSymbol
+        string memory _shareSymbol,
+        address _feeCollector,
+        uint256 _fee_bps
     )
         AaveHook(_poolManager, _token0, _token1, _tickMin, _tickMax, _aavePoolAddressesProvider, _shareName, _shareSymbol)
+        FeeTrackingHook(_feeCollector, _fee_bps)
     {}
 
     function totalAssets() public view virtual override(AaveHook, ERC4626) returns (uint256) {

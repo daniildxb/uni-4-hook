@@ -2,7 +2,6 @@
 pragma solidity ^0.8.26;
 
 import {ExtendedHook} from "./ExtendedHook.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
