@@ -41,8 +41,8 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("swap 1");
         swap(config.poolKey, true, amountToSwap, ZERO_BYTES);
         // token1 -> token0
-        console.log("swap 2");
-        swap(config.poolKey, false, amountToSwap, ZERO_BYTES);
+        // console.log("swap 2");
+        // swap(config.poolKey, false, amountToSwap, ZERO_BYTES);
         console.log("6");
         vm.stopBroadcast();
     }
