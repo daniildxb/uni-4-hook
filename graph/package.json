@@ -1,6 +1,6 @@
 {
   "name": "uni-v4-lending-hook-subgraph",
-  "version": "0.1.4-2",
+  "version": "0.1.4-3",
   "scripts": {
     "deploy": "ts-node ./scripts/deploy.ts --",
     "test": "npm run build -- localhost && graph test",

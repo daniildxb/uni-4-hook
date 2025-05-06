@@ -13,6 +13,7 @@ import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
 } from "../../generated/HookV1/HookV1";
+import { sqrtPriceX96ToTokenPrices } from "../sqrtMath";
 
 export function getDefaultPool(): Pool | null {
   let pool = Pool.load(POOL_ID);
@@ -34,13 +35,14 @@ export function createPool(event: InitializeEvent): Pool {
   let hookAddress = event.params.hooks;
   let fee = event.params.fee;
   let tickSpacing = event.params.tickSpacing;
-  let currentPrice = event.params.sqrtPriceX96;
   let poolId = event.params.id.toHexString();
 
   // Load tokens
   log.log(log.Level.INFO, `Loading tokens`);
   let token0 = getOrCreateToken(token0Address.toHexString());
   let token1 = getOrCreateToken(token1Address.toHexString());
+
+  const prices = sqrtPriceX96ToTokenPrices(event.params.sqrtPriceX96, token0, token1);
 
   // Create pool entity
   let pool = new Pool(poolId);
@@ -50,9 +52,7 @@ export function createPool(event: InitializeEvent): Pool {
   pool.token1 = token1.id;
   pool.tickSpacing = BigInt.fromI32(tickSpacing);
   pool.fee = BigInt.fromI32(fee);
-  pool.currentPrice = currentPrice;
-  pool.token0AmountPerShare = ZERO_BD;
-  pool.token1AmountPerShare = ZERO_BD;
+  pool.currentPrice = prices[0];
   pool.totalValueLockedUSD = ZERO_BD;
   pool.cumulativeSwapFeeUSD = ZERO_BD;
   pool.cumulativeLendingYieldUSD = ZERO_BD;
@@ -69,15 +69,17 @@ export function poolIdMatchesExpected(poolId: string): boolean {
 }
 
 export function trackSwap(pool: Pool, event: SwapEvent): void {
-  let feeTokenAddress =
-    event.params.amount0 > ZERO_BI ? pool.token1 : pool.token0;
-  let feeToken = getOrCreateToken(feeTokenAddress);
+  const token0 = getOrCreateToken(pool.token0);
+  const token1 = getOrCreateToken(pool.token1);
+  let feeToken = event.params.amount0 > ZERO_BI ? token0 : token1;
   let feeUSD = convertTokenToUSD(feeToken, BigInt.fromI32(event.params.fee));
 
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD);
 
-  pool.currentPrice = event.params.sqrtPriceX96;
+  const prices = sqrtPriceX96ToTokenPrices(event.params.sqrtPriceX96, token0, token1);
+  pool.currentPrice = prices[0];
+
   _updateTimestamps(pool, event.block);
   bumpFeesAndTVL(feeUSD);
 
@@ -103,6 +105,7 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent): Pool {
   );
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD);
+  pool.shares = pool.shares.plus(event.params.shares);
 
   _updateTimestamps(pool, event.block);
   pool.save();
@@ -128,6 +131,7 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent): Pool {
   withdrawUSD = withdrawUSD.plus(
     event.params.assets1.toBigDecimal().div(token1DecimalsBD)
   );
+  pool.shares = pool.shares.minus(event.params.shares);
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD);
 

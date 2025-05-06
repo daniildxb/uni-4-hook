@@ -22,9 +22,8 @@ type Pool @entity(immutable: false) {
   token1: Token!
   tickSpacing: BigInt!
   fee: BigInt!
-  currentPrice: BigInt!
-  token0AmountPerShare: BigDecimal!
-  token1AmountPerShare: BigDecimal!
+  shares: BigInt!
+  currentPrice: BigDecimal!
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
@@ -42,6 +41,7 @@ type Pool @entity(immutable: false) {
 type PoolHourlySnapshots @entity(immutable: true) {
   id: ID!
   pool: Pool!
+  currentPrice: BigDecimal!
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
