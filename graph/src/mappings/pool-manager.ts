@@ -8,6 +8,7 @@ import { Protocol } from "../../generated/schema";
 import { createPool, getPool, poolIdMatchesExpected, trackSwap } from '../entities/pool';
 import { createSwap } from '../entities/swap';
 import { getOrCreateProtocol } from '../entities/protocol';
+import { updateSnapshots } from '../helpers';
 
 export function handleInitialize(event: InitializeEvent): void {
   // Load or create protocol
@@ -42,4 +43,6 @@ export function handleSwap(event: SwapEvent): void {
 
     log.log(log.Level.INFO, `Swap processed for pool: ${poolId}`);
   }
+  // update snapshots
+  updateSnapshots(event.block);
 }

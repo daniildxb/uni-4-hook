@@ -4,13 +4,12 @@ type Protocol @entity(immutable: false) {
   pools: [Pool!]! @derivedFrom(field: "protocol")
   totalValueLockedUSD: BigDecimal!
   cumulativeFeeUSD: BigDecimal!
-  snapshots: [ProtocolDailySnapshots!]! @derivedFrom(field: "protocol")
+  snapshots: [ProtocolHourlySnapshots!]! @derivedFrom(field: "protocol")
 }
 
-type ProtocolDailySnapshots @entity(immutable: false) {
+type ProtocolHourlySnapshots @entity(immutable: true) {
   id: ID!
   protocol: Protocol!
-  date: Int!
   totalValueLockedUSD: BigDecimal!
   cumulativeFeeUSD: BigDecimal!
 }
@@ -33,31 +32,29 @@ type Pool @entity(immutable: false) {
   withdrawals: [Withdrawal!]! @derivedFrom(field: "pool")
   swaps: [Swap!]! @derivedFrom(field: "pool")
   positions: [Position!]! @derivedFrom(field: "pool")
-  snapshots: [PoolDailySnapshots!]! @derivedFrom(field: "pool")
+  snapshots: [PoolHourlySnapshots!]! @derivedFrom(field: "pool")
   createdAtTimestamp: BigInt!
   createdAtBlockNumber: BigInt!
   updatedAtTimestamp: BigInt!
   updatedAtBlockNumber: BigInt!
 }
 
-type PoolDailySnapshots @entity(immutable: false) {
+type PoolHourlySnapshots @entity(immutable: true) {
   id: ID!
   pool: Pool!
-  date: Int!
   totalValueLockedUSD: BigDecimal!
-  dailySwapFeeUSD: BigDecimal!
-  dailyLendingYieldUSD: BigDecimal!
-  txCount: BigInt!
+  cumulativeSwapFeeUSD: BigDecimal!
+  cumulativeLendingYieldUSD: BigDecimal!
 }
 
-type Token @entity(immutable: false) {
+type Token @entity(immutable: true) {
   id: ID!
   symbol: String!
   name: String!
   decimals: Int!
 }
 
-type Account @entity(immutable: false) {
+type Account @entity(immutable: true) {
   id: ID!
   positions: [Position!]! @derivedFrom(field: "account")
 }
@@ -77,7 +74,7 @@ type Position @entity(immutable: false) {
   updatedAtBlockNumber: BigInt!
 }
 
-type Deposit @entity(immutable: false) {
+type Deposit @entity(immutable: true) {
   id: ID!
   account: Account!
   pool: Pool!
@@ -89,7 +86,7 @@ type Deposit @entity(immutable: false) {
   blockNumber: BigInt!
 }
 
-type Withdrawal @entity(immutable: false) {
+type Withdrawal @entity(immutable: true) {
   id: ID!
   account: Account!
   pool: Pool!
@@ -101,7 +98,8 @@ type Withdrawal @entity(immutable: false) {
   blockNumber: BigInt!
 }
 
-type Transfer @entity(immutable: false) {
+# todo: implement handlers
+type Transfer @entity(immutable: true) {
   id: ID!
   sender: Account!
   receiver: Account!
@@ -114,7 +112,7 @@ type Transfer @entity(immutable: false) {
   blockNumber: BigInt!
 }
 
-type Swap @entity(immutable: false) {
+type Swap @entity(immutable: true) {
   id: ID!
   pool: Pool!
   # delta of amounts of the pool

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import { NetworkConfig } from './types';
-import { config } from 'dotenv';
 
 const configFiles = fs
     .readdirSync(__dirname)

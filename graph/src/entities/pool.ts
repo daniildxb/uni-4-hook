@@ -2,15 +2,9 @@ import {
   Initialize as InitializeEvent,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
-import {
-  Bytes,
-  log,
-  BigInt,
-  BigDecimal,
-  ethereum,
-} from "@graphprotocol/graph-ts";
-import { Pool, Protocol } from "../../generated/schema";
-import { POOL_ID } from "../helpers/constants";
+import { log, BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts";
+import { Pool, PoolHourlySnapshots, Protocol } from "../../generated/schema";
+import { POOL_ID, SECONDS_IN_HOUR } from "../helpers/constants";
 import { ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
 import { bumpFeesAndTVL, getOrCreateProtocol } from "./protocol";
@@ -168,6 +162,25 @@ export function trackMoneyMarketWithdraw(
   bumpFeesAndTVL(yieldUSD);
   pool.save();
   return pool;
+}
+
+export function getOrCreateSnapshot(
+  pool: Pool,
+  block: ethereum.Block
+): PoolHourlySnapshots {
+  let id: string = (block.timestamp.toI64() / SECONDS_IN_HOUR).toString();
+  let snapshot = PoolHourlySnapshots.load(id);
+  if (snapshot) {
+    return snapshot;
+  }
+
+  snapshot = new PoolHourlySnapshots(id);
+  snapshot.pool = pool.id;
+  snapshot.totalValueLockedUSD = pool.totalValueLockedUSD;
+  snapshot.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD;
+  snapshot.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD;
+  snapshot.save();
+  return snapshot;
 }
 
 function _updateTimestamps(pool: Pool, block: ethereum.Block): void {

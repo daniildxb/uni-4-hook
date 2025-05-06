@@ -41,14 +41,15 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("swap 1");
         swap(config.poolKey, true, amountToSwap, ZERO_BYTES);
         // token1 -> token0
-        // console.log("swap 2");
-        // swap(config.poolKey, false, amountToSwap, ZERO_BYTES);
+        console.log("swap 2");
+        swap(config.poolKey, false, amountToSwap, ZERO_BYTES);
         console.log("6");
         vm.stopBroadcast();
     }
 
     // do it only once and then reuse
     function deploySwapRouter(Config.ConfigData memory config) public {
-        swapRouter = new PoolSwapTest(IPoolManager(config.poolManager));
+        // swapRouter = new PoolSwapTest(IPoolManager(config.poolManager));
+        swapRouter = PoolSwapTest(0x52190DcD7F641B8def14f05FB43D26DE027545c3);
     }
 }

@@ -55,6 +55,8 @@ dataSources:
         - Token
         - Pool
         - Swap
+        - ProtocolHourlySnapshots
+        - PoolHourlySnapshots
       abis:
         - name: PoolManager
           file: ../abis/PoolManager.json

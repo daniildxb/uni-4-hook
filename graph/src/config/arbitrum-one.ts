@@ -8,4 +8,6 @@ export const config: NetworkConfig = {
   AAVE_POOL_ADDRESS: "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
   isLocalTest: false,
   startBlock: 333867600,
+  SECONDS_IN_HOUR: 3600,
+  SECONDS_IN_DAY: 86400,
 };
