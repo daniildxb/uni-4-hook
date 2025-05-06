@@ -35,6 +35,9 @@ abstract contract AaveHook is CustodyHook {
     address public aToken0;
     address public aToken1;
 
+    event MoneyMarkeyDeposit(uint256 amount0, uint256 amount1, uint256 liquidityAmount);
+    event MoneyMarkeyWithdrawal(uint256 amount0, uint256 amount1, uint256 liquidityAmount);
+
     constructor(
         IPoolManager _poolManager,
         Currency _token0,
@@ -100,8 +103,10 @@ abstract contract AaveHook is CustodyHook {
         // Fetch token balances and put them into liquidity
         uint256 liquidityDelta = totalAssets();
 
-        _withdrawFromAave(Currency.unwrap(token0), type(uint256).max, address(this));
-        _withdrawFromAave(Currency.unwrap(token1), type(uint256).max, address(this));
+        uint256 amount0 = _withdrawFromAave(Currency.unwrap(token0), type(uint256).max, address(this));
+        uint256 amount1 = _withdrawFromAave(Currency.unwrap(token1), type(uint256).max, address(this));
+
+        emit MoneyMarkeyWithdrawal(amount0, amount1, liquidityDelta);
 
         IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
             tickLower: tickMin,
@@ -158,6 +163,7 @@ abstract contract AaveHook is CustodyHook {
         uint256 amount1 = IERC20(Currency.unwrap(key.currency1)).balanceOf(address(this));
         _depositToAave(Currency.unwrap(key.currency0), amount0);
         _depositToAave(Currency.unwrap(key.currency1), amount1);
+        emit MoneyMarkeyDeposit(amount0, amount1, totalAssets());
 
         return (BaseHook.afterSwap.selector, 0);
     }

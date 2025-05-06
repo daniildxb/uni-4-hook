@@ -2,8 +2,8 @@ type Protocol @entity(immutable: false) {
   id: ID!
   name: String!
   pools: [Pool!]! @derivedFrom(field: "protocol")
-  totalValueLockedUSD: BigInt!
-  cumulativeFeeUSD: BigInt!
+  totalValueLockedUSD: BigDecimal!
+  cumulativeFeeUSD: BigDecimal!
   snapshots: [ProtocolDailySnapshots!]! @derivedFrom(field: "protocol")
 }
 
@@ -11,8 +11,8 @@ type ProtocolDailySnapshots @entity(immutable: false) {
   id: ID!
   protocol: Protocol!
   date: Int!
-  totalValueLockedUSD: BigInt!
-  cumulativeFeeUSD: BigInt!
+  totalValueLockedUSD: BigDecimal!
+  cumulativeFeeUSD: BigDecimal!
 }
 
 type Pool @entity(immutable: false) {
@@ -26,9 +26,9 @@ type Pool @entity(immutable: false) {
   currentPrice: BigInt!
   token0AmountPerShare: BigDecimal!
   token1AmountPerShare: BigDecimal!
-  totalValueLockedUSD: BigInt!
-  cumulativeSwapFeeUSD: BigInt!
-  cumulativeLendingYieldUSD: BigInt!
+  totalValueLockedUSD: BigDecimal!
+  cumulativeSwapFeeUSD: BigDecimal!
+  cumulativeLendingYieldUSD: BigDecimal!
   deposits: [Deposit!]! @derivedFrom(field: "pool")
   withdrawals: [Withdrawal!]! @derivedFrom(field: "pool")
   swaps: [Swap!]! @derivedFrom(field: "pool")
@@ -44,9 +44,9 @@ type PoolDailySnapshots @entity(immutable: false) {
   id: ID!
   pool: Pool!
   date: Int!
-  totalValueLockedUSD: BigInt!
-  dailySwapFeeUSD: BigInt!
-  dailyLendingYieldUSD: BigInt!
+  totalValueLockedUSD: BigDecimal!
+  dailySwapFeeUSD: BigDecimal!
+  dailyLendingYieldUSD: BigDecimal!
   txCount: BigInt!
 }
 
@@ -118,8 +118,10 @@ type Swap @entity(immutable: false) {
   id: ID!
   pool: Pool!
   # delta of amounts of the pool
+  # when swapping 0 -> 1, amount0 is negative and amount1 is positive
   amount0: BigInt!
   amount1: BigInt!
+  # fees paid in the input token (the one that's negative)
   fee: BigInt!
   sender: Bytes!
   timestamp: BigInt!

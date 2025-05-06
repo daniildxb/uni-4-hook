@@ -15,7 +15,7 @@ export function run(network: string) {
     let wasmConstantsString = ``;
 
     for (const constant in constants) {
-        wasmConstantsString += `export const ${constant} = "${encodeArgument(constants[constant as keyof NetworkConfig])}";\n`;
+        wasmConstantsString += `export const ${constant} = ${encodeArgument(constants[constant as keyof NetworkConfig])};\n`;
     }
 
     const waspConstantsPath = path.resolve(__dirname, '..', 'src', 'helpers', `constants.ts`);

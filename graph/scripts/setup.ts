@@ -15,5 +15,10 @@ export function run(passedNetwork: string) {
 
     // Generate types
     generateTypes(network);
+}
 
+
+if (require.main === module) {
+    const network = getNetwork();
+    run(network);
 }

@@ -51,39 +51,15 @@ export function loadToken(tokenAddress: Address): Token {
   return token as Token;
 }
 
+export function loadTokenByAddressString(tokenAddress: string): Token {
+  return loadToken(Address.fromString(tokenAddress));
+}
+
 export function createProtocol(): Protocol {
   let protocol = new Protocol('uniswap-v4-lending-hook');
   protocol.name = 'Uniswap V4 Lending Hook';
-  protocol.totalValueLockedUSD = ZERO_BI;
-  protocol.cumulativeFeeUSD = ZERO_BI;
+  protocol.totalValueLockedUSD = ZERO_BD;
+  protocol.cumulativeFeeUSD = ZERO_BD;
   protocol.save();
   return protocol;
-}
-
-export function updateProtocolTVL(protocol: Protocol, amountUSD: BigInt, isDeposit: boolean): void {
-  if (isDeposit) {
-    protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(amountUSD);
-  } else {
-    protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.minus(amountUSD);
-  }
-  protocol.save();
-}
-
-export function updateProtocolFees(protocol: Protocol, feeUSD: BigInt): void {
-  protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeUSD);
-  protocol.save();
-}
-
-export function updatePoolTVL(pool: Pool, amountUSD: BigInt, isDeposit: boolean): void {
-  if (isDeposit) {
-    pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(amountUSD);
-  } else {
-    pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(amountUSD);
-  }
-  pool.save();
-}
-
-export function updatePoolFees(pool: Pool, feeUSD: BigInt): void {
-  pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
-  pool.save();
 }

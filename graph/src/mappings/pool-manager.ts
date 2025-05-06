@@ -1,10 +1,11 @@
-import { log, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { log, BigInt, Bytes, Address, BigDecimal } from '@graphprotocol/graph-ts';
 import {
   Initialize as InitializeEvent,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
 import { Protocol, Pool, Swap } from "../../generated/schema";
 import { loadToken, createProtocol, ZERO_BI, ZERO_BD } from "../helpers";
+import { POOL_ID } from "../helpers/constants";
 
 export function handleInitialize(event: InitializeEvent): void {
   // Load or create protocol
@@ -16,7 +17,7 @@ export function handleInitialize(event: InitializeEvent): void {
   // Extract pool details from the event
   let id = event.params.id;
   let idString = id.toHexString();
-  let expectedIdString = "0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360";
+  let expectedIdString = POOL_ID;
   
   if (idString == expectedIdString) {
     log.log(log.Level.INFO, `Pool ID check passed with at least one method`);
@@ -49,9 +50,9 @@ export function handleInitialize(event: InitializeEvent): void {
     pool.currentPrice = currentPrice;
     pool.token0AmountPerShare = ZERO_BD;
     pool.token1AmountPerShare = ZERO_BD;
-    pool.totalValueLockedUSD = ZERO_BI;
-    pool.cumulativeSwapFeeUSD = ZERO_BI;
-    pool.cumulativeLendingYieldUSD = ZERO_BI;
+    pool.totalValueLockedUSD = ZERO_BD;
+    pool.cumulativeSwapFeeUSD = ZERO_BD;
+    pool.cumulativeLendingYieldUSD = ZERO_BD;
     pool.createdAtTimestamp = event.block.timestamp;
     pool.createdAtBlockNumber = event.block.number;
     pool.updatedAtTimestamp = event.block.timestamp;
@@ -63,12 +64,17 @@ export function handleInitialize(event: InitializeEvent): void {
 }
 
 export function handleSwap(event: SwapEvent): void {
+  let protocol = Protocol.load("uniswap-v4-lending-hook");
+  if (protocol === null) {
+    return;
+  }
+
   // Pool ID comparison with multiple checks
   let id = event.params.id;
   let idString = id.toHexString();
-  let expectedIdString = "0xeb4b62640827a59dd667017b5e8e14533479be83d1c7145775db1716274d4360";
+  let expectedIdString = POOL_ID;
   
-  if (idString === expectedIdString) {
+  if (idString == expectedIdString) {
     log.log(log.Level.INFO, `Swap - Pool ID check passed`);
     
     let poolId = idString;
@@ -80,12 +86,8 @@ export function handleSwap(event: SwapEvent): void {
     }
     
     pool.currentPrice = event.params.sqrtPriceX96;
-    pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(
-      BigInt.fromI32(event.params.fee)
-    );
     pool.updatedAtTimestamp = event.block.timestamp;
     pool.updatedAtBlockNumber = event.block.number;
-    pool.save();
 
     // create swap entity
     let swapId = event.transaction.hash.toHexString().concat('-').concat(event.logIndex.toString());
@@ -98,6 +100,22 @@ export function handleSwap(event: SwapEvent): void {
     swap.timestamp = event.block.timestamp;
     swap.blockNumber = event.block.number;
     swap.save();
+
+    let feeTokenAddress = event.params.amount0 > ZERO_BI ? pool.token1 : pool.token0;
+    let feeToken = loadToken(Address.fromString(feeTokenAddress));
+
+    const feeBD = new BigDecimal(BigInt.fromI32(event.params.fee));
+    const decimalsBD = new BigDecimal(BigInt.fromI32(10).pow(u8(feeToken.decimals)));
+
+    let feeUSD: BigDecimal = feeBD.div(decimalsBD);
+    pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
+    pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD);
+    protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(feeUSD);
+    protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeUSD);
+
+    pool.save();
+    protocol.save();
+
     
     log.log(log.Level.INFO, `Swap processed for pool: ${poolId}`);
   }
