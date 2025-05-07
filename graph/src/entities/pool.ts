@@ -2,7 +2,7 @@ import {
   Initialize as InitializeEvent,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
-import { log, BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts";
+import { log, BigInt, BigDecimal, ethereum, Address } from "@graphprotocol/graph-ts";
 import { Pool, PoolHourlySnapshots, Protocol } from "../../generated/schema";
 import { POOL_ID, SECONDS_IN_HOUR } from "../helpers/constants";
 import { ZERO_BD, ZERO_BI } from "../helpers";
@@ -12,8 +12,10 @@ import {
   MoneyMarkeyWithdrawal as MoneyMarketWithdrawEvent,
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
+  HookV1,
 } from "../../generated/HookV1/HookV1";
 import { sqrtPriceX96ToTokenPrices } from "../sqrtMath";
+import { ERC20 } from "../../generated/HookV1/ERC20";
 
 export function getDefaultPool(): Pool | null {
   let pool = Pool.load(POOL_ID);
@@ -33,6 +35,7 @@ export function createPool(event: InitializeEvent): Pool {
   let token0Address = event.params.currency0;
   let token1Address = event.params.currency1;
   let hookAddress = event.params.hooks;
+  const hookContract = HookV1.bind(hookAddress);
   let fee = event.params.fee;
   let tickSpacing = event.params.tickSpacing;
   let poolId = event.params.id.toHexString();
@@ -50,12 +53,17 @@ export function createPool(event: InitializeEvent): Pool {
   pool.hook = hookAddress;
   pool.token0 = token0.id;
   pool.token1 = token1.id;
+  pool.aToken0 = hookContract.aToken0().toHexString();
+  pool.aToken1 = hookContract.aToken1().toHexString();
   pool.tickSpacing = BigInt.fromI32(tickSpacing);
   pool.fee = BigInt.fromI32(fee);
   pool.currentPrice = prices[0];
   pool.totalValueLockedUSD = ZERO_BD;
   pool.cumulativeSwapFeeUSD = ZERO_BD;
   pool.cumulativeLendingYieldUSD = ZERO_BD;
+  pool.shares = ZERO_BI;
+  pool.token0Amount = ZERO_BI;
+  pool.token1Amount = ZERO_BI;
   pool.createdAtTimestamp = event.block.timestamp;
   pool.createdAtBlockNumber = event.block.number;
   pool.updatedAtTimestamp = event.block.timestamp;
@@ -71,11 +79,15 @@ export function poolIdMatchesExpected(poolId: string): boolean {
 export function trackSwap(pool: Pool, event: SwapEvent): void {
   const token0 = getOrCreateToken(pool.token0);
   const token1 = getOrCreateToken(pool.token1);
-  let feeToken = event.params.amount0 > ZERO_BI ? token0 : token1;
+  let feeToken = event.params.amount0 > ZERO_BI ? token1 : token0;
   let feeUSD = convertTokenToUSD(feeToken, BigInt.fromI32(event.params.fee));
 
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD);
+  // input token will be negative and output token will be positive
+  // hence we subtract instead of adding
+  pool.token0Amount = pool.token0Amount.minus(event.params.amount0);
+  pool.token1Amount = pool.token1Amount.minus(event.params.amount1);
 
   const prices = sqrtPriceX96ToTokenPrices(event.params.sqrtPriceX96, token0, token1);
   pool.currentPrice = prices[0];
@@ -106,6 +118,8 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent): Pool {
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD);
   pool.shares = pool.shares.plus(event.params.shares);
+  pool.token0Amount = pool.token0Amount.plus(event.params.assets0);
+  pool.token1Amount = pool.token1Amount.plus(event.params.assets1);
 
   _updateTimestamps(pool, event.block);
   pool.save();
@@ -134,6 +148,8 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent): Pool {
   pool.shares = pool.shares.minus(event.params.shares);
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD);
+  pool.token0Amount = pool.token0Amount.minus(event.params.assets0);
+  pool.token1Amount = pool.token1Amount.minus(event.params.assets1);
 
   _updateTimestamps(pool, event.block);
   pool.save();
@@ -162,29 +178,99 @@ export function trackMoneyMarketWithdraw(
   pool.totalValueLockedUSD = newTVL;
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(yieldUSD);
+
+  pool.token0Amount = event.params.amount0;
+  pool.token1Amount = event.params.amount1;
+
   _updateTimestamps(pool, event.block);
   bumpFeesAndTVL(yieldUSD);
   pool.save();
   return pool;
 }
 
+export function calculateAPY(
+  rateIncreaseUSD: BigDecimal,
+  initialValueUSD: BigDecimal,
+  timeDeltaSeconds: number
+): BigDecimal {
+  if (initialValueUSD.le(BigDecimal.zero()) || timeDeltaSeconds <= 0) {
+    log.error("Invalid input: initial value or time delta is zero or negative", []);
+    return BigDecimal.zero();
+  }
+
+  const finalValue = initialValueUSD.plus(rateIncreaseUSD);
+  const growthFactor = finalValue.div(initialValueUSD);
+
+  // Convert to f64 to do exponentiation
+  const base = parseFloat(growthFactor.toString());
+  const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+  const exponent = SECONDS_PER_YEAR / timeDeltaSeconds; // safe since it's time
+
+  const apyValue = Math.pow(base, exponent) - 1;
+
+  return BigDecimal.fromString(apyValue.toString());
+}
+
 export function getOrCreateSnapshot(
   pool: Pool,
   block: ethereum.Block
 ): PoolHourlySnapshots {
-  let id: string = (block.timestamp.toI64() / SECONDS_IN_HOUR).toString();
+  let idNum = block.timestamp.toI64() / SECONDS_IN_HOUR
+  let id: string = idNum.toString();
   let snapshot = PoolHourlySnapshots.load(id);
   if (snapshot) {
+    // shouldn't happen, but just in case
     return snapshot;
+  }
+
+  const previousSnapshot = PoolHourlySnapshots.load((idNum - 1).toString());
+  let rate = ZERO_BD;
+  if (previousSnapshot) {
+    const usdYield = pool.cumulativeLendingYieldUSD.plus(
+      pool.cumulativeSwapFeeUSD)
+      .minus(previousSnapshot.cumulativeLendingYieldUSD)
+      .minus(previousSnapshot.cumulativeSwapFeeUSD);
+    const timeDelta = SECONDS_IN_HOUR;
+    rate = calculateAPY(usdYield, previousSnapshot.totalValueLockedUSD, timeDelta);
   }
 
   snapshot = new PoolHourlySnapshots(id);
   snapshot.pool = pool.id;
+  snapshot.currentPrice = pool.currentPrice;
   snapshot.totalValueLockedUSD = pool.totalValueLockedUSD;
   snapshot.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD;
   snapshot.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD;
+  snapshot.rate = rate;
   snapshot.save();
   return snapshot;
+}
+
+// called once an hour by the snapshot updator
+export function updatePoolLendingYield(pool: Pool, block: ethereum.Block): BigDecimal {
+  // fetch atoken balance of the hook
+  let aToken0Contract = ERC20.bind(Address.fromString(pool.aToken0));
+  let aToken1Contract = ERC20.bind(Address.fromString(pool.aToken1));
+
+  let aToken0Balance = aToken0Contract.balanceOf(Address.fromBytes(pool.hook));
+  let aToken1Balance = aToken1Contract.balanceOf(Address.fromBytes(pool.hook));
+
+  let token0Yield = aToken0Balance.minus(pool.token0Amount);
+  let token1Yield = aToken1Balance.minus(pool.token1Amount);
+
+  pool.token0Amount = aToken0Balance;
+  pool.token1Amount = aToken1Balance;
+
+  const yieldUSD = convertTokenToUSD(getOrCreateToken(pool.token0), token0Yield)
+    .plus(
+      convertTokenToUSD(getOrCreateToken(pool.token1), token1Yield)
+    );
+  pool.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD.plus(yieldUSD);
+  pool.totalValueLockedUSD = yieldUSD.plus(pool.totalValueLockedUSD);
+
+  _updateTimestamps(pool, block);
+
+  pool.save();
+  return yieldUSD;
 }
 
 function _updateTimestamps(pool: Pool, block: ethereum.Block): void {

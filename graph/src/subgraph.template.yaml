@@ -62,6 +62,8 @@ dataSources:
           file: ../abis/PoolManager.json
         - name: ERC20
           file: ../abis/ERC20.json
+        - name: HookV1
+          file: ../abis/HookV1.json
       eventHandlers:
         - event: Initialize(indexed bytes32,indexed address,indexed address,uint24,int24,address,uint160,int24)
           handler: handleInitialize

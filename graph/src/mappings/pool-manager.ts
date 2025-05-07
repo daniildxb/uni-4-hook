@@ -12,7 +12,7 @@ import { updateSnapshots } from '../helpers';
 
 export function handleInitialize(event: InitializeEvent): void {
   // Load or create protocol
-  let protocol = getOrCreateProtocol();
+  getOrCreateProtocol();
 
   // Extract pool details from the event
   let id = event.params.id;
@@ -42,7 +42,8 @@ export function handleSwap(event: SwapEvent): void {
     trackSwap(pool, event);
 
     log.log(log.Level.INFO, `Swap processed for pool: ${poolId}`);
+  } else {
+    // only updating if the swap is for different pool to avoid overriding pool leding yields
+    updateSnapshots(event.block);
   }
-  // update snapshots
-  updateSnapshots(event.block);
 }

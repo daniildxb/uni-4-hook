@@ -1,3 +1,4 @@
+# for now this will only have a single entry with id "uniswap-v4-lending-hook"
 type Protocol @entity(immutable: false) {
   id: ID!
   name: String!
@@ -5,9 +6,11 @@ type Protocol @entity(immutable: false) {
   totalValueLockedUSD: BigDecimal!
   cumulativeFeeUSD: BigDecimal!
   snapshots: [ProtocolHourlySnapshots!]! @derivedFrom(field: "protocol")
+  lastSnapshotTimestamp: BigInt!
 }
 
 type ProtocolHourlySnapshots @entity(immutable: true) {
+  # ID is hours from the unix epoch
   id: ID!
   protocol: Protocol!
   totalValueLockedUSD: BigDecimal!
@@ -20,10 +23,15 @@ type Pool @entity(immutable: false) {
   hook: Bytes!
   token0: Token!
   token1: Token!
+  aToken0: Token!
+  aToken1: Token!
   tickSpacing: BigInt!
   fee: BigInt!
   shares: BigInt!
+  # price of token0 in token1
   currentPrice: BigDecimal!
+  token0Amount: BigInt!
+  token1Amount: BigInt!
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
@@ -39,9 +47,11 @@ type Pool @entity(immutable: false) {
 }
 
 type PoolHourlySnapshots @entity(immutable: true) {
+  # ID is hours from the unix epoch
   id: ID!
   pool: Pool!
   currentPrice: BigDecimal!
+  rate: BigDecimal!
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!

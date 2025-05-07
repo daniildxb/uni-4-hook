@@ -1,6 +1,6 @@
 import { BigDecimal, ethereum } from "@graphprotocol/graph-ts";
 import { Protocol, ProtocolHourlySnapshots } from "../../generated/schema";
-import { ZERO_BD } from "../helpers";
+import { ZERO_BD, ZERO_BI } from "../helpers";
 import { SECONDS_IN_HOUR } from "../helpers/constants";
 
 export function getOrCreateProtocol(): Protocol {
@@ -10,6 +10,7 @@ export function getOrCreateProtocol(): Protocol {
     protocol.name = "Uniswap V4 Lending Hook";
     protocol.totalValueLockedUSD = ZERO_BD;
     protocol.cumulativeFeeUSD = ZERO_BD;
+    protocol.lastSnapshotTimestamp = ZERO_BI;
     protocol.save();
   }
   return protocol;
@@ -34,6 +35,8 @@ export function getOrCreateSnapshot(
   if (snapshot) {
     return snapshot;
   }
+
+  // update protocol TVL and 
 
   snapshot = new ProtocolHourlySnapshots(id);
   snapshot.protocol = protocol.id;
