@@ -10,19 +10,21 @@ export function getOrCreateProtocol(): Protocol {
     protocol.name = "Uniswap V4 Lending Hook";
     protocol.totalValueLockedUSD = ZERO_BD;
     protocol.cumulativeFeeUSD = ZERO_BD;
+    protocol.cumulativeVolumeUSD = ZERO_BD;
     protocol.lastSnapshotTimestamp = ZERO_BI;
     protocol.save();
   }
   return protocol;
 }
 
-export function bumpFeesAndTVL(assets: BigDecimal): void {
+export function bumpProtocolStats(feeToAdd: BigDecimal, swapVolumeToAdd: BigDecimal): void {
   let protocol = getOrCreateProtocol();
   if (protocol === null) {
     return;
   }
-  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(assets);
-  protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(assets);
+  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(feeToAdd);
+  protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeToAdd);
+  protocol.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD.plus(swapVolumeToAdd);
   protocol.save();
 }
 
@@ -36,12 +38,11 @@ export function getOrCreateSnapshot(
     return snapshot;
   }
 
-  // update protocol TVL and 
-
   snapshot = new ProtocolHourlySnapshots(id);
   snapshot.protocol = protocol.id;
   snapshot.totalValueLockedUSD = protocol.totalValueLockedUSD;
   snapshot.cumulativeFeeUSD = protocol.cumulativeFeeUSD;
+  snapshot.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD;
   snapshot.save();
   return snapshot;
 }

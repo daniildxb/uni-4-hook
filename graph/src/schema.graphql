@@ -5,6 +5,7 @@ type Protocol @entity(immutable: false) {
   pools: [Pool!]! @derivedFrom(field: "protocol")
   totalValueLockedUSD: BigDecimal!
   cumulativeFeeUSD: BigDecimal!
+  cumulativeVolumeUSD: BigDecimal!
   snapshots: [ProtocolHourlySnapshots!]! @derivedFrom(field: "protocol")
   lastSnapshotTimestamp: BigInt!
 }
@@ -15,6 +16,7 @@ type ProtocolHourlySnapshots @entity(immutable: true) {
   protocol: Protocol!
   totalValueLockedUSD: BigDecimal!
   cumulativeFeeUSD: BigDecimal!
+  cumulativeVolumeUSD: BigDecimal!
 }
 
 type Pool @entity(immutable: false) {
@@ -35,6 +37,7 @@ type Pool @entity(immutable: false) {
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
+  cumulativeVolumeUSD: BigDecimal!
   deposits: [Deposit!]! @derivedFrom(field: "pool")
   withdrawals: [Withdrawal!]! @derivedFrom(field: "pool")
   swaps: [Swap!]! @derivedFrom(field: "pool")
@@ -56,6 +59,7 @@ type PoolHourlySnapshots @entity(immutable: true) {
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
+  cumulativeVolumeUSD: BigDecimal!
 }
 
 type Token @entity(immutable: true) {
