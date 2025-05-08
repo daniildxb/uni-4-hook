@@ -52,6 +52,7 @@ type PoolHourlySnapshots @entity(immutable: true) {
   pool: Pool!
   currentPrice: BigDecimal!
   rate: BigDecimal!
+  shares: BigInt!
   totalValueLockedUSD: BigDecimal!
   cumulativeSwapFeeUSD: BigDecimal!
   cumulativeLendingYieldUSD: BigDecimal!
@@ -82,6 +83,17 @@ type Position @entity(immutable: false) {
   createdAtBlockNumber: BigInt!
   updatedAtTimestamp: BigInt!
   updatedAtBlockNumber: BigInt!
+}
+
+# position snapshots
+# only track when position shares change
+# for visualization we should rely on the pool snapshots
+type PositionSnapshots @entity(immutable: true) {
+  # ID is unix epoch timestamp in seconds + tx index
+  id: ID!
+  position: Position!
+  shares: BigInt!
+  createdAtTimestamp: BigInt!
 }
 
 type Deposit @entity(immutable: true) {

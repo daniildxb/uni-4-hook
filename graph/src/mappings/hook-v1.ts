@@ -45,7 +45,6 @@ export function handleDeposit(event: DepositEvent): void {
   } else {
     trackDeposit(position, event);
   }
-  position.save();
 
   // add deposit entity
   createDeposit(accountAddress, poolId, event);
@@ -73,7 +72,6 @@ export function handleWithdraw(event: WithdrawEvent): void {
   }
   // Update position
   trackWithdraw(position, event);
-  position.save();
 
   // add withdraw entity
   createWithdraw(address, poolId, event);

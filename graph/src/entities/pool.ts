@@ -241,6 +241,7 @@ export function getOrCreateSnapshot(
   snapshot.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD;
   snapshot.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD;
   snapshot.rate = rate;
+  snapshot.shares = pool.shares;
   snapshot.save();
   return snapshot;
 }

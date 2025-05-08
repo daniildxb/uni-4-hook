@@ -26,7 +26,7 @@ export function updateSnapshots(block: ethereum.Block): void {
     for (let i = 0; i < pools.length; i++) {
       const pool = pools[i];
       // update pool lending yield
-      feesUSD.plus(updatePoolLendingYield(pool, block));
+      feesUSD = feesUSD.plus(updatePoolLendingYield(pool, block));
       // snapshot 
       poolSnapshot(pool, block);
     }
