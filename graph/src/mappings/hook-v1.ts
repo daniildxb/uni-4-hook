@@ -2,17 +2,14 @@ import { log } from "@graphprotocol/graph-ts";
 import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
-  MoneyMarketWithdrawal as MoneyMarketWithdrawEvent,
 } from "../../generated/HookV1/HookV1";
 import {
   Pool,
 } from "../../generated/schema";
 import { POOL_ID } from "../helpers/constants";
 import {
-  getDefaultPool,
   trackHookDeposit,
   trackHookWithdraw,
-  trackMoneyMarketWithdraw,
 } from "../entities/pool";
 import {
   createPosition,
@@ -81,19 +78,4 @@ export function handleWithdraw(event: WithdrawEvent): void {
   // add withdraw entity
   createWithdraw(address, poolId, event, token0, token1);
   trackHookWithdraw(pool, event, token0, token1);
-}
-
-  // this happens ** BEFORE ** the swap processing
-  // we need to track the amount withdrawn from the money market
-  // and compute yield given previous TVL value
-export function handleMoneyMarketWithdraw(
-  event: MoneyMarketWithdrawEvent
-): void {
-  const pool = getDefaultPool();
-  if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found`);
-    // This should not happen as pool should be created during initialization
-    return;
-  }
-  trackMoneyMarketWithdraw(pool, event);
 }

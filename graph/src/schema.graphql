@@ -32,6 +32,7 @@ type Pool @entity(immutable: false) {
   shares: BigInt!
   # price of token0 in token1
   currentPrice: BigDecimal!
+  # total amounts
   token0Amount: BigInt!
   token1Amount: BigInt!
   totalValueLockedUSD: BigDecimal!

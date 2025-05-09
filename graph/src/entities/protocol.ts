@@ -17,13 +17,14 @@ export function getOrCreateProtocol(): Protocol {
   return protocol;
 }
 
-export function bumpProtocolStats(feeToAdd: BigDecimal, swapVolumeToAdd: BigDecimal): void {
+// todo: check usages of this function and remove if not needed
+export function bumpProtocolStats(feeToAdd: BigDecimal, swapVolumeToAdd: BigDecimal, lendingYieldToAdd: BigDecimal): void {
   let protocol = getOrCreateProtocol();
   if (protocol === null) {
     return;
   }
-  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(feeToAdd);
-  protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeToAdd);
+  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(feeToAdd).plus(lendingYieldToAdd);
+  protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeToAdd).plus(lendingYieldToAdd);
   protocol.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD.plus(swapVolumeToAdd);
   protocol.save();
 }

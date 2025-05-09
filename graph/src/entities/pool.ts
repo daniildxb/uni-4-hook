@@ -15,7 +15,6 @@ import { ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
 import { bumpProtocolStats, getOrCreateProtocol } from "./protocol";
 import {
-  MoneyMarketWithdrawal as MoneyMarketWithdrawEvent,
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
   HookV1,
@@ -87,32 +86,51 @@ export function poolIdMatchesExpected(poolId: string): boolean {
   return poolId == POOL_ID;
 }
 
-export function trackSwap(pool: Pool, event: SwapEvent, token0: Token, token1: Token): void {
-  let feeToken = event.params.amount0 > ZERO_BI ? token1 : token0;
+export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1: Token): void {
+  let feeToken = event.params.amount0 > ZERO_BI ? _token1 : _token0;
   let feeUSD = convertTokenToUSD(feeToken, BigInt.fromI32(event.params.fee));
 
+  const results = _getNewPoolBalance(pool);
+  const balance = results[0];
+  const token0Balance = results[1];
+  const token1Balance = results[2];
+
+  const oldPoolBalance = pool.token0Amount
+    .plus(pool.token1Amount);
+
+  const lendingYield = balance
+    .minus(oldPoolBalance)
+    .minus(BigInt.fromI32(event.params.fee)); // to avoid double counting
+
+  // not fully accurate, but close enough
+  const lendingYieldUSD = convertTokenToUSD(
+    _token0,
+    lendingYield
+  );
+
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD);
-  // input token will be negative and output token will be positive
-  // hence we subtract instead of adding
-  pool.token0Amount = pool.token0Amount.minus(event.params.amount0);
-  pool.token1Amount = pool.token1Amount.minus(event.params.amount1);
+  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD).plus(lendingYieldUSD);
+  pool.cumulativeLendingYieldUSD =
+    pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
+
+  pool.token0Amount = token0Balance;
+  pool.token1Amount = token1Balance;
   // input token amount is negative, hence we negate
   const swapVolumeUSD =
     event.params.amount0 > ZERO_BI
-      ? convertTokenToUSD(token1, event.params.amount1).neg()
-      : convertTokenToUSD(token0, event.params.amount0).neg();
+      ? convertTokenToUSD(_token1, event.params.amount1).neg()
+      : convertTokenToUSD(_token0, event.params.amount0).neg();
   pool.cumulativeVolumeUSD = pool.cumulativeVolumeUSD.plus(swapVolumeUSD);
 
   const prices = sqrtPriceX96ToTokenPrices(
     event.params.sqrtPriceX96,
-    token0,
-    token1
+    _token0,
+    _token1
   );
   pool.currentPrice = prices[0];
 
   _updateTimestamps(pool, event.block);
-  bumpProtocolStats(feeUSD, swapVolumeUSD);
+  bumpProtocolStats(feeUSD, swapVolumeUSD, lendingYieldUSD);
 
   pool.save();
 }
@@ -127,21 +145,43 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
     BigInt.fromI32(10).pow(u8(token1.decimals))
   );
 
+  const results = _getNewPoolBalance(pool);
+  const balance = results[0];
+  const token0Balance = results[1];
+  const token1Balance = results[2];
+
+  const oldPoolBalance = pool.token0Amount
+    .plus(pool.token1Amount);
+
+  const lendingYield = balance
+    .minus(oldPoolBalance)
+    .minus(event.params.assets0)
+    .minus(event.params.assets1);
+  const lendingYieldUSD = convertTokenToUSD(
+    token0,
+    lendingYield
+  );
+
   let depositUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
   depositUSD = depositUSD.plus(
     event.params.assets1.toBigDecimal().div(token1DecimalsBD)
   );
 
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD);
+  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD).plus(lendingYieldUSD);
+  pool.cumulativeLendingYieldUSD =
+    pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
   pool.shares = pool.shares.plus(event.params.shares);
-  pool.token0Amount = pool.token0Amount.plus(event.params.assets0);
-  pool.token1Amount = pool.token1Amount.plus(event.params.assets1);
+
+
+  pool.token0Amount = token0Balance;
+  pool.token1Amount = token1Balance;
 
   _updateTimestamps(pool, event.block);
   pool.save();
 
   let protocol = getOrCreateProtocol();
   protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(depositUSD);
+  bumpProtocolStats(ZERO_BD, ZERO_BD, lendingYieldUSD);
   protocol.save();
   return pool;
 }
@@ -153,6 +193,25 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
   let token1DecimalsBD = new BigDecimal(
     BigInt.fromI32(10).pow(u8(token1.decimals))
   );
+  
+  const results = _getNewPoolBalance(pool);
+  const balance = results[0];
+  const token0Balance = results[1];
+  const token1Balance = results[2];
+
+  const oldPoolBalance = pool.token0Amount
+    .plus(pool.token1Amount);
+
+  // yield between updates is higher than withdraw amount
+  const lendingYield = balance
+    .minus(oldPoolBalance)
+    .plus(event.params.assets0)
+    .plus(event.params.assets1);
+
+  const lendingYieldUSD = convertTokenToUSD(
+    token0,
+    lendingYield
+  );
 
   let withdrawUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
   withdrawUSD = withdrawUSD.plus(
@@ -160,9 +219,11 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
   );
   pool.shares = pool.shares.minus(event.params.shares);
 
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD);
-  pool.token0Amount = pool.token0Amount.minus(event.params.assets0);
-  pool.token1Amount = pool.token1Amount.minus(event.params.assets1);
+  pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD).plus(lendingYieldUSD);
+  pool.cumulativeLendingYieldUSD =
+    pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
+  pool.token0Amount = token0Balance;
+  pool.token1Amount = token1Balance;
 
   _updateTimestamps(pool, event.block);
   pool.save();
@@ -170,36 +231,12 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
   let protocol = getOrCreateProtocol();
   protocol.totalValueLockedUSD =
     protocol.totalValueLockedUSD.minus(withdrawUSD);
+  bumpProtocolStats(ZERO_BD, ZERO_BD, lendingYieldUSD);
+
   protocol.save();
   return pool;
 }
 
-export function trackMoneyMarketWithdraw(
-  pool: Pool,
-  event: MoneyMarketWithdrawEvent
-): Pool {
-  let oldTVL = pool.totalValueLockedUSD;
-
-  let token0 = getOrCreateToken(pool.token0);
-  let token1 = getOrCreateToken(pool.token1);
-
-  let token0UsdAmount = convertTokenToUSD(token0, event.params.amount0);
-  let token1UsdAmount = convertTokenToUSD(token1, event.params.amount1);
-
-  let newTVL = token0UsdAmount.plus(token1UsdAmount);
-  let yieldUSD = newTVL.minus(oldTVL);
-  pool.totalValueLockedUSD = newTVL;
-  pool.cumulativeLendingYieldUSD =
-    pool.cumulativeLendingYieldUSD.plus(yieldUSD);
-
-  pool.token0Amount = event.params.amount0;
-  pool.token1Amount = event.params.amount1;
-
-  _updateTimestamps(pool, event.block);
-  bumpProtocolStats(yieldUSD, ZERO_BD);
-  pool.save();
-  return pool;
-}
 
 export function calculateAPY(
   rateIncreaseUSD: BigDecimal,
@@ -272,34 +309,63 @@ export function updatePoolLendingYield(
   pool: Pool,
   block: ethereum.Block
 ): BigDecimal {
-  // fetch atoken balance of the hook
-  let aToken0Contract = ERC20.bind(Address.fromString(pool.aToken0));
-  let aToken1Contract = ERC20.bind(Address.fromString(pool.aToken1));
+  const result = _getNewPoolBalance(pool);
+  const balance = result[0];
+  const token0Balance = result[1];
+  const token1Balance = result[2];
 
-  let aToken0Balance = aToken0Contract.balanceOf(Address.fromBytes(pool.hook));
-  let aToken1Balance = aToken1Contract.balanceOf(Address.fromBytes(pool.hook));
-
-  let token0Yield = aToken0Balance.minus(pool.token0Amount);
-  let token1Yield = aToken1Balance.minus(pool.token1Amount);
-
-  pool.token0Amount = aToken0Balance;
-  pool.token1Amount = aToken1Balance;
-
-  const yieldUSD = convertTokenToUSD(
+  pool.token0Amount = token0Balance;
+  pool.token1Amount = token1Balance;
+  const oldPoolBalance = pool.token0Amount
+    .plus(pool.token1Amount);
+  const lendingYield = balance
+    .minus(oldPoolBalance);
+  const lendingYieldUSD = convertTokenToUSD(
     getOrCreateToken(pool.token0),
-    token0Yield
-  ).plus(convertTokenToUSD(getOrCreateToken(pool.token1), token1Yield));
+    lendingYield
+  );
+
   pool.cumulativeLendingYieldUSD =
-    pool.cumulativeLendingYieldUSD.plus(yieldUSD);
-  pool.totalValueLockedUSD = yieldUSD.plus(pool.totalValueLockedUSD);
+    pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
+  pool.totalValueLockedUSD = lendingYieldUSD.plus(pool.totalValueLockedUSD);
 
   _updateTimestamps(pool, block);
 
   pool.save();
-  return yieldUSD;
+  return lendingYieldUSD;
 }
 
 function _updateTimestamps(pool: Pool, block: ethereum.Block): void {
   pool.updatedAtTimestamp = block.timestamp;
   pool.updatedAtBlockNumber = block.number;
+}
+
+
+function _getNewPoolBalance(
+  pool: Pool,
+): Array<BigInt> {
+  const aToken0Contract = ERC20.bind(Address.fromString(pool.aToken0));
+  const aToken1Contract = ERC20.bind(Address.fromString(pool.aToken1));
+  const token0Contract = ERC20.bind(Address.fromString(pool.token0));
+  const token1Contract = ERC20.bind(Address.fromString(pool.token1));
+
+  const aToken0Balance = aToken0Contract.balanceOf(Address.fromBytes(pool.hook));
+  const aToken1Balance = aToken1Contract.balanceOf(Address.fromBytes(pool.hook));
+  const token0Balance = token0Contract.balanceOf(Address.fromBytes(pool.hook));
+  const token1Balance = token1Contract.balanceOf(Address.fromBytes(pool.hook));
+
+  const token0 = aToken0Balance
+    .plus(token0Balance);
+
+  const token1 = aToken1Balance
+    .plus(token1Balance);
+
+  const balance = token0
+    .plus(token1);
+
+  return [
+    balance,
+    token0,
+    token1
+  ]
 }
