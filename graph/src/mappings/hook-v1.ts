@@ -2,7 +2,7 @@ import { log } from "@graphprotocol/graph-ts";
 import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
-  MoneyMarkeyWithdrawal as MoneyMarketWithdrawEvent,
+  MoneyMarketWithdrawal as MoneyMarketWithdrawEvent,
 } from "../../generated/HookV1/HookV1";
 import {
   Pool,

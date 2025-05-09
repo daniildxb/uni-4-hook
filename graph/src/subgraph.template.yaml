@@ -36,7 +36,7 @@ dataSources:
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleWithdraw
-        - event: MoneyMarkeyWithdrawal(uint256,uint256,uint256)
+        - event: MoneyMarketWithdrawal(uint256,uint256,uint256)
           handler: handleMoneyMarketWithdraw
       file: ./mappings/hook-v1.ts
   - kind: ethereum

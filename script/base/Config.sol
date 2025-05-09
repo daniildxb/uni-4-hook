@@ -3,7 +3,6 @@ pragma solidity ^0.8.19;
 
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {HookV1} from "../../src/HookV1.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 
 /// @notice Shared configuration between scripts

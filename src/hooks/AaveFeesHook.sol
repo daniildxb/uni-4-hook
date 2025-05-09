@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
+import {HotBufferHook} from "./HotBufferHook.sol";
 import {AaveHook} from "./AaveHook.sol";
 import {FeeTrackingHook} from "./FeeTrackingHook.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -13,14 +14,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
  * @title Contract that integrates Aave Hook with Fee Tracking Hook
  * @notice lifecycle hooks for Hook Deposits are defined empty as neither contract in
  * the inheritance chain implements them and we need to add modifiers for potential changes
  */
-abstract contract AaveFeesHook is AaveHook, FeeTrackingHook {
+abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
@@ -42,10 +42,11 @@ abstract contract AaveFeesHook is AaveHook, FeeTrackingHook {
     )
         AaveHook(_poolManager, _token0, _token1, _tickMin, _tickMax, _aavePoolAddressesProvider, _shareName, _shareSymbol)
         FeeTrackingHook(_feeCollector, _fee_bps)
+        HotBufferHook(1000000, 100000)
     {}
 
-    function totalAssets() public view virtual override(AaveHook, ERC4626) returns (uint256) {
-        return AaveHook.totalAssets();
+    function totalAssets() public view virtual override(AaveHook, FeeTrackingHook) returns (uint256) {
+        return AaveHook.totalAssets() - unclaimedFees;
     }
 
     function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual override {

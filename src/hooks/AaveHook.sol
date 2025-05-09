@@ -5,6 +5,7 @@ import {CustodyHook} from "./CustodyHook.sol";
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
@@ -30,13 +31,14 @@ abstract contract AaveHook is CustodyHook {
     using SafeCast for *;
     using SafeERC20 for IERC20;
     using StateLibrary for IPoolManager;
+    using TransientStateLibrary for IPoolManager;
 
     IPoolAddressesProvider public aavePoolAddressesProvider;
     address public aToken0;
     address public aToken1;
 
-    event MoneyMarkeyDeposit(uint256 amount0, uint256 amount1, uint256 liquidityAmount);
-    event MoneyMarkeyWithdrawal(uint256 amount0, uint256 amount1, uint256 liquidityAmount);
+    event MoneyMarketDeposit(address token, uint256 amount);
+    event MoneyMarketWithdrawal(address token, uint256 amount);
 
     constructor(
         IPoolManager _poolManager,
@@ -57,16 +59,46 @@ abstract contract AaveHook is CustodyHook {
      * @dev Returns the total assets held by the hook, using aToken balances
      */
     function totalAssets() public view virtual override returns (uint256) {
-        uint256 token0Balance = IERC20(aToken0).balanceOf(address(this));
-        uint256 token1Balance = IERC20(aToken1).balanceOf(address(this));
+        // this function worked on the assumption that when we deposit tokens
+        // into uniswap resulting liquidity amount is a sum of two liquidities per token
+        // this is not the case and results in us double counting liquidity
+        uint256 aToken0Balance = IERC20(aToken0).balanceOf(address(this));
+        uint256 aToken1Balance = IERC20(aToken1).balanceOf(address(this));
+
+        uint256 token0Balance = IERC20(Currency.unwrap(token0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20(Currency.unwrap(token1)).balanceOf(address(this));
+
+        uint256 totalToken0Balance = aToken0Balance + token0Balance;
+        uint256 totalToken1Balance = aToken1Balance + token1Balance;
+
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
+
+        uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickMin),
+            TickMath.getSqrtPriceAtTick(tickMax),
+            totalToken0Balance,
+            totalToken1Balance
+        );
+        return uint256(liquidityDelta);
+    }
+
+    function liquidityForHookTokens() public view virtual returns (uint256) {
+        uint256 aToken0Balance = IERC20(aToken0).balanceOf(address(this));
+        uint256 aToken1Balance = IERC20(aToken1).balanceOf(address(this));
+        uint256 token0Balance = IERC20(Currency.unwrap(token0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20(Currency.unwrap(token1)).balanceOf(address(this));
+
+        uint256 totalToken0Balance = aToken0Balance + token0Balance;
+        uint256 totalToken1Balance = aToken1Balance + token1Balance;
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickMin),
             TickMath.getSqrtPriceAtTick(tickMax),
-            token0Balance,
-            token1Balance
+            totalToken0Balance,
+            totalToken1Balance
         );
         return uint256(liquidityDelta);
     }
@@ -77,6 +109,7 @@ abstract contract AaveHook is CustodyHook {
      * @param amount The amount to deposit
      */
     function _depositToAave(address token, uint256 amount) internal {
+        emit MoneyMarketDeposit(token, amount);
         IERC20(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
         IPool(aavePoolAddressesProvider.getPool()).supply(token, amount, address(this), 0);
     }
@@ -88,11 +121,13 @@ abstract contract AaveHook is CustodyHook {
      * @param receiver The address to receive the withdrawn tokens
      */
     function _withdrawFromAave(address token, uint256 amount, address receiver) internal returns (uint256) {
+        emit MoneyMarketWithdrawal(token, amount);
         return IPool(aavePoolAddressesProvider.getPool()).withdraw(token, amount, receiver);
     }
 
     /**
-     * @dev Before swap hook that takes tokens from Aave and adds liquidity to the pool
+     * @dev Before swap hook that takes provisions liquidity from aave to uniswap
+     * doesn't actually transfer tokens
      */
     function _beforeSwap(address sender, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
         internal
@@ -101,12 +136,7 @@ abstract contract AaveHook is CustodyHook {
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         // Fetch token balances and put them into liquidity
-        uint256 liquidityDelta = totalAssets();
-
-        uint256 amount0 = _withdrawFromAave(Currency.unwrap(token0), type(uint256).max, address(this));
-        uint256 amount1 = _withdrawFromAave(Currency.unwrap(token1), type(uint256).max, address(this));
-
-        emit MoneyMarkeyWithdrawal(amount0, amount1, liquidityDelta);
+        uint256 liquidityDelta = liquidityForHookTokens();
 
         IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
             tickLower: tickMin,
@@ -116,19 +146,6 @@ abstract contract AaveHook is CustodyHook {
         });
 
         (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
-
-        // transfer tokens to the poolManager
-        // todo: maybe we don't need to actually call settle...
-        poolManager.sync(key.currency0);
-        IERC20(Currency.unwrap(key.currency0)).safeTransfer(address(poolManager), uint256(int256(-delta.amount0())));
-        poolManager.settle();
-
-        poolManager.sync(key.currency1);
-        IERC20(Currency.unwrap(key.currency1)).safeTransfer(address(poolManager), uint256(int256(-delta.amount1())));
-        poolManager.settle();
-        // for some reason currency settler fails with USDT
-        // CurrencySettler.settle(key.currency0, poolManager, address(this), uint256(int256(-delta.amount0())), false);
-        // CurrencySettler.settle(key.currency1, poolManager, address(this), uint256(int256(-delta.amount1())), false);
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
@@ -154,17 +171,13 @@ abstract contract AaveHook is CustodyHook {
 
         (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
 
-        // Take tokens from pool manager
-        poolManager.take(token0, address(this), uint256(int256(delta.amount0())));
-        poolManager.take(token1, address(this), uint256(int256(delta.amount1())));
+        int256 token0Delta = poolManager.currencyDelta(address(this), token0);
+        int256 token1Delta = poolManager.currencyDelta(address(this), token1);
 
-        // Deposit to Aave
-        uint256 amount0 = IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this));
-        uint256 amount1 = IERC20(Currency.unwrap(key.currency1)).balanceOf(address(this));
-        _depositToAave(Currency.unwrap(key.currency0), amount0);
-        _depositToAave(Currency.unwrap(key.currency1), amount1);
-        emit MoneyMarkeyDeposit(amount0, amount1, totalAssets());
+        _settleSwap(token0Delta, token1Delta);
 
+        token0Delta = poolManager.currencyDelta(address(this), token0);
+        token1Delta = poolManager.currencyDelta(address(this), token1);
         return (BaseHook.afterSwap.selector, 0);
     }
 
@@ -184,5 +197,25 @@ abstract contract AaveHook is CustodyHook {
     function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual override {
         _withdrawFromAave(Currency.unwrap(key.currency0), amount0, receiver);
         _withdrawFromAave(Currency.unwrap(key.currency1), amount1, receiver);
+    }
+
+    // puts all input token into aave
+    // and withdraws all output tokens from aave to pool manager
+    function _settleSwap(int256 token0Delta, int256 token1Delta) internal virtual {
+        if (token0Delta > 0) {
+            // take token0 from pool manager and send token1 to pool manager
+            poolManager.take(token0, address(this), uint256(token0Delta));
+
+            poolManager.sync(token1);
+            _withdrawFromAave(Currency.unwrap(token1), uint256(-token1Delta), address(poolManager));
+            poolManager.settle();
+        } else {
+            // take token1 from pool manager and send token0 to pool manager
+            poolManager.take(token1, address(this), uint256(token1Delta));
+
+            poolManager.sync(token0);
+            _withdrawFromAave(Currency.unwrap(token0), uint256(-token0Delta), address(poolManager));
+            poolManager.settle();
+        }
     }
 }

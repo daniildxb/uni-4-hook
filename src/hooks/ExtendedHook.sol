@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
-import "forge-std/Test.sol";
 
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -19,12 +18,13 @@ import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {RescueHook} from "./RescueHook.sol";
 
 /**
  * @title Base Hook
  * @notice Base contract for Uniswap V4 hooks that provides common functionality
  */
-abstract contract ExtendedHook is BaseHook {
+abstract contract ExtendedHook is RescueHook, BaseHook {
     event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
     event Withdraw(
         address indexed sender,

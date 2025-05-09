@@ -18,7 +18,7 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
     using SafeERC20 for IERC20;
 
     // amount to receive after swap !!
-    int256 amountToSwap = 1 * 1e5;
+    int256 amountToSwap = 3 * 1e5;
 
     function run() public {
         uint256 chainId = vm.envUint("CHAIN_ID");
@@ -34,12 +34,12 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("4");
 
         // approve the swap router
-        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(swapRouter), uint256(type(uint256).max - 100));
+        // IERC20(Currency.unwrap(hook.token0())).forceApprove(address(swapRouter), uint256(type(uint256).max - 100));
         IERC20(Currency.unwrap(hook.token1())).forceApprove(address(swapRouter), uint256(type(uint256).max - 100));
         console.log("5");
         // token0 -> token1
         console.log("swap 1");
-        swap(config.poolKey, true, amountToSwap, ZERO_BYTES);
+        // swap(config.poolKey, true, amountToSwap, ZERO_BYTES);
         // token1 -> token0
         console.log("swap 2");
         swap(config.poolKey, false, amountToSwap, ZERO_BYTES);

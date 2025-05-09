@@ -48,6 +48,12 @@ abstract contract FeeTrackingHook is CustodyHook {
         lastSeenAssets = totalAssets();
     }
 
+    // substracting fees from total assets so that new depositors don't get slashed
+    // when we withdraw fees
+    function totalAssets() public view virtual override returns (uint256) {
+        return super.totalAssets() - unclaimedFees;
+    }
+
     function _beforeFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual;
     function _afterFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual;
     function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual;

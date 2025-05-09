@@ -15,7 +15,7 @@ import { ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
 import { bumpProtocolStats, getOrCreateProtocol } from "./protocol";
 import {
-  MoneyMarkeyWithdrawal as MoneyMarketWithdrawEvent,
+  MoneyMarketWithdrawal as MoneyMarketWithdrawEvent,
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
   HookV1,
