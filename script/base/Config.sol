@@ -62,9 +62,9 @@ contract Config {
             currency1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0x528cF5A6Ce4b76228dCA382a1Ed01699348608c0)
+            hooks: IHooks(0xa0432D26A6488d4Cc1a6A8C2266DaD8Ee659c8C0)
         });
-        bytes memory poolId = "0x53d891f64263ed0fdbba24f381e64d3560826118cb97e4414f730633f67f8f41";
+        bytes memory poolId = "0xc66ae2ea52bf65f65aa43db8bdfbd08863d5e4c26b98ba72d43aad2b0fef23fa";
         return ConfigData({
             poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
             aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
@@ -100,9 +100,9 @@ contract Config {
             currency1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0x1FaC527e965B5a765aD75B3BEE8b16DBB7e3C8C0)
+            hooks: IHooks(0xd7BEa1397Ec22d69F46b0bFB07DD196969a688c0)
         });
-        bytes memory poolId = "0x609ccb17859837c70a38831fb592a9af3cbaedba0a0d1f6ce9390ed6ec6bda4a";
+        bytes memory poolId = "0x287a159e89dcf053f549a85fd4decc578edf52726bd63a90fd361762daa8c1c1";
         return ConfigData({
             poolManager: address(0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32),
             aavePoolAddressesProvider: address(0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb),

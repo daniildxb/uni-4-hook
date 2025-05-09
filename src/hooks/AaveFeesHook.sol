@@ -28,6 +28,7 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using SafeCast for *;
 
+    // todo: update constructor to remove params not used by this specific contract
     constructor(
         IPoolManager _poolManager,
         Currency _token0,
