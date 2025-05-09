@@ -23,6 +23,7 @@ import {
 import { createDeposit } from "../entities/deposit";
 import { getOrCreateAccount } from "../entities/account";
 import { createWithdraw } from "../entities/withdraw";
+import { getOrCreateToken } from "../entities/token";
 
 export function handleDeposit(event: DepositEvent): void {
   let poolId = POOL_ID;
@@ -46,11 +47,13 @@ export function handleDeposit(event: DepositEvent): void {
     trackDeposit(position, event);
   }
 
+  let token0 = getOrCreateToken(pool.token0);
+  let token1 = getOrCreateToken(pool.token1);
   // add deposit entity
-  createDeposit(accountAddress, poolId, event);
+  createDeposit(accountAddress, poolId, event, token0, token1);
 
   // update pool and protocol
-  trackHookDeposit(pool, event);
+  trackHookDeposit(pool, event, token0, token1);
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
@@ -73,9 +76,11 @@ export function handleWithdraw(event: WithdrawEvent): void {
   // Update position
   trackWithdraw(position, event);
 
+  let token0 = getOrCreateToken(pool.token0);
+  let token1 = getOrCreateToken(pool.token1);
   // add withdraw entity
-  createWithdraw(address, poolId, event);
-  trackHookWithdraw(pool, event);
+  createWithdraw(address, poolId, event, token0, token1);
+  trackHookWithdraw(pool, event, token0, token1);
 }
 
   // this happens ** BEFORE ** the swap processing

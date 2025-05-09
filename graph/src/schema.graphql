@@ -107,6 +107,7 @@ type Deposit @entity(immutable: true) {
   position: Position!
   token0Amount: BigInt!
   token1Amount: BigInt!
+  amountUSD: BigDecimal!
   shares: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!
@@ -119,6 +120,7 @@ type Withdrawal @entity(immutable: true) {
   position: Position!
   token0Amount: BigInt!
   token1Amount: BigInt!
+  amountUSD: BigDecimal!
   shares: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!
@@ -133,6 +135,7 @@ type Transfer @entity(immutable: true) {
   position: Position!
   token0Amount: BigInt!
   token1Amount: BigInt!
+  amountUSD: BigDecimal!
   shares: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!
@@ -143,8 +146,9 @@ type Swap @entity(immutable: true) {
   pool: Pool!
   # delta of amounts of the pool
   # when swapping 0 -> 1, amount0 is negative and amount1 is positive
-  amount0: BigInt!
-  amount1: BigInt!
+  token0Amount: BigInt!
+  token1Amount: BigInt!
+  amountUSD: BigDecimal!
   # fees paid in the input token (the one that's negative)
   fee: BigInt!
   sender: Bytes!

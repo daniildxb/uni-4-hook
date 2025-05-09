@@ -4,6 +4,7 @@ import {
   Withdraw1 as WithdrawEvent,
 } from "../../generated/HookV1/HookV1";
 import { ethereum } from "@graphprotocol/graph-ts";
+import { ONE_BI, ZERO_BI } from "../helpers";
 
 export function getPosition(
   accountAddress: string,
@@ -27,7 +28,11 @@ export function createPosition(
   position.createdAtBlockNumber = event.block.number;
   position.updatedAtTimestamp = event.block.timestamp;
   position.updatedAtBlockNumber = event.block.number;
-
+  position.save();
+  // create empty snapshot to have a clean start
+  createEmptyPositionSnapshot(position, event);
+  // track first deposit
+  getOrCreateSnapshot(position, event);
   return position;
 }
 
@@ -63,6 +68,18 @@ export function getOrCreateSnapshot(position: Position, event: ethereum.Event): 
   snapshot.shares = position.shares;
   snapshot.position = position.id;
   snapshot.createdAtTimestamp = position.createdAtTimestamp;
+  snapshot.save();
+  return snapshot;
+}
+
+// for the initial position snapshot
+export function createEmptyPositionSnapshot(position: Position, event: ethereum.Event): PositionSnapshots {
+  const synthethicTimestamp = event.block.timestamp.minus(ONE_BI)
+  const id = `${(synthethicTimestamp).toString()}-${event.transactionLogIndex.toString()}`;
+  let snapshot = new PositionSnapshots(id);
+  snapshot.shares = ZERO_BI;
+  snapshot.position = position.id;
+  snapshot.createdAtTimestamp = synthethicTimestamp;
   snapshot.save();
   return snapshot;
 }

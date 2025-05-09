@@ -9,7 +9,7 @@ import {
   ethereum,
   Address,
 } from "@graphprotocol/graph-ts";
-import { Pool, PoolHourlySnapshots, Protocol } from "../../generated/schema";
+import { Pool, PoolHourlySnapshots, Protocol, Token } from "../../generated/schema";
 import { POOL_ID, SECONDS_IN_HOUR } from "../helpers/constants";
 import { ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
@@ -87,9 +87,7 @@ export function poolIdMatchesExpected(poolId: string): boolean {
   return poolId == POOL_ID;
 }
 
-export function trackSwap(pool: Pool, event: SwapEvent): void {
-  const token0 = getOrCreateToken(pool.token0);
-  const token1 = getOrCreateToken(pool.token1);
+export function trackSwap(pool: Pool, event: SwapEvent, token0: Token, token1: Token): void {
   let feeToken = event.params.amount0 > ZERO_BI ? token1 : token0;
   let feeUSD = convertTokenToUSD(feeToken, BigInt.fromI32(event.params.fee));
 
@@ -121,10 +119,7 @@ export function trackSwap(pool: Pool, event: SwapEvent): void {
 
 // export function track
 
-export function trackHookDeposit(pool: Pool, event: DepositEvent): Pool {
-  let token0 = getOrCreateToken(pool.token0);
-  let token1 = getOrCreateToken(pool.token1);
-
+export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token, token1: Token): Pool {
   let token0DecimalsBD = new BigDecimal(
     BigInt.fromI32(10).pow(u8(token0.decimals))
   );
@@ -151,10 +146,7 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent): Pool {
   return pool;
 }
 
-export function trackHookWithdraw(pool: Pool, event: WithdrawEvent): Pool {
-  let token0 = getOrCreateToken(pool.token0);
-  let token1 = getOrCreateToken(pool.token1);
-
+export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Token, token1: Token): Pool {
   let token0DecimalsBD = new BigDecimal(
     BigInt.fromI32(10).pow(u8(token0.decimals))
   );

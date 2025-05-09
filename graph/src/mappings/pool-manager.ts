@@ -9,6 +9,7 @@ import { createPool, getPool, poolIdMatchesExpected, trackSwap } from '../entiti
 import { createSwap } from '../entities/swap';
 import { getOrCreateProtocol } from '../entities/protocol';
 import { updateSnapshots } from '../helpers';
+import { getOrCreateToken } from '../entities/token';
 
 export function handleInitialize(event: InitializeEvent): void {
   // Load or create protocol
@@ -38,8 +39,10 @@ export function handleSwap(event: SwapEvent): void {
       return;
     }
     // create swap entity
-    createSwap(event);
-    trackSwap(pool, event);
+    let token0 = getOrCreateToken(pool.token0);
+    let token1 = getOrCreateToken(pool.token1);
+    createSwap(event, token0, token1);
+    trackSwap(pool, event, token0, token1);
 
     log.log(log.Level.INFO, `Swap processed for pool: ${poolId}`);
   } else {
