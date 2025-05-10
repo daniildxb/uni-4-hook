@@ -35,19 +35,23 @@ contract DeployScript is Script, Deployers, Config {
         string memory shareName = "LP";
         string memory shareSymbol = "LP";
 
+        ModularHookV1.HookConfig memory hookParams = ModularHookV1.HookConfig({
+            poolManager: IPoolManager(config.poolManager),
+            token0: config.token0,
+            token1: config.token1,
+            tickMin: _tickMin,
+            tickMax: _tickMax,
+            aavePoolAddressesProvider: config.aavePoolAddressesProvider,
+            shareName: shareName,
+            shareSymbol: shareSymbol,
+            feeCollector: address(0x1),
+            fee_bps: 1000, // 10%
+            bufferSize: 1e7,
+            minTransferAmount: 1e6
+        });
+
         // Mine a salt that will produce a hook address with the correct flags
-        bytes memory constructorArgs = abi.encode(
-            IPoolManager(config.poolManager),
-            config.token0,
-            config.token1,
-            _tickMin,
-            _tickMax,
-            config.aavePoolAddressesProvider,
-            shareName,
-            shareSymbol,
-            receiver,
-            fee_bps
-        );
+        bytes memory constructorArgs = abi.encode(hookParams);
 
         // Move the mining and deployment into the run function where execution occurs
         (address hookAddress, bytes32 salt) =
@@ -55,18 +59,7 @@ contract DeployScript is Script, Deployers, Config {
 
         // Deploy the hook using CREATE2
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        ModularHookV1 hook = new ModularHookV1{salt: salt}(
-            IPoolManager(config.poolManager),
-            config.token0,
-            config.token1,
-            _tickMin,
-            _tickMax,
-            config.aavePoolAddressesProvider,
-            shareName,
-            shareSymbol,
-            receiver,
-            fee_bps
-        );
+        ModularHookV1 hook = new ModularHookV1{salt: salt}(hookParams);
 
         require(address(hook) == hookAddress, "HookV1: hook address mismatch");
 

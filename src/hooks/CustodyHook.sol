@@ -25,20 +25,6 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
     using SafeCast for *;
     using SafeERC20 for IERC20;
 
-    constructor(
-        IPoolManager _poolManager,
-        Currency _token0,
-        Currency _token1,
-        int24 _tickMin,
-        int24 _tickMax,
-        string memory _shareName,
-        string memory _shareSymbol
-    )
-        ExtendedHook(_poolManager, _token0, _token1, _tickMin, _tickMax)
-        ERC4626Wrapper(IERC20(Currency.unwrap(_token0)))
-        ERC20(_shareName, _shareSymbol)
-    {}
-
     // ensures that liquidity is only added through the hook
     function _beforeAddLiquidity(
         address sender,

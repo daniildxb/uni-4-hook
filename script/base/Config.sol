@@ -9,6 +9,8 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 contract Config {
     address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
     uint256 fee_bps = 1000; // 10%
+    uint256 bufferSize = 1e7; // 10 tokens with 6 decimals
+    uint256 minTransferAmount = 1e6; // 1 token with 6 decimals
 
     struct ConfigData {
         address poolManager;

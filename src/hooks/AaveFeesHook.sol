@@ -28,23 +28,6 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using SafeCast for *;
 
-    // todo: update constructor to remove params not used by this specific contract
-    constructor(
-        IPoolManager _poolManager,
-        Currency _token0,
-        Currency _token1,
-        int24 _tickMin,
-        int24 _tickMax,
-        address _aavePoolAddressesProvider,
-        string memory _shareName,
-        string memory _shareSymbol,
-        address _feeCollector,
-        uint256 _fee_bps
-    )
-        AaveHook(_poolManager, _token0, _token1, _tickMin, _tickMax, _aavePoolAddressesProvider, _shareName, _shareSymbol)
-        FeeTrackingHook(_feeCollector, _fee_bps)
-        HotBufferHook(1000000, 100000)
-    {}
 
     function totalAssets() public view virtual override(AaveHook, FeeTrackingHook) returns (uint256) {
         return AaveHook.totalAssets() - unclaimedFees;

@@ -34,7 +34,10 @@ contract BaseTest is Test, Deployers {
     ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
     uint256 fee_bps = 1000; // 10%
+    uint256 bufferSize = 1e7;
+    uint256 minTransferAmount = 1e6;
     address feeCollector = address(0x1);
+    address admin = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
 
     PoolKey simpleKey; // vanilla pool key
     PoolId simplePoolId; // id for vanilla pool key
@@ -67,18 +70,21 @@ contract BaseTest is Test, Deployers {
         address flags = address(
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
-        bytes memory constructorArgs = abi.encode(
-            address(manager),
-            token0,
-            token1,
-            tickMin,
-            tickMax,
-            aavePoolAddressesProvider,
-            shareName,
-            shareSymbol,
-            feeCollector,
-            fee_bps
-        ); //Add all the necessary constructor arguments from the hook
+        ModularHookV1.HookConfig memory hookParams = ModularHookV1.HookConfig({
+            poolManager: IPoolManager(manager),
+            token0: token0,
+            token1: token1,
+            tickMin: tickMin,
+            tickMax: tickMax,
+            aavePoolAddressesProvider: aavePoolAddressesProvider,
+            shareName: shareName,
+            shareSymbol: shareSymbol,
+            feeCollector: feeCollector,
+            fee_bps: fee_bps,
+            bufferSize: bufferSize,
+            minTransferAmount: minTransferAmount
+        });
+        bytes memory constructorArgs = abi.encode(hookParams); //Add all the necessary constructor arguments from the hook
         deployCodeTo("ModularHookV1.sol:ModularHookV1", constructorArgs, flags); // Changed from HookV1 to ModularHookV1
         hook = ModularHookV1(flags); // Changed from HookV1 to ModularHookV1
     }

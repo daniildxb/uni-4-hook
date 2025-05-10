@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
@@ -12,8 +10,6 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
  * It overrides pretty much all entry points to it, to be able to use share calculations
  */
 abstract contract ERC4626Wrapper is ERC4626 {
-    constructor(IERC20 asset) ERC4626(asset) {}
-
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {}
 
     function mint(uint256 shares, address receiver) public virtual override returns (uint256) {}
