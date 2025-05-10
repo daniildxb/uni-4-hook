@@ -27,9 +27,6 @@ contract DeployScript is Script, Deployers, Config {
 
         Config.ConfigData memory config = getConfigPerNetwork(chainId);
         // @note we need to pass those in an order
-        // 60 / -60 corresponds to price range
-        // "1.006017734268818165222506292999135"
-        // "0.994018262239490337401066230369517"
         int24 _tickMin = -2; // 2 bips away from 1:1
         int24 _tickMax = 2;
         string memory shareName = "LP";

@@ -24,7 +24,6 @@ contract WithdrawFromPoolScript is Script, Deployers, Config {
         uint256 shares = hook.balanceOf(receiver);
         console.log("shares", shares);
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-
         hook.redeem(shares, receiver, receiver);
 
         vm.stopBroadcast();

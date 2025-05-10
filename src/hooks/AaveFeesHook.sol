@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {HotBufferHook} from "./HotBufferHook.sol";
 import {AaveHook} from "./AaveHook.sol";
+import {CustodyHook} from "./CustodyHook.sol";
 import {FeeTrackingHook} from "./FeeTrackingHook.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
@@ -73,14 +74,30 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         virtual
         override
         trackFeesBefore
-        setAssetsAfter
     {}
+
+    function _afterHookDeposit(uint256 amount0, uint256 amount1)
+        internal
+        virtual
+        override(CustodyHook, HotBufferHook)
+        setAssetsAfter
+    {
+      super._afterHookDeposit(amount0, amount1);
+    }
 
     function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
         internal
         virtual
         override
         trackFeesBefore
-        setAssetsAfter
     {}
+
+    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override(CustodyHook, HotBufferHook)
+        setAssetsAfter
+    {
+      super._afterHookWithdrawal(amount0, amount1, receiver);
+    }
 }

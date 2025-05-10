@@ -20,7 +20,7 @@ contract RescueFromHookScript is Script, Deployers, Config {
         uint256 chainId = vm.envUint("CHAIN_ID");
         Config.ConfigData memory config = getConfigPerNetwork(chainId);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
-        address tokenToRescue = Currency.unwrap(config.token0);
+        address tokenToRescue = Currency.unwrap(config.token1);
         uint256 amountToRescue = IERC20(tokenToRescue).balanceOf(address(hook));
 
         if (amountToRescue == 0) {
