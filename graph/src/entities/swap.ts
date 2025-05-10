@@ -22,7 +22,14 @@ export function createSwap(
   swap.amountUSD = swap.token0Amount.lt(ZERO_BI) ?
     convertTokenToUSD(token0, swap.token0Amount.abs())
     : convertTokenToUSD(token1, swap.token1Amount.abs());
-  swap.fee = BigInt.fromI32(event.params.fee);
+  // todo: fee in the event is percentage, not actual value
+  let feeAmount = (event.params.amount0 > ZERO_BI
+    ? event.params.amount0
+    : event.params.amount1)
+    .times(BigInt.fromI32(event.params.fee))
+    .div(BigInt.fromString("1000000")); // 6 decimal places
+
+  swap.fee = feeAmount;
   swap.timestamp = event.block.timestamp;
   swap.blockNumber = event.block.number;
   swap.save();

@@ -40,9 +40,7 @@ abstract contract AaveHook is CustodyHook {
     event MoneyMarketDeposit(address token, uint256 amount);
     event MoneyMarketWithdrawal(address token, uint256 amount);
 
-    constructor(
-        address _aavePoolAddressesProvider
-    ) {
+    constructor(address _aavePoolAddressesProvider) {
         aavePoolAddressesProvider = IPoolAddressesProvider(_aavePoolAddressesProvider);
         aToken0 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token0)).aTokenAddress;
         aToken1 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token1)).aTokenAddress;

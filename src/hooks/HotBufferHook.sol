@@ -48,6 +48,7 @@ abstract contract HotBufferHook is AaveHook {
 
     /**
      * @dev Buffer aware implementation of the _afterHookWithdraw function
+     * tokens have already been transferred to the hook
      */
     function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual override {
         _handleAfterHookDeposit(Currency.unwrap(token0), amount0);
@@ -56,11 +57,10 @@ abstract contract HotBufferHook is AaveHook {
 
     function _handleAfterHookDeposit(address token, uint256 amount) internal virtual {
         uint256 tokenBuffer = IERC20(token).balanceOf(address(this));
-        uint256 balanceToBe = tokenBuffer + amount;
         uint256 targetBalanceForDeposit = bufferSize + minTransferAmount;
-        if (balanceToBe > targetBalanceForDeposit) {
+        if (tokenBuffer > targetBalanceForDeposit) {
             // We have excess token in the buffer, deposit to Aave
-            _depositToAave(token, balanceToBe - targetBalanceForDeposit);
+            _depositToAave(token, tokenBuffer - bufferSize);
         }
     }
 
@@ -75,12 +75,15 @@ abstract contract HotBufferHook is AaveHook {
         _handleAfterHookWithdrawal(Currency.unwrap(token1), aToken1, amount1, receiver);
     }
 
-    function _handleAfterHookWithdrawal(address token, address aToken, uint256 amount, address receiver) internal virtual {
+    function _handleAfterHookWithdrawal(address token, address aToken, uint256 amount, address receiver)
+        internal
+        virtual
+    {
         uint256 tokenBuffer = IERC20(token).balanceOf(address(this));
         uint256 aTokenBalance = IERC20(aToken).balanceOf(address(this));
 
         if (aTokenBalance >= amount) {
-           _withdrawFromAave(token, amount, receiver);
+            _withdrawFromAave(token, amount, receiver);
         } else if (tokenBuffer >= amount) {
             IERC20(token).safeTransfer(receiver, amount);
         } else if (tokenBuffer + aTokenBalance >= amount) {
@@ -99,22 +102,10 @@ abstract contract HotBufferHook is AaveHook {
     function _settleSwap(int256 token0Delta, int256 token1Delta) internal virtual override {
         if (token0Delta > 0) {
             // We are owed token0 and owe token1
-            _handleSwapSettlement(
-                token0,
-                token1,
-                aToken1,
-                uint256(token0Delta),
-                uint256(-token1Delta)
-            );
+            _handleSwapSettlement(token0, token1, aToken1, uint256(token0Delta), uint256(-token1Delta));
         } else {
             // We are owed token1 and owe token0
-            _handleSwapSettlement(
-                token1,
-                token0,
-                aToken0,
-                uint256(token1Delta),
-                uint256(-token0Delta)
-            );
+            _handleSwapSettlement(token1, token0, aToken0, uint256(token1Delta), uint256(-token0Delta));
         }
     }
 
@@ -149,11 +140,7 @@ abstract contract HotBufferHook is AaveHook {
      * @param aTokenAddress aToken address for the currency
      * @param owedAmount Amount we owe
      */
-    function _handleOwedTokensPayment(
-        Currency owedCurrency,
-        address aTokenAddress,
-        uint256 owedAmount
-    ) private {
+    function _handleOwedTokensPayment(Currency owedCurrency, address aTokenAddress, uint256 owedAmount) private {
         address unwrappedToken = Currency.unwrap(owedCurrency);
         uint256 currentBalance = IERC20(unwrappedToken).balanceOf(address(this));
 
@@ -191,11 +178,8 @@ abstract contract HotBufferHook is AaveHook {
         uint256 currentBalance
     ) private {
         // Calculate how much to withdraw to maintain target buffer size
-        uint256 amountToWithdraw = _calculateWithdrawalAmount(
-            owedAmount,
-            currentBalance,
-            IERC20(aTokenAddress).balanceOf(address(this))
-        );
+        uint256 amountToWithdraw =
+            _calculateWithdrawalAmount(owedAmount, currentBalance, IERC20(aTokenAddress).balanceOf(address(this)));
 
         // Withdraw from Aave to the hook
         poolManager.sync(currency);
@@ -213,11 +197,11 @@ abstract contract HotBufferHook is AaveHook {
      * @param aTokenBalance Current aToken balance
      * @return Amount to withdraw from Aave
      */
-    function _calculateWithdrawalAmount(
-        uint256 owedAmount,
-        uint256 currentBalance,
-        uint256 aTokenBalance
-    ) private view returns (uint256) {
+    function _calculateWithdrawalAmount(uint256 owedAmount, uint256 currentBalance, uint256 aTokenBalance)
+        private
+        view
+        returns (uint256)
+    {
         uint256 amountToWithdraw = owedAmount;
 
         // If current balance after paying would be less than 0

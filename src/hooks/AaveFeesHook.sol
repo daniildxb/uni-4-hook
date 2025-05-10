@@ -28,7 +28,6 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using SafeCast for *;
 
-
     function totalAssets() public view virtual override(AaveHook, FeeTrackingHook) returns (uint256) {
         return AaveHook.totalAssets() - unclaimedFees;
     }

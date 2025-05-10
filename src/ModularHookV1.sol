@@ -41,9 +41,7 @@ contract ModularHookV1 is AaveFeesHook {
         uint256 minTransferAmount;
     }
 
-    constructor(
-        HookConfig memory config
-    )
+    constructor(HookConfig memory config)
         AaveHook(config.aavePoolAddressesProvider)
         HotBufferHook(config.bufferSize, config.minTransferAmount)
         ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)

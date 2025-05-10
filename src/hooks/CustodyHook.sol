@@ -89,6 +89,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
 
         // Calculate the amount of liquidity represented by these shares
         uint256 totalLiquidity = totalAssets();
+        // todo: ray math here
         assets = (shares * totalLiquidity) / totalSupply();
 
         // Calculate token amounts based on pool state

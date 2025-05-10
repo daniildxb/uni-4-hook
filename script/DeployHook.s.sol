@@ -46,8 +46,8 @@ contract DeployScript is Script, Deployers, Config {
             shareSymbol: shareSymbol,
             feeCollector: address(0x1),
             fee_bps: 1000, // 10%
-            bufferSize: 1e7,
-            minTransferAmount: 1e6
+            bufferSize: 25e6, // 25 tokens with 6 decimals
+            minTransferAmount: 5e6 // 5 tokens with 6 decimals
         });
 
         // Mine a salt that will produce a hook address with the correct flags

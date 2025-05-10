@@ -88,7 +88,14 @@ export function poolIdMatchesExpected(poolId: string): boolean {
 
 export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1: Token): void {
   let feeToken = event.params.amount0 > ZERO_BI ? _token1 : _token0;
-  let feeUSD = convertTokenToUSD(feeToken, BigInt.fromI32(event.params.fee));
+  let feeAmount = (event.params.amount0 > ZERO_BI
+    ? event.params.amount0
+    : event.params.amount1)
+    .times(BigInt.fromI32(event.params.fee))
+    .div(BigInt.fromString("1000000")); // 6 decimal places
+
+  // todo: fee in the event is percentage, not actual value
+  let feeUSD = convertTokenToUSD(feeToken, feeAmount);
 
   const results = _getNewPoolBalance(pool);
   const balance = results[0];
@@ -100,7 +107,7 @@ export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1:
 
   const lendingYield = balance
     .minus(oldPoolBalance)
-    .minus(BigInt.fromI32(event.params.fee)); // to avoid double counting
+    .minus(feeAmount); // to avoid double counting
 
   // not fully accurate, but close enough
   const lendingYieldUSD = convertTokenToUSD(

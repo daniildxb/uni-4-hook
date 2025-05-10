@@ -8,6 +8,8 @@ out/
 /broadcast/*/5/
 /broadcast/**/dry-run/
 /broadcast/*/11155111/
+/broadcast/ProvideLiquidity.s.sol/
+/broadcast/SwapThroughPool.s.sol/
 
 # Docs
 docs/

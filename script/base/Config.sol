@@ -102,9 +102,9 @@ contract Config {
             currency1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0xd7BEa1397Ec22d69F46b0bFB07DD196969a688c0)
+            hooks: IHooks(0x767f01E3E1aF7455FbC89D3C25E393f4325888C0)
         });
-        bytes memory poolId = "0x287a159e89dcf053f549a85fd4decc578edf52726bd63a90fd361762daa8c1c1";
+        bytes memory poolId = "0x291736be5994210b99297f362e2bcac9718ef0880fd5b7f388c37208f941d1b8";
         return ConfigData({
             poolManager: address(0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32),
             aavePoolAddressesProvider: address(0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb),
