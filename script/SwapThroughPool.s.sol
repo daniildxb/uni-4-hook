@@ -44,14 +44,15 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         IERC20(Currency.unwrap(hook.token0())).forceApprove(address(swapRouter), uint256(type(uint256).max - 100));
         IERC20(Currency.unwrap(hook.token1())).forceApprove(address(swapRouter), uint256(type(uint256).max - 100));
         console.log("5");
+
+        // token1 -> token0 (negative for exact input swap)
+        console.log("Performing swap token1 -> token0 with amount:", uint256(amountToSwap));
+        swap(config.poolKey, false, -amountToSwap, ZERO_BYTES);
+
         
         // token0 -> token1 (negative for exact input swap)
         console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap));
         swap(config.poolKey, true, -amountToSwap, ZERO_BYTES);
-        
-        // token1 -> token0 (negative for exact input swap)
-        console.log("Performing swap token1 -> token0 with amount:", uint256(amountToSwap));
-        swap(config.poolKey, false, -amountToSwap, ZERO_BYTES);
         
         console.log("6");
         vm.stopBroadcast();

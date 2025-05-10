@@ -7,7 +7,7 @@ if [ -z "$ARBITRUM_RPC_URL" ]; then
     exit 1
 fi
 
-echo "Starting scheduled swap script execution every 2 minutes"
+echo "Starting scheduled swap script execution every 15 minutes"
 echo "Press Ctrl+C to stop"
 
 while true; do
@@ -15,7 +15,7 @@ while true; do
     # Generate random amount between 100000 and 30000000
     # Using $RANDOM which is built into bash (0-32767) to create a more compatible solution
     MIN=100000
-    MAX=26000000
+    MAX=36000000
     RANGE=$((MAX-MIN+1))
     
     # Generate a random number within our range
@@ -31,6 +31,6 @@ while true; do
     forge script script/SwapThroughPool.s.sol --rpc-url=$ARBITRUM_RPC_URL --broadcast -v
     
     # Wait for 2 minutes before the next execution
-    echo "Waiting 2 minutes until next execution..."
-    sleep 120
+    echo "Waiting 15 minutes until next execution..."
+    sleep 910 # 15 minutes & 10 seconds
 done

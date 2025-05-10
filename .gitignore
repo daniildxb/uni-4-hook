@@ -10,6 +10,8 @@ out/
 /broadcast/*/11155111/
 /broadcast/ProvideLiquidity.s.sol/
 /broadcast/SwapThroughPool.s.sol/
+/broadcast/WithdrawFromPool.s.sol/
+/broadcast/RescueFromHook.s.sol/
 
 # Docs
 docs/

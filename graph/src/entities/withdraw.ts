@@ -18,6 +18,7 @@ export function createWithdraw(
   withdrawal.position = positionId;
   withdrawal.token0Amount = event.params.assets0;
   withdrawal.token1Amount = event.params.assets1;
+  withdrawal.shares = event.params.shares;
   withdrawal.amountUSD = convertTokenToUSD(token0, withdrawal.token0Amount).plus(
       convertTokenToUSD(token1, withdrawal.token1Amount)
     );

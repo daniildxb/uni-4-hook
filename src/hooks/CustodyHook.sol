@@ -100,6 +100,15 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
         // Handle ERC4626 accounting
         _withdraw(msg.sender, receiver, owner, assets, shares);
 
+        emit Withdraw(
+            msg.sender,
+            receiver,
+            owner,
+            uint256(int256(userDelta.amount0())),
+            uint256(int256(userDelta.amount1())),
+            shares
+        );
+
         // Process the withdrawal (to be implemented by child contracts)
         _afterHookWithdrawal(uint256(int256(userDelta.amount0())), uint256(int256(userDelta.amount1())), receiver);
 
