@@ -147,14 +147,16 @@ contract BaseTest is Test, Deployers {
             shareSymbol: shareSymbol,
             feeCollector: feeCollector,
             fee_bps: fee_bps,
-            bufferSize: bufferSize,
-            minTransferAmount: minTransferAmount
+            bufferSize0: bufferSize,
+            bufferSize1: bufferSize,
+            minTransferAmount0: minTransferAmount,
+            minTransferAmount1: minTransferAmount
         });
         bytes memory constructorArgs = abi.encode(hookParams); //Add all the necessary constructor arguments from the hook
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(hookDeployer), flags, type(ModularHookV1).creationCode, constructorArgs);
 
-        hookManager.deployHook(hookParams, hookAddress, fee, tickSpacing, salt); // Deploy the hook using the hook manager
+        hookManager.deployHook(hookParams, hookAddress, SQRT_PRICE_1_1, fee, tickSpacing, salt); // Deploy the hook using the hook manager
         hook = ModularHookV1(hookAddress); // Changed from HookV1 to ModularHookV1
         simpleKey =
             PoolKey({currency0: token0, currency1: token1, fee: fee, tickSpacing: tickSpacing, hooks: IHooks(hook)});

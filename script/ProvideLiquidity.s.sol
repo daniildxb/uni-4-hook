@@ -22,7 +22,6 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
         uint256 chainId = vm.envUint("CHAIN_ID");
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
-
         Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
         (uint128 liquidity, int128 amount0, int128 amount1) =

@@ -14,6 +14,7 @@ import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /// @notice Mines the address and deploys the ModularHookV1.sol Hook contract
 contract DeployScript is Script, Deployers, Config {
@@ -29,29 +30,32 @@ contract DeployScript is Script, Deployers, Config {
             uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
             config = getConfigPerNetwork(chainId, pool_enum);
         }
-        uint24 fee = 10;
-        int24 tickSpacing = 1;
 
-        // @note we need to pass those in an order
-        int24 _tickMin = -2; // 2 bips away from 1:1
-        int24 _tickMax = 2;
-        string memory shareName = "LP";
-        string memory shareSymbol = "LP";
+        ModularHookV1HookConfig memory hookParams;
+        {
+            // @note we need to pass those in an order
+            int24 _tickMin = -2; // 2 bips away from 1:1
+            int24 _tickMax = 2;
+            string memory shareName = "LP";
+            string memory shareSymbol = "LP";
 
-        ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
-            poolManager: IPoolManager(config.poolManager),
-            token0: config.token0,
-            token1: config.token1,
-            tickMin: _tickMin,
-            tickMax: _tickMax,
-            aavePoolAddressesProvider: config.aavePoolAddressesProvider,
-            shareName: shareName,
-            shareSymbol: shareSymbol,
-            feeCollector: address(0x1),
-            fee_bps: 1000, // 10%
-            bufferSize: 25e6, // 25 tokens with 6 decimals
-            minTransferAmount: 5e6 // 5 tokens with 6 decimals
-        });
+            hookParams = ModularHookV1HookConfig({
+                poolManager: IPoolManager(config.poolManager),
+                token0: config.token0,
+                token1: config.token1,
+                tickMin: _tickMin,
+                tickMax: _tickMax,
+                aavePoolAddressesProvider: config.aavePoolAddressesProvider,
+                shareName: shareName,
+                shareSymbol: shareSymbol,
+                feeCollector: address(0x1),
+                fee_bps: 1000, // 10%
+                bufferSize0: 25e6, // 25 tokens with 6 decimals
+                bufferSize1: 25e6, // 25 tokens with 6 decimals
+                minTransferAmount0: 5e6, // 5 tokens with 6 decimals
+                minTransferAmount1: 5e6 // 5 tokens with 6 decimals
+            });
+        }
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(hookParams);
@@ -59,13 +63,23 @@ contract DeployScript is Script, Deployers, Config {
         HookManager hookManager = HookManager(config.hookManager);
         // Move the mining and deployment into the run function where execution occurs
         uint160 flags =
-          uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
 
         (address hookAddress, bytes32 salt) =
             HookMiner.find(hookManager.hookDeployer(), flags, type(ModularHookV1).creationCode, constructorArgs);
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        hookManager.deployHook(hookParams, hookAddress, SQRT_PRICE_1_1, fee, tickSpacing, salt);
+        {
+            uint8 token0Decimals = ERC20(Currency.unwrap(config.token0)).decimals();
+            uint8 token1Decimals = ERC20(Currency.unwrap(config.token1)).decimals();
+            uint160 price = calculateSqrtPriceX96(token0Decimals, token1Decimals);
+
+            uint24 fee = 10;
+            int24 tickSpacing = 1;
+
+            console.log("price", price);
+            hookManager.deployHook(hookParams, hookAddress, price, fee, tickSpacing, salt);
+        }
         vm.stopBroadcast();
         ModularHookV1 hook = ModularHookV1(hookAddress);
         (Currency currency0, Currency currency1, uint24 _fee, int24 _tickSpacing, IHooks hooks) = hook.key();

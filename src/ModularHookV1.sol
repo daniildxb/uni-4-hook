@@ -27,8 +27,10 @@ struct ModularHookV1HookConfig {
     string shareSymbol;
     address feeCollector;
     uint256 fee_bps;
-    uint256 bufferSize;
-    uint256 minTransferAmount;
+    uint256 bufferSize0;
+    uint256 bufferSize1;
+    uint256 minTransferAmount0;
+    uint256 minTransferAmount1;
 }
 
 /**
@@ -43,7 +45,7 @@ contract ModularHookV1 is AaveFeesHook {
 
     constructor(ModularHookV1HookConfig memory config)
         AaveHook(config.aavePoolAddressesProvider)
-        HotBufferHook(config.bufferSize, config.minTransferAmount)
+        HotBufferHook(config.bufferSize0, config.bufferSize1, config.minTransferAmount0, config.minTransferAmount1)
         ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)
         FeeTrackingHook(config.feeCollector, config.fee_bps)
         ERC4626(IERC20(Currency.unwrap(config.token0)))

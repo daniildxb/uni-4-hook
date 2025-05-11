@@ -30,36 +30,37 @@ contract HotBufferHookTest is BaseTest {
         deal(Currency.unwrap(token1), testUser, initialTokenBalance, false);
 
         // These values are set in BaseTest but we ensure they're what we expect
-        assertEq(hook.bufferSize(), 1e7, "Buffer size should be 1e7");
-        assertEq(hook.minTransferAmount(), 1e6, "Min transfer amount should be 1e6");
+        assertEq(hook.bufferSize0(), 1e7, "Buffer size should be 1e7");
+        assertEq(hook.bufferSize1(), 1e7, "Buffer size should be 1e7");
+        assertEq(hook.minTransferAmount0(), 1e6, "Min transfer amount should be 1e6");
+        assertEq(hook.minTransferAmount1(), 1e6, "Min transfer amount should be 1e6");
     }
 
     // Tests begin here
 
     function test_BufferConfig() public {
         // Test the initial buffer configurations
-        assertEq(hook.bufferSize(), 1e7, "Buffer size should be set correctly");
-        assertEq(hook.minTransferAmount(), 1e6, "Min transfer amount should be set correctly");
-
         // Test setting new buffer size as admin
         vm.prank(adminAddress);
-        hook.setBufferSize(2e7);
-        assertEq(hook.bufferSize(), 2e7, "Buffer size should be updated");
+        hook.setBufferSize(2e7, 2e7);
+        assertEq(hook.bufferSize0(), 2e7, "Buffer size should be updated");
+        assertEq(hook.bufferSize1(), 2e7, "Buffer size should be updated");
 
         // Test setting new min transfer amount as admin
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(2e6);
-        assertEq(hook.minTransferAmount(), 2e6, "Min transfer amount should be updated");
+        hook.setMinTransferAmount(2e6, 2e6);
+        assertEq(hook.minTransferAmount0(), 2e6, "Min transfer amount should be updated");
+        assertEq(hook.minTransferAmount1(), 2e6, "Min transfer amount should be updated");
 
         // Test setting buffer size as non-admin
         vm.prank(testUser);
         vm.expectRevert("Not owner");
-        hook.setBufferSize(3e7);
+        hook.setBufferSize(3e7, 3e7);
 
         // Test setting min transfer amount as non-admin
         vm.prank(testUser);
         vm.expectRevert("Not owner");
-        hook.setMinTransferAmount(3e6);
+        hook.setMinTransferAmount(3e6, 3e6);
     }
 
     function test_DepositBelowBuffer() public {
@@ -68,9 +69,9 @@ contract HotBufferHookTest is BaseTest {
 
         // Set smaller buffer size for this test
         vm.prank(adminAddress);
-        hook.setBufferSize(1000);
+        hook.setBufferSize(1000, 1000);
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(100);
+        hook.setMinTransferAmount(100, 100);
 
         // Use a small deposit amount that's less than buffer size
         uint256 depositAmount = 500;
@@ -80,8 +81,8 @@ contract HotBufferHookTest is BaseTest {
             depositLiquidity(testUser, depositAmount);
 
         // Verify amounts are below buffer size
-        assertLt(token0Amount, hook.bufferSize(), "Token0 amount should be below buffer size");
-        assertLt(token1Amount, hook.bufferSize(), "Token1 amount should be below buffer size");
+        assertLt(token0Amount, hook.bufferSize0(), "Token0 amount should be below buffer size");
+        assertLt(token1Amount, hook.bufferSize1(), "Token1 amount should be below buffer size");
 
         // Verify correct token transfers from user
         assertEq(before.userToken0 - afterBalances.userToken0, token0Amount, "User should transfer exact token0 amount");
@@ -102,9 +103,9 @@ contract HotBufferHookTest is BaseTest {
 
         // Set smaller buffer size for this test
         vm.prank(adminAddress);
-        hook.setBufferSize(100);
+        hook.setBufferSize(100, 100);
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(10);
+        hook.setMinTransferAmount(10, 10);
 
         // Use a large deposit amount
         uint256 depositAmount = 1e10;
@@ -114,20 +115,20 @@ contract HotBufferHookTest is BaseTest {
             depositLiquidity(testUser, depositAmount);
 
         // Verify amounts are above buffer size
-        assertGt(token0Amount, hook.bufferSize(), "Token0 amount should be above buffer size");
-        assertGt(token1Amount, hook.bufferSize(), "Token1 amount should be above buffer size");
+        assertGt(token0Amount, hook.bufferSize0(), "Token0 amount should be above buffer size");
+        assertGt(token1Amount, hook.bufferSize1(), "Token1 amount should be above buffer size");
 
         // Verify correct token transfers from user
         assertEq(before.userToken0 - afterBalances.userToken0, token0Amount, "User should transfer exact token0 amount");
         assertEq(before.userToken1 - afterBalances.userToken1, token1Amount, "User should transfer exact token1 amount");
 
         // Verify token balances in the hook are equal to buffer size
-        assertEq(afterBalances.hookToken0, hook.bufferSize(), "Hook token0 balance should equal buffer size");
-        assertEq(afterBalances.hookToken1, hook.bufferSize(), "Hook token1 balance should equal buffer size");
+        assertEq(afterBalances.hookToken0, hook.bufferSize0(), "Hook token0 balance should equal buffer size");
+        assertEq(afterBalances.hookToken1, hook.bufferSize1(), "Hook token1 balance should equal buffer size");
 
         // Verify excess tokens were sent to Aave
-        uint256 expectedAToken0 = token0Amount - hook.bufferSize();
-        uint256 expectedAToken1 = token1Amount - hook.bufferSize();
+        uint256 expectedAToken0 = token0Amount - hook.bufferSize0();
+        uint256 expectedAToken1 = token1Amount - hook.bufferSize1();
         assertEq(afterBalances.hookAToken0, expectedAToken0, "Excess token0 should be sent to Aave");
         assertEq(afterBalances.hookAToken1, expectedAToken1, "Excess token1 should be sent to Aave");
     }
@@ -140,8 +141,8 @@ contract HotBufferHookTest is BaseTest {
         (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
 
         // Verify deposit was below buffer size
-        assertLt(depositToken0, hook.bufferSize(), "Deposit amount should be below buffer size");
-        assertLt(depositToken1, hook.bufferSize(), "Deposit amount should be below buffer size");
+        assertLt(depositToken0, hook.bufferSize0(), "Deposit amount should be below buffer size");
+        assertLt(depositToken1, hook.bufferSize1(), "Deposit amount should be below buffer size");
 
         // Get balances before swap
         TokenBalances memory before = getBalances(testUser);
@@ -179,9 +180,9 @@ contract HotBufferHookTest is BaseTest {
 
         // Reduce buffer size for this test
         vm.prank(adminAddress);
-        hook.setBufferSize(100);
+        hook.setBufferSize(100, 100);
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(10);
+        hook.setMinTransferAmount(10, 10);
 
         // First deposit a large amount to fill Aave
         uint256 depositAmount = 1e10;
@@ -189,10 +190,10 @@ contract HotBufferHookTest is BaseTest {
 
         // Verify we deposited to Aave
         TokenBalances memory balances = getBalances(testUser);
-        assertEq(balances.hookToken0, hook.bufferSize(), "Buffer should be filled with token0");
-        assertEq(balances.hookToken1, hook.bufferSize(), "Buffer should be filled with token1");
-        assertEq(balances.hookAToken0, depositToken0 - hook.bufferSize(), "Excess token0 should be in Aave");
-        assertEq(balances.hookAToken1, depositToken1 - hook.bufferSize(), "Excess token1 should be in Aave");
+        assertEq(balances.hookToken0, hook.bufferSize0(), "Buffer should be filled with token0");
+        assertEq(balances.hookToken1, hook.bufferSize1(), "Buffer should be filled with token1");
+        assertEq(balances.hookAToken0, depositToken0 - hook.bufferSize0(), "Excess token0 should be in Aave");
+        assertEq(balances.hookAToken1, depositToken1 - hook.bufferSize1(), "Excess token1 should be in Aave");
 
         // Perform a large swap
         int256 swapAmount = -1000;
@@ -212,8 +213,8 @@ contract HotBufferHookTest is BaseTest {
         TokenBalances memory afterBalances = getBalances(testUser);
 
         // Verify hook token balances remain at buffer size
-        assertEq(afterBalances.hookToken0, hook.bufferSize(), "Token0 balance should remain at buffer size");
-        assertEq(afterBalances.hookToken1, hook.bufferSize(), "Token1 balance should remain at buffer size");
+        assertEq(afterBalances.hookToken0, hook.bufferSize0(), "Token0 balance should remain at buffer size");
+        assertEq(afterBalances.hookToken1, hook.bufferSize1(), "Token1 balance should remain at buffer size");
 
         // Verify Aave interactions
         assertGt(afterBalances.hookAToken0, before.hookAToken0, "Excess token0 should be deposited to Aave");
@@ -235,9 +236,9 @@ contract HotBufferHookTest is BaseTest {
 
         // Reduce buffer size for this test
         vm.prank(adminAddress);
-        hook.setBufferSize(100);
+        hook.setBufferSize(100, 100);
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(10);
+        hook.setMinTransferAmount(10, 10);
 
         // First deposit a large amount to fill Aave
         uint256 depositAmount = 1e10;
@@ -262,8 +263,8 @@ contract HotBufferHookTest is BaseTest {
         TokenBalances memory afterBalances = getBalances(testUser);
 
         // Verify buffer remains at target size
-        assertEq(afterBalances.hookToken0, hook.bufferSize(), "Token0 balance should remain at buffer size");
-        assertEq(afterBalances.hookToken1, hook.bufferSize(), "Token1 balance should remain at buffer size");
+        assertEq(afterBalances.hookToken0, hook.bufferSize0(), "Token0 balance should remain at buffer size");
+        assertEq(afterBalances.hookToken1, hook.bufferSize1(), "Token1 balance should remain at buffer size");
 
         // Verify Aave interactions
         assertGt(afterBalances.hookAToken0, before.hookAToken0, "Excess token0 should be deposited to Aave");
@@ -331,9 +332,9 @@ contract HotBufferHookTest is BaseTest {
 
         // Set up a smaller deposit that will mostly go into buffer
         vm.prank(adminAddress);
-        hook.setBufferSize(1000);
+        hook.setBufferSize(1000, 1000);
         vm.prank(adminAddress);
-        hook.setMinTransferAmount(100);
+        hook.setMinTransferAmount(100, 100);
 
         uint256 depositAmount = 2000;
         (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);

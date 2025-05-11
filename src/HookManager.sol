@@ -36,8 +36,9 @@ contract HookManager {
         bytes32 salt
     ) external {
         require(msg.sender == admin, "Only admin can deploy hooks");
-        (address hook, bytes32 poolId) =
-            IHookDeployer(hookDeployer).deployHook(poolManager, hookParams, expectedAddress, fee, tickSpacing, SQRT_PRICE_1_1, salt);
+        (address hook, bytes32 poolId) = IHookDeployer(hookDeployer).deployHook(
+            poolManager, hookParams, expectedAddress, fee, tickSpacing, sqrtPriceX96, salt
+        );
 
         _storeHook(address(hook), poolId);
         emit HookDeployed(address(hook), poolId, hookCount, sqrtPriceX96);

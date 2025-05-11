@@ -4,12 +4,11 @@ pragma solidity ^0.8.19;
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {SqrtPriceCalculator} from "./PriceCalculator.sol";
 
 /// @notice Shared configuration between scripts
-contract Config {
+contract Config is SqrtPriceCalculator {
     // for tokens with the same decimals
-    uint160 constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
-
     address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
     uint256 fee_bps = 1000; // 10%
     uint256 bufferSize = 1e7; // 10 tokens with 6 decimals
@@ -117,12 +116,11 @@ contract Config {
         }
     }
 
-    function _getMainnetPoolConfig(
-        uint256 poolId,
-        address poolManager,
-        address aaveProvider,
-        address hookManager
-    ) private pure returns (ConfigData memory) {
+    function _getMainnetPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
+        private
+        pure
+        returns (ConfigData memory)
+    {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -136,20 +134,14 @@ contract Config {
             revert("Unsupported pool ID for Mainnet");
         }
 
-        return _buildConfigData(
-            poolManager,
-            aaveProvider,
-            hookManager,
-            tokenPair
-        );
+        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
     }
 
-    function _getLocalPoolConfig(
-        uint256 poolId,
-        address poolManager,
-        address aaveProvider,
-        address hookManager
-    ) private pure returns (ConfigData memory) {
+    function _getLocalPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
+        private
+        pure
+        returns (ConfigData memory)
+    {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -163,20 +155,14 @@ contract Config {
             revert("Unsupported pool ID for Local");
         }
 
-        return _buildConfigData(
-            poolManager,
-            aaveProvider,
-            hookManager,
-            tokenPair
-        );
+        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
     }
 
-    function _getArbitrumPoolConfig(
-        uint256 poolId,
-        address poolManager,
-        address aaveProvider,
-        address hookManager
-    ) private pure returns (ConfigData memory) {
+    function _getArbitrumPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
+        private
+        pure
+        returns (ConfigData memory)
+    {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -193,7 +179,6 @@ contract Config {
                 hookAddress: 0x4F7A657B81fFF3E6952c6548B5873F0897C97B83,
                 poolId: "0xd8e0e5344abcdf2ce1707e65bf455416cb3ccc08f3940bcce92846542dbb454d"
             });
-        
         } else if (poolId == DAI_GHO_POOL) {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_GHO,
@@ -205,12 +190,7 @@ contract Config {
             revert("Unsupported pool ID for Arbitrum");
         }
 
-        return _buildConfigData(
-            poolManager,
-            aaveProvider,
-            hookManager,
-            tokenPair
-        );
+        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
     }
 
     // Helper function to build full config data from base config and token pair
