@@ -11,8 +11,6 @@ contract HookManager {
     address public admin;
     address public poolManager;
     address public hookDeployer;
-    uint160 constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
-
 
     mapping(bytes32 => address) public poolIdToHook;
     mapping(address => bytes32) public hookToPoolId;
@@ -32,6 +30,7 @@ contract HookManager {
     function deployHook(
         ModularHookV1HookConfig calldata hookParams,
         address expectedAddress,
+        uint160 sqrtPriceX96,
         uint24 fee,
         int24 tickSpacing,
         bytes32 salt
@@ -41,7 +40,7 @@ contract HookManager {
             IHookDeployer(hookDeployer).deployHook(poolManager, hookParams, expectedAddress, fee, tickSpacing, SQRT_PRICE_1_1, salt);
 
         _storeHook(address(hook), poolId);
-        emit HookDeployed(address(hook), poolId, hookCount, SQRT_PRICE_1_1);
+        emit HookDeployed(address(hook), poolId, hookCount, sqrtPriceX96);
         hookCount++;
     }
 

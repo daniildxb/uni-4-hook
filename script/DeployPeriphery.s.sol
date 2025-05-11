@@ -11,8 +11,9 @@ import {Config} from "./base/Config.sol";
 contract DeployPeripheryScript is Script, Deployers, Config {
     function run() external {
         uint256 chainId = vm.envUint("CHAIN_ID");
+        uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
-        Config.ConfigData memory config = getConfigPerNetwork(chainId);
+        Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         HookManager hookManager = new HookManager(config.poolManager);

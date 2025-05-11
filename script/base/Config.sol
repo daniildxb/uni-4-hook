@@ -7,10 +7,52 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 
 /// @notice Shared configuration between scripts
 contract Config {
+    // for tokens with the same decimals
+    uint160 constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
+
     address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
     uint256 fee_bps = 1000; // 10%
     uint256 bufferSize = 1e7; // 10 tokens with 6 decimals
     uint256 minTransferAmount = 1e6; // 1 token with 6 decimals
+
+    // Fee and tick constants
+    uint24 constant DEFAULT_FEE = 10;
+    int24 constant DEFAULT_TICK_SPACING = 1;
+
+    // Pool identifiers
+    uint256 constant USDC_USDT_POOL = 0;
+    uint256 constant USDT_DAI_POOL = 1;
+    uint256 constant DAI_USDE_POOL = 2;
+    uint256 constant DAI_GHO_POOL = 3;
+
+    // Network identifiers
+    uint256 constant MAINNET = 1;
+    uint256 constant ARBITRUM = 42161;
+    uint256 constant LOCAL = 0;
+
+    // Token addresses - Mainnet
+    address constant MAINNET_USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address constant MAINNET_USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address constant MAINNET_DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+
+    // Token addresses - Arbitrum
+    address constant ARBITRUM_USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    address constant ARBITRUM_USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address constant ARBITRUM_DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
+    address constant ARBITRUM_USDE = 0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34;
+    address constant ARBITRUM_GHO = 0x7dfF72693f6A4149b17e7C6314655f6A9F7c8B33;
+
+    // Infrastructure addresses - Mainnet
+    address constant MAINNET_POOL_MANAGER = 0x000000000004444c5dc75cB358380D2e3dE08A90;
+    address constant MAINNET_AAVE_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address constant MAINNET_HOOK_MANAGER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+
+    // Infrastructure addresses - Arbitrum
+    address constant ARBITRUM_POOL_MANAGER = 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32;
+    address constant ARBITRUM_AAVE_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
+    address constant ARBITRUM_HOOK_MANAGER = 0x0582f41f68117130b1ED5765fF094944a165a382;
+
+    address constant LOCAL_HOOK_MANAGER = 0xfd69667cC5EB6A200270FE157a3318A42140685e;
 
     struct ConfigData {
         address poolManager;
@@ -22,105 +64,178 @@ contract Config {
         bytes poolId;
     }
 
-    function getConfigPerNetwork(uint256 chainId) public returns (ConfigData memory) {
-        if (chainId == 1) {
-            // Mainnet
-            return _getMainnetConfigs();
-        } else if (chainId == 11155111) {
-            // Sepolia
-            return _getSepoliaConfigs();
-        } else if (chainId == 42161) {
-            // Arbitrum
-            return _getArbitrumConfigs();
-        } else if (chainId == 0) {
-            return _getLocalConfigs();
+    struct TokenPair {
+        address token0Address;
+        address token1Address;
+        address hookAddress;
+        bytes poolId;
+    }
+
+    // Get available pool IDs for a specific network
+    function getAvailablePoolIds(uint256 chainId) public pure returns (uint256[] memory) {
+        if (chainId == MAINNET) {
+            uint256[] memory poolIds = new uint256[](1);
+            poolIds[0] = USDC_USDT_POOL;
+            return poolIds;
+        } else if (chainId == ARBITRUM) {
+            uint256[] memory poolIds = new uint256[](2);
+            poolIds[0] = USDC_USDT_POOL;
+            poolIds[1] = USDT_DAI_POOL;
+            return poolIds;
+        } else if (chainId == LOCAL) {
+            uint256[] memory poolIds = new uint256[](1);
+            poolIds[0] = USDC_USDT_POOL;
+            return poolIds;
         } else {
             revert("Unsupported network");
         }
     }
 
-    function _getMainnetConfigs() private returns (ConfigData memory) {
-        PoolKey memory poolKey = PoolKey({
-            currency0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
-            currency1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
-            fee: 10,
-            tickSpacing: 1,
-            hooks: IHooks(0xdA29B9f65CA0E10Fc96A3b665CD45D75d6C548C0)
-        });
-        bytes memory poolId = "0x8151abca3914de6ebfda6e05e3ade9000722a9dee5359d66e8ce7ee5e0f8da67";
-        return ConfigData({
-            poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
-            aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
-            // todo: update
-            hookManager: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
-            token0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
-            token1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
-            poolKey: poolKey,
-            poolId: poolId
-        });
+    function getConfigPerNetwork(uint256 chainId, uint256 poolId) public pure returns (ConfigData memory) {
+        // Get network base config
+        address poolManager;
+        address aaveProvider;
+        address hookManager;
+
+        if (chainId == MAINNET) {
+            poolManager = MAINNET_POOL_MANAGER;
+            aaveProvider = MAINNET_AAVE_PROVIDER;
+            hookManager = MAINNET_HOOK_MANAGER;
+            return _getMainnetPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+        } else if (chainId == ARBITRUM) {
+            poolManager = ARBITRUM_POOL_MANAGER;
+            aaveProvider = ARBITRUM_AAVE_PROVIDER;
+            hookManager = ARBITRUM_HOOK_MANAGER;
+            return _getArbitrumPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+        } else if (chainId == LOCAL) {
+            poolManager = MAINNET_POOL_MANAGER;
+            aaveProvider = MAINNET_AAVE_PROVIDER;
+            hookManager = LOCAL_HOOK_MANAGER;
+            return _getLocalPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+        } else {
+            revert("Unsupported network");
+        }
     }
 
-    // only different from mainnet in the poolKey and poolId
-    function _getLocalConfigs() private returns (ConfigData memory) {
-        PoolKey memory poolKey = PoolKey({
-            currency0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
-            currency1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
-            fee: 10,
-            tickSpacing: 1,
-            hooks: IHooks(0xd9C461354be60457759349378dEF760CeF3Ac8C0)
-        });
-        bytes memory poolId = "0x437f292d4e7dbacf4b01f0962ae688e3c6f6838b8ef6e5371c5326e4936618d5";
-        return ConfigData({
-            poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
-            aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
-            // todo: update
-            hookManager: address(0xfd69667cC5EB6A200270FE157a3318A42140685e),
-            token0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
-            token1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
-            poolKey: poolKey,
-            poolId: poolId
-        });
+    function _getMainnetPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager
+    ) private pure returns (ConfigData memory) {
+        TokenPair memory tokenPair;
+
+        if (poolId == USDC_USDT_POOL) {
+            tokenPair = TokenPair({
+                token0Address: MAINNET_USDC,
+                token1Address: MAINNET_USDT,
+                hookAddress: 0xdA29B9f65CA0E10Fc96A3b665CD45D75d6C548C0,
+                poolId: "0x8151abca3914de6ebfda6e05e3ade9000722a9dee5359d66e8ce7ee5e0f8da67"
+            });
+        } else {
+            revert("Unsupported pool ID for Mainnet");
+        }
+
+        return _buildConfigData(
+            poolManager,
+            aaveProvider,
+            hookManager,
+            tokenPair
+        );
     }
 
-    function _getSepoliaConfigs() private returns (ConfigData memory) {
-        PoolKey memory poolKey = PoolKey({
-            currency0: Currency.wrap(address(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8)), // USDC
-            currency1: Currency.wrap(address(0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0)), // USDT
-            fee: 10,
-            tickSpacing: 1,
-            hooks: IHooks(address(0x3e52fF7481907312Ccc48ff281cAcC016d1B88c0))
-        });
-        bytes memory poolId = "0x095fdd15e0c754108cfeb30baaa2e235548660bbf2787cf11d33d04dfc5f704b";
-        return ConfigData({
-            poolManager: address(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543),
-            aavePoolAddressesProvider: address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A),
-            // todo: update
-            hookManager: address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A),
-            token0: Currency.wrap(address(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8)), // USDC
-            token1: Currency.wrap(address(0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0)), // USDT
-            poolKey: poolKey,
-            poolId: poolId
-        });
+    function _getLocalPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager
+    ) private pure returns (ConfigData memory) {
+        TokenPair memory tokenPair;
+
+        if (poolId == USDC_USDT_POOL) {
+            tokenPair = TokenPair({
+                token0Address: MAINNET_USDC, // Using mainnet addresses for local development
+                token1Address: MAINNET_USDT,
+                hookAddress: 0xd9C461354be60457759349378dEF760CeF3Ac8C0,
+                poolId: "0x437f292d4e7dbacf4b01f0962ae688e3c6f6838b8ef6e5371c5326e4936618d5"
+            });
+        } else {
+            revert("Unsupported pool ID for Local");
+        }
+
+        return _buildConfigData(
+            poolManager,
+            aaveProvider,
+            hookManager,
+            tokenPair
+        );
     }
 
-    function _getArbitrumConfigs() private returns (ConfigData memory) {
+    function _getArbitrumPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager
+    ) private pure returns (ConfigData memory) {
+        TokenPair memory tokenPair;
+
+        if (poolId == USDC_USDT_POOL) {
+            tokenPair = TokenPair({
+                token0Address: ARBITRUM_USDC,
+                token1Address: ARBITRUM_USDT,
+                hookAddress: 0x808A955773C6d66F48a6E66b27591738281408C0,
+                poolId: "0xea0907d3e86a8763d9d6450660b9cddfb500e09c5c16387f50e7df866e39429a"
+            });
+        } else if (poolId == USDT_DAI_POOL) {
+            tokenPair = TokenPair({
+                token0Address: ARBITRUM_DAI,
+                token1Address: ARBITRUM_USDT,
+                hookAddress: 0x4F7A657B81fFF3E6952c6548B5873F0897C97B83,
+                poolId: "0xd8e0e5344abcdf2ce1707e65bf455416cb3ccc08f3940bcce92846542dbb454d"
+            });
+        
+        } else if (poolId == DAI_GHO_POOL) {
+            tokenPair = TokenPair({
+                token0Address: ARBITRUM_GHO,
+                token1Address: ARBITRUM_DAI,
+                hookAddress: 0x7e1993d03BD50AE43dEA6E3d2e1027aB1213C8c0,
+                poolId: "0xe4f5712fa24b6300c1c6bb7d821127f701e62ed93adb38024d309fe7a26d1b35"
+            });
+        } else {
+            revert("Unsupported pool ID for Arbitrum");
+        }
+
+        return _buildConfigData(
+            poolManager,
+            aaveProvider,
+            hookManager,
+            tokenPair
+        );
+    }
+
+    // Helper function to build full config data from base config and token pair
+    function _buildConfigData(
+        address poolManager,
+        address aaveProvider,
+        address hookManager,
+        TokenPair memory tokenPair
+    ) private pure returns (ConfigData memory) {
         PoolKey memory poolKey = PoolKey({
-            currency0: Currency.wrap(address(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)), // USDC
-            currency1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
-            fee: 10,
-            tickSpacing: 1,
-            hooks: IHooks(address(0x808A955773C6d66F48a6E66b27591738281408C0))
+            currency0: Currency.wrap(tokenPair.token0Address),
+            currency1: Currency.wrap(tokenPair.token1Address),
+            fee: DEFAULT_FEE,
+            tickSpacing: DEFAULT_TICK_SPACING,
+            hooks: IHooks(tokenPair.hookAddress)
         });
-        bytes memory poolId = "0xea0907d3e86a8763d9d6450660b9cddfb500e09c5c16387f50e7df866e39429a";
+
         return ConfigData({
-            poolManager: address(0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32),
-            aavePoolAddressesProvider: address(0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb),
-            // update
-            hookManager: address(0x0582f41f68117130b1ED5765fF094944a165a382),
-            token0: Currency.wrap(address(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)), // USDC
-            token1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
+            poolManager: poolManager,
+            aavePoolAddressesProvider: aaveProvider,
+            hookManager: hookManager,
+            token0: Currency.wrap(tokenPair.token0Address),
+            token1: Currency.wrap(tokenPair.token1Address),
             poolKey: poolKey,
-            poolId: poolId
+            poolId: tokenPair.poolId
         });
     }
 }

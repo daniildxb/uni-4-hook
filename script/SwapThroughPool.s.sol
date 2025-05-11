@@ -29,7 +29,9 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("Amount to swap:", uint256(amountToSwap));
 
         uint256 chainId = vm.envUint("CHAIN_ID");
-        Config.ConfigData memory config = getConfigPerNetwork(chainId);
+        uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
+
+        Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
 
         console.log("1");

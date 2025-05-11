@@ -23,14 +23,15 @@ contract DeployScript is Script, Deployers, Config {
 
     function run() external {
         //  hook contracts must have specific flags encoded in the address
-        uint160 flags =
-            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
-
-        uint256 chainId = vm.envUint("CHAIN_ID");
+        Config.ConfigData memory config;
+        {
+            uint256 chainId = vm.envUint("CHAIN_ID");
+            uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
+            config = getConfigPerNetwork(chainId, pool_enum);
+        }
         uint24 fee = 10;
         int24 tickSpacing = 1;
 
-        Config.ConfigData memory config = getConfigPerNetwork(chainId);
         // @note we need to pass those in an order
         int24 _tickMin = -2; // 2 bips away from 1:1
         int24 _tickMax = 2;
@@ -57,11 +58,14 @@ contract DeployScript is Script, Deployers, Config {
 
         HookManager hookManager = HookManager(config.hookManager);
         // Move the mining and deployment into the run function where execution occurs
+        uint160 flags =
+          uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
+
         (address hookAddress, bytes32 salt) =
             HookMiner.find(hookManager.hookDeployer(), flags, type(ModularHookV1).creationCode, constructorArgs);
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        hookManager.deployHook(hookParams, hookAddress, fee, tickSpacing, salt);
+        hookManager.deployHook(hookParams, hookAddress, SQRT_PRICE_1_1, fee, tickSpacing, salt);
         vm.stopBroadcast();
         ModularHookV1 hook = ModularHookV1(hookAddress);
         (Currency currency0, Currency currency1, uint24 _fee, int24 _tickSpacing, IHooks hooks) = hook.key();

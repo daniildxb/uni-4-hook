@@ -44,6 +44,8 @@ abstract contract AaveHook is CustodyHook {
         aavePoolAddressesProvider = IPoolAddressesProvider(_aavePoolAddressesProvider);
         aToken0 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token0)).aTokenAddress;
         aToken1 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token1)).aTokenAddress;
+        require(aToken0 != address(0), "Token 0 is not supported by AAVE");
+        require(aToken1 != address(0), "Token 1 is not supported by AAVE");
     }
 
     /**

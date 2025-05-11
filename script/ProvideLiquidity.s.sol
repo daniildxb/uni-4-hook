@@ -17,11 +17,13 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
 
     function run() public {
         // usdc
-        uint256 maxTokenAmount0 = 250 * 1e5;
-        uint256 maxTokenAmount1 = 250 * 1e5;
+        uint256 maxTokenAmount0 = 10 * 1e18;
+        uint256 maxTokenAmount1 = 10 * 1e18;
         uint256 chainId = vm.envUint("CHAIN_ID");
+        uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
-        Config.ConfigData memory config = getConfigPerNetwork(chainId);
+
+        Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
         (uint128 liquidity, int128 amount0, int128 amount1) =
             hook.getLiquidityForTokenAmounts(maxTokenAmount0, maxTokenAmount1);
@@ -30,9 +32,9 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
         console.log("amount1", amount1);
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         console.log("1");
-        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(hook), 100 * 1e6);
+        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(hook), 100 * 1e18);
         console.log("2");
-        IERC20(Currency.unwrap(hook.token1())).forceApprove(address(hook), 100 * 1e6);
+        IERC20(Currency.unwrap(hook.token1())).forceApprove(address(hook), 100 * 1e18);
         console.log("liquidity", uint256(liquidity));
         hook.deposit(uint256(liquidity), receiver);
 
