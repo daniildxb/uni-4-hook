@@ -47,26 +47,26 @@ abstract contract HotBufferHook is AaveHook {
     }
 
     /**
-      * @dev Buffer aware implementation of the _transferFees function
-      * checks if we can route claim from AAVE if not - fallbacks to AAVE + buffer
+     * @dev Buffer aware implementation of the _transferFees function
+     * checks if we can route claim from AAVE if not - fallbacks to AAVE + buffer
      */
     function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual {
-      _handleTransferFees(Currency.unwrap(token0), aToken0, amount0, treasury);
-      _handleTransferFees(Currency.unwrap(token1), aToken1, amount1, treasury);
+        _handleTransferFees(Currency.unwrap(token0), aToken0, amount0, treasury);
+        _handleTransferFees(Currency.unwrap(token1), aToken1, amount1, treasury);
     }
 
     function _handleTransferFees(address token, address aToken, uint256 amount, address treasury) internal virtual {
         // 1. Withdraw from Aave to the hook
         uint256 aTokenBalance = IERC20(aToken).balanceOf(address(this));
         if (aTokenBalance >= amount) {
-          _withdrawFromAave(token, amount, treasury);
-          return;
+            _withdrawFromAave(token, amount, treasury);
+            return;
         } else {
-          uint256 bufferBalance = IERC20(token).balanceOf(address(this));
-          uint256 amountToWithdraw = amount - bufferBalance;
-          _withdrawFromAave(token, amountToWithdraw, address(this));
+            uint256 bufferBalance = IERC20(token).balanceOf(address(this));
+            uint256 amountToWithdraw = amount - bufferBalance;
+            _withdrawFromAave(token, amountToWithdraw, address(this));
 
-          IERC20(token).safeTransfer(treasury, amount);
+            IERC20(token).safeTransfer(treasury, amount);
         }
     }
 

@@ -1,5 +1,7 @@
+import { HookDeployed as HookDeployedEvent } from '../../generated/HookV1/HookManager';
 import {
   Initialize as InitializeEvent,
+  PoolManager,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
 import {
@@ -10,7 +12,7 @@ import {
   Address,
 } from "@graphprotocol/graph-ts";
 import { Pool, PoolHourlySnapshots, Protocol, Token } from "../../generated/schema";
-import { POOL_ID, SECONDS_IN_HOUR } from "../helpers/constants";
+import { SECONDS_IN_HOUR } from "../helpers/constants";
 import { ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
 import { bumpProtocolStats, getOrCreateProtocol } from "./protocol";
@@ -24,41 +26,35 @@ import {
 import { sqrtPriceX96ToTokenPrices } from "../sqrtMath";
 import { ERC20 } from "../../generated/HookV1/ERC20";
 
-export function getDefaultPool(): Pool | null {
-  let pool = Pool.load(POOL_ID);
-  if (pool === null) {
-    log.log(log.Level.WARNING, `[POOL] Pool not found: ${POOL_ID}`);
-    return null;
-  }
-  return pool;
-}
-
 export function getPool(poolId: string): Pool | null {
   return Pool.load(poolId);
 }
 
-export function createPool(event: InitializeEvent): Pool {
-  // Determine token addresses from the event data
-  let token0Address = event.params.currency0;
-  let token1Address = event.params.currency1;
-  let hookAddress = event.params.hooks;
+export function getPoolFromHookAddress(hookAddress: Address): Pool | null {
   const hookContract = HookV1.bind(hookAddress);
-  let fee = event.params.fee;
-  let tickSpacing = event.params.tickSpacing;
-  let poolId = event.params.id.toHexString();
+  const poolId = hookContract.getPoolId().toHexString().toLowerCase();
+  return getPool(poolId);
+}
 
-  // Load tokens
-  log.log(log.Level.INFO, `Loading tokens`);
-  let token0 = getOrCreateToken(token0Address.toHexString());
-  let token1 = getOrCreateToken(token1Address.toHexString());
+export function createPoolFromHookManagerEvent(event: HookDeployedEvent): Pool {
+  const hookAddress = event.params.hook;
+  const poolId = event.params.poolId.toHexString().toLowerCase();
 
+  const hookContract = HookV1.bind(hookAddress);
+
+  let token0 = getOrCreateToken(hookContract.token0().toHexString());
+  let token1 = getOrCreateToken(hookContract.token1().toHexString());
+  const result = hookContract.key();
+  const fee = result.value2;
+  const tickSpacing = result.value3;
+
+  const price = event.params.sqrtPriceX96;
   const prices = sqrtPriceX96ToTokenPrices(
-    event.params.sqrtPriceX96,
+    price,
     token0,
     token1
   );
 
-  // Create pool entity
   let pool = new Pool(poolId);
   pool.protocol = getOrCreateProtocol().id;
   pool.hook = hookAddress;
@@ -86,8 +82,12 @@ export function createPool(event: InitializeEvent): Pool {
   return pool;
 }
 
-export function poolIdMatchesExpected(poolId: string): boolean {
-  return poolId == POOL_ID;
+export function poolIdMatchesExpected(poolId: string, protocol: Protocol | null): boolean {
+  if (protocol === null) {
+    protocol = getOrCreateProtocol();
+  }
+  const POOL_IDS = protocol.pools.load().map(el => el.id.toLowerCase());
+  return POOL_IDS.includes(poolId);
 }
 
 export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1: Token): void {

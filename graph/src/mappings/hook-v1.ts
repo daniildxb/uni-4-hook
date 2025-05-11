@@ -6,10 +6,7 @@ import {
   FeesCollected as FeesCollectedEvent,
 } from "../../generated/HookV1/HookV1";
 import {
-  Pool,
-} from "../../generated/schema";
-import { POOL_ID } from "../helpers/constants";
-import {
+  getPoolFromHookAddress,
   trackFeesCollected,
   trackHookDeposit,
   trackHookWithdraw,
@@ -27,11 +24,10 @@ import { createWithdraw } from "../entities/withdraw";
 import { getOrCreateToken } from "../entities/token";
 
 export function handleDeposit(event: DepositEvent): void {
-  let poolId = POOL_ID;
-  let pool = Pool.load(poolId);
+  const pool = getPoolFromHookAddress(event.address);
 
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
     return;
   }
 
@@ -40,10 +36,10 @@ export function handleDeposit(event: DepositEvent): void {
   getOrCreateAccount(accountAddress);
 
   // Create position ID
-  let position = getPosition(accountAddress, poolId);
+  let position = getPosition(accountAddress, pool.id);
   if (position === null) {
     // Create a new position if it doesn't exist
-    position = createPosition(accountAddress, poolId, event);
+    position = createPosition(accountAddress, pool.id, event);
   } else {
     trackDeposit(position, event);
   }
@@ -51,17 +47,16 @@ export function handleDeposit(event: DepositEvent): void {
   let token0 = getOrCreateToken(pool.token0);
   let token1 = getOrCreateToken(pool.token1);
   // add deposit entity
-  createDeposit(accountAddress, poolId, event, token0, token1);
+  createDeposit(accountAddress, pool.id, event, token0, token1);
 
   // update pool and protocol
   trackHookDeposit(pool, event, token0, token1);
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
-  let poolId = POOL_ID;
-  let pool = Pool.load(poolId);
+  const pool = getPoolFromHookAddress(event.address);
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
     return;
   }
 
@@ -69,7 +64,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
   let address = event.params.owner.toHexString();
 
   // Create position ID
-  let position = getPosition(address, poolId);
+  let position = getPosition(address, pool.id);
   if (position === null) {
     // This should not happen as pool should be created during initialization
     return;
@@ -80,15 +75,14 @@ export function handleWithdraw(event: WithdrawEvent): void {
   let token0 = getOrCreateToken(pool.token0);
   let token1 = getOrCreateToken(pool.token1);
   // add withdraw entity
-  createWithdraw(address, poolId, event, token0, token1);
+  createWithdraw(address, pool.id, event, token0, token1);
   trackHookWithdraw(pool, event, token0, token1);
 }
 
 export function handleFeesTracked(event: FeesTrackedEvent): void {
-  let poolId = POOL_ID;
-  let pool = Pool.load(poolId);
+  const pool = getPoolFromHookAddress(event.address);
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
     return;
   }
 
@@ -96,10 +90,10 @@ export function handleFeesTracked(event: FeesTrackedEvent): void {
 }
 
 export function handleFeesCollected(event: FeesCollectedEvent): void {
-  let poolId = POOL_ID;
-  let pool = Pool.load(poolId);
+  const pool = getPoolFromHookAddress(event.address);
+
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
     return;
   }
 

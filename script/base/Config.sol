@@ -15,6 +15,7 @@ contract Config {
     struct ConfigData {
         address poolManager;
         address aavePoolAddressesProvider;
+        address hookManager;
         Currency token0;
         Currency token1;
         PoolKey poolKey;
@@ -50,6 +51,8 @@ contract Config {
         return ConfigData({
             poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
             aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
+            // todo: update
+            hookManager: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
             token0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
             token1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
             poolKey: poolKey,
@@ -70,6 +73,8 @@ contract Config {
         return ConfigData({
             poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
             aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
+            // todo: update
+            hookManager: address(0xfd69667cC5EB6A200270FE157a3318A42140685e),
             token0: Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)), // USDC
             token1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
             poolKey: poolKey,
@@ -89,6 +94,8 @@ contract Config {
         return ConfigData({
             poolManager: address(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543),
             aavePoolAddressesProvider: address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A),
+            // todo: update
+            hookManager: address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A),
             token0: Currency.wrap(address(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8)), // USDC
             token1: Currency.wrap(address(0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0)), // USDT
             poolKey: poolKey,
@@ -102,12 +109,14 @@ contract Config {
             currency1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(address(0x776cd1D9789d76E664C4b5984DA56C7f437dc8C0))
+            hooks: IHooks(address(0x808A955773C6d66F48a6E66b27591738281408C0))
         });
-        bytes memory poolId = "0x23cb5f0d7843d59ffeefc9feed5fef912817fb3ac09f3829f35e70a3dbec869d";
+        bytes memory poolId = "0xea0907d3e86a8763d9d6450660b9cddfb500e09c5c16387f50e7df866e39429a";
         return ConfigData({
             poolManager: address(0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32),
             aavePoolAddressesProvider: address(0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb),
+            // update
+            hookManager: address(0x0582f41f68117130b1ED5765fF094944a165a382),
             token0: Currency.wrap(address(0xaf88d065e77c8cC2239327C5EDb3A432268e5831)), // USDC
             token1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
             poolKey: poolKey,

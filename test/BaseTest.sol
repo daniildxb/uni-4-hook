@@ -16,11 +16,15 @@ import {MockAavePoolAddressesProvider} from "./utils/mocks/MockAavePoolAddresses
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
+import {HookManager} from "src/HookManager.sol";
+import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
+import {Create2Impl} from "permit2/lib/openzeppelin-contracts/contracts/mocks/Create2Impl.sol";
+
+import {HookDeployer} from "src/HookDeployer.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
-// Import the modular hook instead of the original HookV1
-import {ModularHookV1} from "../src/ModularHookV1.sol";
+import {ModularHookV1, ModularHookV1HookConfig} from "../src/ModularHookV1.sol";
 
 contract BaseTest is Test, Deployers {
     using CurrencyLibrary for Currency;
@@ -36,13 +40,17 @@ contract BaseTest is Test, Deployers {
     address aavePoolAddressesProvider;
     string shareName = "name";
     string shareSymbol = "symbol";
+    HookManager hookManager;
+    HookDeployer hookDeployer;
     ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
+    int24 tickSpacing = 60;
     uint256 fee_bps = 1000; // 10%
     uint256 bufferSize = 1e7;
     uint256 minTransferAmount = 1e6;
     address feeCollector = address(0x1);
     address admin = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
+    address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
 
     PoolKey simpleKey; // vanilla pool key
     PoolId simplePoolId; // id for vanilla pool key
@@ -72,6 +80,7 @@ contract BaseTest is Test, Deployers {
         console.log("1");
         deployFreshManagerAndRouters();
         (token0, token1) = deployMintAndApprove2Currencies();
+        _deployCreate2();
 
         console.log("2");
         MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0");
@@ -84,12 +93,8 @@ contract BaseTest is Test, Deployers {
         aavePoolAddressesProvider = address(new MockAavePoolAddressesProvider(address(aavePool)));
 
         console.log("6");
+        _deployHookManager();
         _deployHook();
-
-        console.log("7");
-        (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(hook), 3000, SQRT_PRICE_1_1);
-        console.log("8");
-        hook.addPool(simpleKey);
 
         // Store commonly used addresses
         token0Address = Currency.unwrap(token0);
@@ -112,11 +117,26 @@ contract BaseTest is Test, Deployers {
         deal(Currency.unwrap(token1), user2, initialTokenBalance * 2, false);
     }
 
+    function _deployHookManager() internal virtual {
+        vm.startPrank(admin);
+        hookManager = new HookManager(address(manager));
+        hookDeployer = new HookDeployer(address(hookManager));
+        hookManager.setHookDeployer(address(hookDeployer));
+        vm.stopPrank();
+    }
+
+    function _deployCreate2() internal virtual {
+        vm.startPrank(admin);
+        deployCodeTo("Create2Impl.sol:Create2Impl", CREATE2_DEPLOYER);
+        vm.stopPrank();
+    }
+
     function _deployHook() internal virtual {
-        address flags = address(
-            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
-        );
-        ModularHookV1.HookConfig memory hookParams = ModularHookV1.HookConfig({
+        vm.startPrank(admin);
+        uint160 flags =
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144); // Namespace the hook to avoid collisions
+        address expectedAddress = address(flags);
+        ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(manager),
             token0: token0,
             token1: token1,
@@ -131,8 +151,15 @@ contract BaseTest is Test, Deployers {
             minTransferAmount: minTransferAmount
         });
         bytes memory constructorArgs = abi.encode(hookParams); //Add all the necessary constructor arguments from the hook
-        deployCodeTo("ModularHookV1.sol:ModularHookV1", constructorArgs, flags); // Changed from HookV1 to ModularHookV1
-        hook = ModularHookV1(flags); // Changed from HookV1 to ModularHookV1
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(address(hookDeployer), flags, type(ModularHookV1).creationCode, constructorArgs);
+
+        hookManager.deployHook(hookParams, hookAddress, fee, tickSpacing, salt); // Deploy the hook using the hook manager
+        hook = ModularHookV1(hookAddress); // Changed from HookV1 to ModularHookV1
+        simpleKey =
+            PoolKey({currency0: token0, currency1: token1, fee: fee, tickSpacing: tickSpacing, hooks: IHooks(hook)});
+        simplePoolId = PoolId.wrap(keccak256(abi.encode(simpleKey, address(hook), fee, tickSpacing, salt))); // Create the pool ID using the hook address
+        vm.stopPrank();
     }
 
     // Helper function to get current token balances for any address

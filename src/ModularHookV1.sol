@@ -16,6 +16,21 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
+struct ModularHookV1HookConfig {
+    IPoolManager poolManager;
+    Currency token0;
+    Currency token1;
+    int24 tickMin;
+    int24 tickMax;
+    address aavePoolAddressesProvider;
+    string shareName;
+    string shareSymbol;
+    address feeCollector;
+    uint256 fee_bps;
+    uint256 bufferSize;
+    uint256 minTransferAmount;
+}
+
 /**
  * @title Modular Hook V1
  * @notice Most of the functionality is inherited, only defines permissions
@@ -26,22 +41,7 @@ contract ModularHookV1 is AaveFeesHook {
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20;
 
-    struct HookConfig {
-        IPoolManager poolManager;
-        Currency token0;
-        Currency token1;
-        int24 tickMin;
-        int24 tickMax;
-        address aavePoolAddressesProvider;
-        string shareName;
-        string shareSymbol;
-        address feeCollector;
-        uint256 fee_bps;
-        uint256 bufferSize;
-        uint256 minTransferAmount;
-    }
-
-    constructor(HookConfig memory config)
+    constructor(ModularHookV1HookConfig memory config)
         AaveHook(config.aavePoolAddressesProvider)
         HotBufferHook(config.bufferSize, config.minTransferAmount)
         ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)

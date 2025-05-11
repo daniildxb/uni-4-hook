@@ -5,7 +5,7 @@
       {
         "name": "config",
         "type": "tuple",
-        "internalType": "struct ModularHookV1.HookConfig",
+        "internalType": "struct ModularHookV1HookConfig",
         "components": [
           {
             "name": "poolManager",
@@ -778,6 +778,29 @@
     ],
     "outputs": [
       { "name": "delta", "type": "int256", "internalType": "BalanceDelta" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPoolId",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSlot0",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "sqrtPriceX96",
+        "type": "uint160",
+        "internalType": "uint160"
+      },
+      { "name": "tick", "type": "int24", "internalType": "int24" },
+      { "name": "protocolFee", "type": "uint24", "internalType": "uint24" },
+      { "name": "lpFee", "type": "uint24", "internalType": "uint24" }
     ],
     "stateMutability": "view"
   },

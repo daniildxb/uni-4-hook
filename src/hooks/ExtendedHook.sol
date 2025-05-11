@@ -8,7 +8,7 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {PoolIdLibrary, PoolId} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -63,10 +63,22 @@ abstract contract ExtendedHook is RescueHook, BaseHook {
     function addPool(PoolKey calldata _key) public {
         assert(_key.currency0 == token0);
         assert(_key.currency1 == token1);
+        // verifies that the pool is not already added
+        assert(address(key.hooks) == address(0));
+        // verifies pool uses this hook
+        assert(address(_key.hooks) == address(this));
         key = _key;
     }
 
     // VIEWS
+
+    function getSlot0() public view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee) {
+        return poolManager.getSlot0(key.toId());
+    }
+
+    function getPoolId() public view returns (bytes32) {
+        return PoolId.unwrap(key.toId());
+    }
 
     function getTokenAmountsForLiquidity(uint256 liqudity) public view returns (int128 amount0, int128 amount1) {
         BalanceDelta delta = getPoolDelta(liqudity.toInt128());

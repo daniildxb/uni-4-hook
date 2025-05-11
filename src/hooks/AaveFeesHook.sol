@@ -30,8 +30,8 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using SafeCast for *;
 
     function totalAssets() public view virtual override(AaveHook, FeeTrackingHook) returns (uint256) {
-        uint256 totalAssets = AaveHook.totalAssets();
-        if (unclaimedFees > totalAssets) {
+        uint256 _totalAssets = AaveHook.totalAssets();
+        if (unclaimedFees > _totalAssets) {
             return 0;
         }
         return AaveHook.totalAssets() - unclaimedFees;
@@ -41,8 +41,12 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         (amount0, amount1) = getTokenAmountsForLiquidity(unclaimedFees);
     }
 
-    function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual override(HotBufferHook, FeeTrackingHook) {
-      return HotBufferHook._transferFees(amount0, amount1, treasury);
+    function _transferFees(uint128 amount0, uint128 amount1, address treasury)
+        internal
+        virtual
+        override(HotBufferHook, FeeTrackingHook)
+    {
+        return HotBufferHook._transferFees(amount0, amount1, treasury);
     }
 
     // not using setAssetsAfter as it will be done in the _afterSwap
@@ -72,12 +76,7 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         return AaveHook._afterSwap(sender, _key, swapParams, delta, hookData);
     }
 
-    function _beforeHookDeposit(uint256 amount0, uint256 amount1)
-        internal
-        virtual
-        override
-        trackFeesBefore
-    {}
+    function _beforeHookDeposit(uint256 amount0, uint256 amount1) internal virtual override trackFeesBefore {}
 
     function _afterHookDeposit(uint256 amount0, uint256 amount1)
         internal
@@ -85,7 +84,7 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         override(CustodyHook, HotBufferHook)
         setAssetsAfter
     {
-      super._afterHookDeposit(amount0, amount1);
+        super._afterHookDeposit(amount0, amount1);
     }
 
     function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
@@ -101,6 +100,6 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         override(CustodyHook, HotBufferHook)
         setAssetsAfter
     {
-      super._afterHookWithdrawal(amount0, amount1, receiver);
+        super._afterHookWithdrawal(amount0, amount1, receiver);
     }
 }

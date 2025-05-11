@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { ModularHookV1 } from "../../src/ModularHookV1.sol";
+import {ModularHookV1} from "../../src/ModularHookV1.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -150,7 +150,6 @@ contract HookV1Test is BaseTest {
         assertApproxEqAbs(token0Amount2, token0Amount1 * 2, 1, "User 2 should deposit ~2x token0 amount");
         assertApproxEqAbs(token1Amount2, token1Amount1 * 2, 1, "User 2 should deposit ~2x token1 amount");
 
-
         // Record User 2's share balance
         uint256 user2Shares = ModularHookV1(address(hook)).balanceOf(user2);
 
@@ -174,18 +173,12 @@ contract HookV1Test is BaseTest {
         uint256 user1ValuePerShare = user1FinalAssetValue / user1InitialShares;
         uint256 user2ValuePerShare = hook.convertToAssets(user2Shares) / user2Shares;
         assertApproxEqAbs(
-            user1ValuePerShare,
-            user2ValuePerShare,
-            1,
-            "Value per share should be consistent between users"
+            user1ValuePerShare, user2ValuePerShare, 1, "Value per share should be consistent between users"
         );
 
         // Verify User 2 has approximately twice as many shares as User 1
         assertApproxEqAbs(
-            user2Shares,
-            user1InitialShares * 2,
-            1,
-            "User 2 should have approximately 2x the shares of User 1"
+            user2Shares, user1InitialShares * 2, 1, "User 2 should have approximately 2x the shares of User 1"
         );
 
         // Verify token balances in the hook increased proportionally
@@ -229,10 +222,10 @@ contract HookV1Test is BaseTest {
         console.log("User 1 deposited token1:", token1Amount1);
 
         {
-          uint256 totalAssets = hook.totalAssets();
-          uint256 unclaimedFees = hook.unclaimedFees();
-          console.log("Total assets in hook:", totalAssets);
-          console.log("Unclaimed fees in hook:", unclaimedFees);
+            uint256 totalAssets = hook.totalAssets();
+            uint256 unclaimedFees = hook.unclaimedFees();
+            console.log("Total assets in hook:", totalAssets);
+            console.log("Unclaimed fees in hook:", unclaimedFees);
         }
 
         // Record initial shares and values
@@ -259,10 +252,10 @@ contract HookV1Test is BaseTest {
         console.log("User 2 deposited token1:", token1Amount2);
 
         {
-          uint256 totalAssets = hook.totalAssets();
-          uint256 unclaimedFees = hook.unclaimedFees();
-          console.log("Total assets in hook:", totalAssets);
-          console.log("Unclaimed fees in hook:", unclaimedFees);
+            uint256 totalAssets = hook.totalAssets();
+            uint256 unclaimedFees = hook.unclaimedFees();
+            console.log("Total assets in hook:", totalAssets);
+            console.log("Unclaimed fees in hook:", unclaimedFees);
         }
 
         // Record User 2's shares
@@ -305,10 +298,7 @@ contract HookV1Test is BaseTest {
         );
 
         assertApproxEqAbs(
-            user2ShareValue,
-            user1ShareValueAfterUser2 * 2,
-            1,
-            "User 2's share value should be ~2x User 1's share value"
+            user2ShareValue, user1ShareValueAfterUser2 * 2, 1, "User 2's share value should be ~2x User 1's share value"
         );
 
         // Check that redeeming shares works correctly

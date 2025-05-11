@@ -2,7 +2,8 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {ModularHookV1} from "src/ModularHookV1.sol";
+import {ModularHookV1, ModularHookV1HookConfig} from "src/ModularHookV1.sol";
+import {HookManager} from "src/HookManager.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
@@ -11,6 +12,8 @@ import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 
 /// @notice Mines the address and deploys the ModularHookV1.sol Hook contract
 contract DeployScript is Script, Deployers, Config {
@@ -24,6 +27,8 @@ contract DeployScript is Script, Deployers, Config {
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
 
         uint256 chainId = vm.envUint("CHAIN_ID");
+        uint24 fee = 10;
+        int24 tickSpacing = 1;
 
         Config.ConfigData memory config = getConfigPerNetwork(chainId);
         // @note we need to pass those in an order
@@ -32,7 +37,7 @@ contract DeployScript is Script, Deployers, Config {
         string memory shareName = "LP";
         string memory shareSymbol = "LP";
 
-        ModularHookV1.HookConfig memory hookParams = ModularHookV1.HookConfig({
+        ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(config.poolManager),
             token0: config.token0,
             token1: config.token1,
@@ -50,25 +55,18 @@ contract DeployScript is Script, Deployers, Config {
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(hookParams);
 
+        HookManager hookManager = HookManager(config.hookManager);
         // Move the mining and deployment into the run function where execution occurs
         (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_DEPLOYER, flags, type(ModularHookV1).creationCode, constructorArgs);
+            HookMiner.find(hookManager.hookDeployer(), flags, type(ModularHookV1).creationCode, constructorArgs);
 
-        // Deploy the hook using CREATE2
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        ModularHookV1 hook = new ModularHookV1{salt: salt}(hookParams);
-
-        require(address(hook) == hookAddress, "HookV1: hook address mismatch");
-
-        // create pool
-        uint24 fee = 10;
-
-        PoolKey memory key = PoolKey(config.token0, config.token1, fee, 1, IHooks(hook));
-        PoolId id = key.toId();
-        IPoolManager(config.poolManager).initialize(key, SQRT_PRICE_1_1);
-        // add pool
-        hook.addPool(key);
-        console.log(vm.toString(PoolId.unwrap(id)));
+        hookManager.deployHook(hookParams, hookAddress, fee, tickSpacing, salt);
         vm.stopBroadcast();
+        ModularHookV1 hook = ModularHookV1(hookAddress);
+        (Currency currency0, Currency currency1, uint24 _fee, int24 _tickSpacing, IHooks hooks) = hook.key();
+        PoolKey memory key =
+            PoolKey({currency0: currency0, currency1: currency1, fee: _fee, tickSpacing: _tickSpacing, hooks: hooks});
+        console.log(vm.toString(PoolId.unwrap(key.toId())));
     }
 }

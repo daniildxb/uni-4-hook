@@ -21,8 +21,6 @@ contract RescueFromHookScript is Script, Deployers, Config {
         Config.ConfigData memory config = getConfigPerNetwork(chainId);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
 
-
-
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         rescueToken(Currency.unwrap(hook.token0()), hook);
         rescueToken(Currency.unwrap(hook.token1()), hook);
@@ -31,15 +29,12 @@ contract RescueFromHookScript is Script, Deployers, Config {
         vm.stopBroadcast();
     }
 
-    function rescueToken(
-        address token,
-        ModularHookV1 hook
-    ) internal {
+    function rescueToken(address token, ModularHookV1 hook) internal {
         uint256 amountToRescue = IERC20(token).balanceOf(address(hook));
-      if (amountToRescue == 0) {
+        if (amountToRescue == 0) {
             console.log("No tokens to rescue");
             return;
         }
-      hook.rescue(token, amountToRescue);
+        hook.rescue(token, amountToRescue);
     }
 }
