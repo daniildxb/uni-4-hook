@@ -8,7 +8,7 @@ import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {ERC4626Wrapper} from "../ERC4626Wrapper.sol";
@@ -23,7 +23,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeCast for *;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     // ensures that liquidity is only added through the hook
     function _beforeAddLiquidity(
@@ -60,8 +60,8 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
         _beforeHookDeposit(amount0, amount1);
 
         // Receive tokens from user
-        IERC20(Currency.unwrap(key.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
-        IERC20(Currency.unwrap(key.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
+        IERC20Metadata(Currency.unwrap(key.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
+        IERC20Metadata(Currency.unwrap(key.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
 
         // Process the tokens (to be implemented by child contracts)
 

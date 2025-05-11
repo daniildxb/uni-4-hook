@@ -10,14 +10,11 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {PoolIdLibrary, PoolId} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {RescueHook} from "./RescueHook.sol";
 
 /**
@@ -41,7 +38,6 @@ abstract contract ExtendedHook is RescueHook, BaseHook {
     using BalanceDeltaLibrary for BalanceDelta;
     using StateLibrary for IPoolManager;
     using SafeCast for *;
-    using SafeERC20 for IERC20;
 
     int24 public tickMin;
     int24 public tickMax;

@@ -14,7 +14,7 @@ import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {IPool} from "@aave-v3-core/interfaces/IPool.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/interfaces/IPoolAddressesProvider.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
@@ -29,7 +29,7 @@ abstract contract AaveHook is CustodyHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeCast for *;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
     using StateLibrary for IPoolManager;
     using TransientStateLibrary for IPoolManager;
 
@@ -55,11 +55,11 @@ abstract contract AaveHook is CustodyHook {
         // this function worked on the assumption that when we deposit tokens
         // into uniswap resulting liquidity amount is a sum of two liquidities per token
         // this is not the case and results in us double counting liquidity
-        uint256 aToken0Balance = IERC20(aToken0).balanceOf(address(this));
-        uint256 aToken1Balance = IERC20(aToken1).balanceOf(address(this));
+        uint256 aToken0Balance = IERC20Metadata(aToken0).balanceOf(address(this));
+        uint256 aToken1Balance = IERC20Metadata(aToken1).balanceOf(address(this));
 
-        uint256 token0Balance = IERC20(Currency.unwrap(token0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20(Currency.unwrap(token1)).balanceOf(address(this));
+        uint256 token0Balance = IERC20Metadata(Currency.unwrap(token0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20Metadata(Currency.unwrap(token1)).balanceOf(address(this));
 
         uint256 totalToken0Balance = aToken0Balance + token0Balance;
         uint256 totalToken1Balance = aToken1Balance + token1Balance;
@@ -77,10 +77,10 @@ abstract contract AaveHook is CustodyHook {
     }
 
     function liquidityForHookTokens() public view virtual returns (uint256) {
-        uint256 aToken0Balance = IERC20(aToken0).balanceOf(address(this));
-        uint256 aToken1Balance = IERC20(aToken1).balanceOf(address(this));
-        uint256 token0Balance = IERC20(Currency.unwrap(token0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20(Currency.unwrap(token1)).balanceOf(address(this));
+        uint256 aToken0Balance = IERC20Metadata(aToken0).balanceOf(address(this));
+        uint256 aToken1Balance = IERC20Metadata(aToken1).balanceOf(address(this));
+        uint256 token0Balance = IERC20Metadata(Currency.unwrap(token0)).balanceOf(address(this));
+        uint256 token1Balance = IERC20Metadata(Currency.unwrap(token1)).balanceOf(address(this));
 
         uint256 totalToken0Balance = aToken0Balance + token0Balance;
         uint256 totalToken1Balance = aToken1Balance + token1Balance;
@@ -103,7 +103,7 @@ abstract contract AaveHook is CustodyHook {
      */
     function _depositToAave(address token, uint256 amount) internal {
         emit MoneyMarketDeposit(token, amount);
-        IERC20(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
+        IERC20Metadata(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
         IPool(aavePoolAddressesProvider.getPool()).supply(token, amount, address(this), 0);
     }
 

@@ -10,8 +10,6 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
@@ -25,7 +23,6 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
-    using SafeERC20 for IERC20;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
     using SafeCast for *;
 

@@ -15,6 +15,7 @@ import {Config} from "./base/Config.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 
 /// @notice Mines the address and deploys the ModularHookV1.sol Hook contract
 contract DeployScript is Script, Deployers, Config {
@@ -30,12 +31,19 @@ contract DeployScript is Script, Deployers, Config {
             uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
             config = getConfigPerNetwork(chainId, pool_enum);
         }
+        uint160 price = 0;
+        {
+            uint8 token0Decimals = ERC20(Currency.unwrap(config.token0)).decimals();
+            uint8 token1Decimals = ERC20(Currency.unwrap(config.token1)).decimals();
+            price = calculateSqrtPriceX96(token1Decimals, token0Decimals);
+        }
 
         ModularHookV1HookConfig memory hookParams;
         {
             // @note we need to pass those in an order
-            int24 _tickMin = -2; // 2 bips away from 1:1
-            int24 _tickMax = 2;
+            int24 baseTick = TickMath.getTickAtSqrtPrice(price);
+            int24 _tickMin = baseTick - 2;
+            int24 _tickMax = baseTick + 2;
             string memory shareName = "LP";
             string memory shareSymbol = "LP";
 
@@ -70,14 +78,11 @@ contract DeployScript is Script, Deployers, Config {
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         {
-            uint8 token0Decimals = ERC20(Currency.unwrap(config.token0)).decimals();
-            uint8 token1Decimals = ERC20(Currency.unwrap(config.token1)).decimals();
-            uint160 price = calculateSqrtPriceX96(token0Decimals, token1Decimals);
-
             uint24 fee = 10;
             int24 tickSpacing = 1;
 
             console.log("price", price);
+            console.log("tick at price", TickMath.getTickAtSqrtPrice(price));
             hookManager.deployHook(hookParams, hookAddress, price, fee, tickSpacing, salt);
         }
         vm.stopBroadcast();

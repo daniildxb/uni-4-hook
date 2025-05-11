@@ -19,10 +19,10 @@ contract Config is SqrtPriceCalculator {
     int24 constant DEFAULT_TICK_SPACING = 1;
 
     // Pool identifiers
-    uint256 constant USDC_USDT_POOL = 0;
-    uint256 constant USDT_DAI_POOL = 1;
-    uint256 constant DAI_USDE_POOL = 2;
-    uint256 constant DAI_GHO_POOL = 3;
+    uint256 constant USDC_USDT_POOL = 0; // main pool
+    uint256 constant USDT_DAI_POOL = 1; // 6/18 decimals
+    uint256 constant DAI_USDE_POOL = 2; // won't work
+    uint256 constant DAI_GHO_POOL = 3; // 18/18 decimals
 
     // Network identifiers
     uint256 constant MAINNET = 1;
@@ -49,7 +49,7 @@ contract Config is SqrtPriceCalculator {
     // Infrastructure addresses - Arbitrum
     address constant ARBITRUM_POOL_MANAGER = 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32;
     address constant ARBITRUM_AAVE_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
-    address constant ARBITRUM_HOOK_MANAGER = 0x0582f41f68117130b1ED5765fF094944a165a382;
+    address constant ARBITRUM_HOOK_MANAGER = 0x10BF3E582fc11D5629743E93beDC39b838C603cc;
 
     address constant LOCAL_HOOK_MANAGER = 0xfd69667cC5EB6A200270FE157a3318A42140685e;
 
@@ -169,15 +169,15 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_USDC,
                 token1Address: ARBITRUM_USDT,
-                hookAddress: 0x808A955773C6d66F48a6E66b27591738281408C0,
-                poolId: "0xea0907d3e86a8763d9d6450660b9cddfb500e09c5c16387f50e7df866e39429a"
+                hookAddress: 0xEe0e83e362f2F4A969D1d9c6eb04d400Bb1bC8c0,
+                poolId: "0x775253e1a54c55f1f0cbc143fb035cd60c459a1db2251b6bc494886f978a0f2a"
             });
         } else if (poolId == USDT_DAI_POOL) {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_DAI,
                 token1Address: ARBITRUM_USDT,
-                hookAddress: 0x4F7A657B81fFF3E6952c6548B5873F0897C97B83,
-                poolId: "0xd8e0e5344abcdf2ce1707e65bf455416cb3ccc08f3940bcce92846542dbb454d"
+                hookAddress: 0xccC7C10b872A9F449FA41Ef7a723ACB1615548C0,
+                poolId: "0x7ec8ddf47afeb8e2e6621e879272e1f92e8dd95f0979c22d399b7a3fe280d307"
             });
         } else if (poolId == DAI_GHO_POOL) {
             tokenPair = TokenPair({

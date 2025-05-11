@@ -9,7 +9,7 @@ import {FeeTrackingHook} from "./hooks/FeeTrackingHook.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 
@@ -41,14 +41,14 @@ struct ModularHookV1HookConfig {
 contract ModularHookV1 is AaveFeesHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     constructor(ModularHookV1HookConfig memory config)
         AaveHook(config.aavePoolAddressesProvider)
         HotBufferHook(config.bufferSize0, config.bufferSize1, config.minTransferAmount0, config.minTransferAmount1)
         ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)
         FeeTrackingHook(config.feeCollector, config.fee_bps)
-        ERC4626(IERC20(Currency.unwrap(config.token0)))
+        ERC4626(IERC20Metadata(Currency.unwrap(config.token0)))
         ERC20(config.shareName, config.shareSymbol)
     {}
 
