@@ -11,6 +11,7 @@ export function getOrCreateProtocol(): Protocol {
     protocol.totalValueLockedUSD = ZERO_BD;
     protocol.cumulativeFeeUSD = ZERO_BD;
     protocol.cumulativeVolumeUSD = ZERO_BD;
+    protocol.cumulativeProtocolFeeUSD = ZERO_BD;
     protocol.lastSnapshotTimestamp = ZERO_BI;
     protocol.save();
   }
@@ -44,6 +45,7 @@ export function getOrCreateSnapshot(
   snapshot.totalValueLockedUSD = protocol.totalValueLockedUSD;
   snapshot.cumulativeFeeUSD = protocol.cumulativeFeeUSD;
   snapshot.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD;
+  snapshot.cumulativeProtocolFeeUSD = protocol.cumulativeProtocolFeeUSD;
   snapshot.save();
   return snapshot;
 }

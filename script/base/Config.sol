@@ -64,9 +64,9 @@ contract Config {
             currency1: Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0xa0432D26A6488d4Cc1a6A8C2266DaD8Ee659c8C0)
+            hooks: IHooks(0xd9C461354be60457759349378dEF760CeF3Ac8C0)
         });
-        bytes memory poolId = "0xc66ae2ea52bf65f65aa43db8bdfbd08863d5e4c26b98ba72d43aad2b0fef23fa";
+        bytes memory poolId = "0x437f292d4e7dbacf4b01f0962ae688e3c6f6838b8ef6e5371c5326e4936618d5";
         return ConfigData({
             poolManager: address(0x000000000004444c5dc75cB358380D2e3dE08A90),
             aavePoolAddressesProvider: address(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e),
@@ -83,9 +83,9 @@ contract Config {
             currency1: Currency.wrap(address(0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0x3CD31147bCC9DF68A621f52B0F3da016668488C0)
+            hooks: IHooks(address(0x3e52fF7481907312Ccc48ff281cAcC016d1B88c0))
         });
-        bytes memory poolId = "0x81297b5dba86296ddafff869242e55ceec5ab3d3528d8ed3312f98a0d8feb185";
+        bytes memory poolId = "0x095fdd15e0c754108cfeb30baaa2e235548660bbf2787cf11d33d04dfc5f704b";
         return ConfigData({
             poolManager: address(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543),
             aavePoolAddressesProvider: address(0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A),
@@ -102,9 +102,9 @@ contract Config {
             currency1: Currency.wrap(address(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9)), // USDT
             fee: 10,
             tickSpacing: 1,
-            hooks: IHooks(0x333700A7361649Af6ED3881Da44E42704dBE88c0)
+            hooks: IHooks(address(0x776cd1D9789d76E664C4b5984DA56C7f437dc8C0))
         });
-        bytes memory poolId = "0x8119a8e627939c6566f133c56c11d8856a7813e4e2dca8d65b6480bb8e6d968c";
+        bytes memory poolId = "0x23cb5f0d7843d59ffeefc9feed5fef912817fb3ac09f3829f35e70a3dbec869d";
         return ConfigData({
             poolManager: address(0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32),
             aavePoolAddressesProvider: address(0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb),

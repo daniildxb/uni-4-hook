@@ -7,7 +7,7 @@ if [ -z "$ARBITRUM_RPC_URL" ]; then
     exit 1
 fi
 
-echo "Starting scheduled swap script execution every 15 minutes"
+echo "Starting scheduled swap script execution every 5 minutes"
 echo "Press Ctrl+C to stop"
 
 while true; do
@@ -31,6 +31,6 @@ while true; do
     forge script script/SwapThroughPool.s.sol --rpc-url=$ARBITRUM_RPC_URL --broadcast -v
     
     # Wait for 2 minutes before the next execution
-    echo "Waiting 15 minutes until next execution..."
-    sleep 910 # 15 minutes & 10 seconds
+    echo "Waiting 5 minutes until next execution..."
+    sleep 300 # 5 minutes
 done

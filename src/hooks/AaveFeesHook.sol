@@ -30,16 +30,19 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
     using SafeCast for *;
 
     function totalAssets() public view virtual override(AaveHook, FeeTrackingHook) returns (uint256) {
+        uint256 totalAssets = AaveHook.totalAssets();
+        if (unclaimedFees > totalAssets) {
+            return 0;
+        }
         return AaveHook.totalAssets() - unclaimedFees;
-    }
-
-    function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual override {
-        _withdrawFromAave(Currency.unwrap(token0), amount0, treasury);
-        _withdrawFromAave(Currency.unwrap(token1), amount1, treasury);
     }
 
     function getUnclaimedFees() public view virtual override returns (int128 amount0, int128 amount1) {
         (amount0, amount1) = getTokenAmountsForLiquidity(unclaimedFees);
+    }
+
+    function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual override(HotBufferHook, FeeTrackingHook) {
+      return HotBufferHook._transferFees(amount0, amount1, treasury);
     }
 
     // not using setAssetsAfter as it will be done in the _afterSwap

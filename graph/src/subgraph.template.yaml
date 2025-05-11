@@ -36,6 +36,10 @@ dataSources:
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleWithdraw
+        - event: FeesTracked(uint256)
+          handler: handleFeesTracked
+        - event: FeesCollected(uint256,uint256,uint256,address)
+          handler: handleFeesCollected
       file: ./mappings/hook-v1.ts
   - kind: ethereum
     name: PoolManager

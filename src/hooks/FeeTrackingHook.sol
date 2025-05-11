@@ -59,7 +59,7 @@ abstract contract FeeTrackingHook is CustodyHook {
     function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual;
     function getUnclaimedFees() public view virtual returns (int128 amount0, int128 amount1);
 
-    function collectFees() external onlyFeeCollector returns (uint128 amount0, uint128 amount1) {
+    function collectFees() external virtual onlyFeeCollector returns (uint128 amount0, uint128 amount1) {
         (int128 _amount0, int128 _amount1) = getUnclaimedFees();
         require(_amount0 > 0 || _amount1 > 0, "No fees to collect");
         amount0 = _amount0.toUint128();

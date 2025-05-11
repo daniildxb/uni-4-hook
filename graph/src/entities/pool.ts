@@ -17,6 +17,8 @@ import { bumpProtocolStats, getOrCreateProtocol } from "./protocol";
 import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
+  FeesTracked as FeesTrackedEvent,
+  FeesCollected as FeesCollectedEvent,
   HookV1,
 } from "../../generated/HookV1/HookV1";
 import { sqrtPriceX96ToTokenPrices } from "../sqrtMath";
@@ -71,6 +73,8 @@ export function createPool(event: InitializeEvent): Pool {
   pool.cumulativeSwapFeeUSD = ZERO_BD;
   pool.cumulativeLendingYieldUSD = ZERO_BD;
   pool.cumulativeVolumeUSD = ZERO_BD;
+  pool.unclaimedProtocolFeeUSD = ZERO_BD;
+  pool.claimedProtocolFeeUSD = ZERO_BD;
   pool.shares = ZERO_BI;
   pool.token0Amount = ZERO_BI;
   pool.token1Amount = ZERO_BI;
@@ -305,6 +309,8 @@ export function getOrCreateSnapshot(
   snapshot.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD;
   snapshot.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD;
   snapshot.cumulativeVolumeUSD = pool.cumulativeVolumeUSD;
+  snapshot.unclaimedProtocolFeeUSD = pool.unclaimedProtocolFeeUSD;
+  snapshot.claimedProtocolFeeUSD = pool.claimedProtocolFeeUSD;
   snapshot.rate = rate;
   snapshot.shares = pool.shares;
   snapshot.save();
@@ -340,6 +346,49 @@ export function updatePoolLendingYield(
 
   pool.save();
   return lendingYieldUSD;
+}
+
+export function trackProtocolFee(pool: Pool, event: FeesTrackedEvent): void {
+  // event param tracks fee in liquidity amounts
+  const feeLiquidity = event.params.feeDelta;
+
+  // we need to convert this to token amounts
+  const hookContract = HookV1.bind(Address.fromBytes(pool.hook));
+  const result = hookContract.getTokenAmountsForLiquidity(feeLiquidity);
+  const token0Amount = result.value0;
+  const token1Amount = result.value1;
+  // and then to USD
+
+  const feeUSD = convertTokenToUSD(
+    getOrCreateToken(pool.token0),
+    token0Amount
+  ).plus(
+    convertTokenToUSD(getOrCreateToken(pool.token1), token1Amount)
+  );
+  pool.unclaimedProtocolFeeUSD = pool.unclaimedProtocolFeeUSD.plus(feeUSD);
+  _updateTimestamps(pool, event.block);
+  pool.save();
+
+  let protocol = getOrCreateProtocol();
+  protocol.cumulativeProtocolFeeUSD = protocol.cumulativeProtocolFeeUSD.plus(feeUSD);
+  protocol.save();
+}
+
+export function trackFeesCollected(pool: Pool, event: FeesCollectedEvent): void {
+  const token0Amount = event.params.amount0;
+  const token1Amount = event.params.amount1;
+
+  const feeUSD = convertTokenToUSD(
+    getOrCreateToken(pool.token0),
+    token0Amount
+  ).plus(
+    convertTokenToUSD(getOrCreateToken(pool.token1), token1Amount)
+  );
+
+  // we always collect all fees
+  pool.unclaimedProtocolFeeUSD = ZERO_BD;
+  pool.claimedProtocolFeeUSD = pool.claimedProtocolFeeUSD.plus(feeUSD);
+  pool.save();
 }
 
 function _updateTimestamps(pool: Pool, block: ethereum.Block): void {

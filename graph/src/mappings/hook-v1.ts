@@ -2,14 +2,18 @@ import { log } from "@graphprotocol/graph-ts";
 import {
   Deposit1 as DepositEvent,
   Withdraw1 as WithdrawEvent,
+  FeesTracked as FeesTrackedEvent,
+  FeesCollected as FeesCollectedEvent,
 } from "../../generated/HookV1/HookV1";
 import {
   Pool,
 } from "../../generated/schema";
 import { POOL_ID } from "../helpers/constants";
 import {
+  trackFeesCollected,
   trackHookDeposit,
   trackHookWithdraw,
+  trackProtocolFee,
 } from "../entities/pool";
 import {
   createPosition,
@@ -78,4 +82,26 @@ export function handleWithdraw(event: WithdrawEvent): void {
   // add withdraw entity
   createWithdraw(address, poolId, event, token0, token1);
   trackHookWithdraw(pool, event, token0, token1);
+}
+
+export function handleFeesTracked(event: FeesTrackedEvent): void {
+  let poolId = POOL_ID;
+  let pool = Pool.load(poolId);
+  if (pool === null) {
+    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    return;
+  }
+
+  trackProtocolFee(pool, event);
+}
+
+export function handleFeesCollected(event: FeesCollectedEvent): void {
+  let poolId = POOL_ID;
+  let pool = Pool.load(poolId);
+  if (pool === null) {
+    log.log(log.Level.WARNING, `[HOOK] Pool not found: ${poolId}`);
+    return;
+  }
+
+  trackFeesCollected(pool, event);
 }

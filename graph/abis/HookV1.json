@@ -3,27 +3,48 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_poolManager",
-        "type": "address",
-        "internalType": "contract IPoolManager"
-      },
-      { "name": "_token0", "type": "address", "internalType": "Currency" },
-      { "name": "_token1", "type": "address", "internalType": "Currency" },
-      { "name": "_tickMin", "type": "int24", "internalType": "int24" },
-      { "name": "_tickMax", "type": "int24", "internalType": "int24" },
-      {
-        "name": "_aavePoolAddressesProvider",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_shareName", "type": "string", "internalType": "string" },
-      { "name": "_shareSymbol", "type": "string", "internalType": "string" },
-      {
-        "name": "_feeCollector",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_fee_bps", "type": "uint256", "internalType": "uint256" }
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct ModularHookV1.HookConfig",
+        "components": [
+          {
+            "name": "poolManager",
+            "type": "address",
+            "internalType": "contract IPoolManager"
+          },
+          { "name": "token0", "type": "address", "internalType": "Currency" },
+          { "name": "token1", "type": "address", "internalType": "Currency" },
+          { "name": "tickMin", "type": "int24", "internalType": "int24" },
+          { "name": "tickMax", "type": "int24", "internalType": "int24" },
+          {
+            "name": "aavePoolAddressesProvider",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "shareName", "type": "string", "internalType": "string" },
+          {
+            "name": "shareSymbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "feeCollector",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "fee_bps", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "bufferSize",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minTransferAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
     "stateMutability": "nonpayable"
   },
