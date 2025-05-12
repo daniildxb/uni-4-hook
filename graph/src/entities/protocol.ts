@@ -46,6 +46,8 @@ export function getOrCreateSnapshot(
   snapshot.cumulativeFeeUSD = protocol.cumulativeFeeUSD;
   snapshot.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD;
   snapshot.cumulativeProtocolFeeUSD = protocol.cumulativeProtocolFeeUSD;
+  snapshot.createdAtTimestamp = block.timestamp;
+  snapshot.createdAtBlockNumber = block.number;
   snapshot.save();
   return snapshot;
 }

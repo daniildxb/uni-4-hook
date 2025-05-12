@@ -21,6 +21,8 @@ type ProtocolHourlySnapshots @entity(immutable: true) {
   cumulativeFeeUSD: BigDecimal!
   cumulativeVolumeUSD: BigDecimal!
   cumulativeProtocolFeeUSD: BigDecimal!
+  createdAtTimestamp: BigInt!
+  createdAtBlockNumber: BigInt!
 }
 
 type Pool @entity(immutable: false) {
