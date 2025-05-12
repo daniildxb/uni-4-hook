@@ -6,33 +6,43 @@ import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
 import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ModularHookV1} from "src/ModularHookV1.sol";
 
 /// @notice Swaps through the pool
-/// todo: handle recent changes to config structure
+/// This script handles token decimals automatically
 contract SwapThroughPoolScript is Script, Deployers, Config {
     using CurrencyLibrary for Currency;
     using SafeERC20 for IERC20;
 
-    // Amount to swap will be provided via CLI
-    int256 public amountToSwap;
+    // Amount to swap is calculated dynamically based on token decimals
+    int256 public amountToSwap0;
+    int256 public amountToSwap1;
 
     function run() public {
         // Parse the AMOUNT environment variable if provided
-        string memory amountArg = vm.envOr("AMOUNT", string("100000")); // Default to 1e5 if not provided
-        amountToSwap = int256(vm.parseUint(amountArg));
+        string memory amountArg = vm.envOr("AMOUNT", string("100000")); // Default to 100000 if not provided
+        int256 baseAmountToSwap = int256(vm.parseUint(amountArg));
 
-        // Log the amount that will be used
-        console.log("Amount to swap:", uint256(amountToSwap));
-
+        // Get the pool enum from environment variables or default to USDC/USDT pool
         uint256 chainId = vm.envUint("CHAIN_ID");
-        uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
+        uint256 pool_enum = vm.envOr("POOL_ENUM", uint256(0)); // Default to USDC/USDT pool (0)
 
         Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
         ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
+
+        // Get token decimals
+        uint8 decimals0 = IERC20Metadata(Currency.unwrap(hook.token0())).decimals();
+        uint8 decimals1 = IERC20Metadata(Currency.unwrap(hook.token1())).decimals();
+
+        // Calculate amount to swap based on token decimals
+        amountToSwap0 = baseAmountToSwap * int256(10 ** decimals0) / 1e6; // Scale from 6 decimals
+        amountToSwap1 = baseAmountToSwap * int256(10 ** decimals1) / 1e6; // Scale from 6 decimals
+
+        console.log("Token0 decimals:", decimals0);
+        console.log("Token1 decimals:", decimals1);
 
         console.log("1");
         uint256 shares = hook.balanceOf(receiver);
@@ -48,12 +58,12 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("5");
 
         // token1 -> token0 (negative for exact input swap)
-        console.log("Performing swap token1 -> token0 with amount:", uint256(amountToSwap));
-        swap(config.poolKey, false, -amountToSwap, ZERO_BYTES);
+        console.log("Performing swap token1 -> token0 with amount:", uint256(amountToSwap1));
+        swap(config.poolKey, false, -amountToSwap1, ZERO_BYTES);
 
         // token0 -> token1 (negative for exact input swap)
-        console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap));
-        swap(config.poolKey, true, -amountToSwap, ZERO_BYTES);
+        console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap0));
+        swap(config.poolKey, true, -amountToSwap0, ZERO_BYTES);
 
         console.log("6");
         vm.stopBroadcast();
