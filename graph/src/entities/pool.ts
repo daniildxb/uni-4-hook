@@ -93,30 +93,28 @@ export function poolIdMatchesExpected(poolId: string, protocol: Protocol | null)
 export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1: Token): void {
   let feeToken = event.params.amount0 > ZERO_BI ? _token1 : _token0;
   let feeAmount = (event.params.amount0 > ZERO_BI
-    ? event.params.amount0
-    : event.params.amount1)
+    ? event.params.amount1
+    : event.params.amount0)
     .times(BigInt.fromI32(event.params.fee))
-    .div(BigInt.fromString("1000000")); // 6 decimal places
+    .div(BigInt.fromString("1000000"))
+    .abs(); // 6 decimal places
 
   // todo: fee in the event is percentage, not actual value
   let feeUSD = convertTokenToUSD(feeToken, feeAmount);
 
   const results = _getNewPoolBalance(pool);
-  const balance = results[0];
   const token0Balance = results[1];
   const token1Balance = results[2];
 
-  const oldPoolBalance = pool.token0Amount
-    .plus(pool.token1Amount);
 
-  const lendingYield = balance
-    .minus(oldPoolBalance)
-    .minus(feeAmount); // to avoid double counting
-
-  // not fully accurate, but close enough
-  const lendingYieldUSD = convertTokenToUSD(
+  // Calculate lending yield in USD using our helper function
+  const lendingYieldUSD = calculateLendingYieldUSD(
+    pool.token0Amount,
+    pool.token1Amount,
+    token0Balance,
+    token1Balance,
     _token0,
-    lendingYield
+    _token1
   );
 
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
@@ -157,21 +155,21 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
   );
 
   const results = _getNewPoolBalance(pool);
-  const balance = results[0];
   const token0Balance = results[1];
   const token1Balance = results[2];
 
-  const oldPoolBalance = pool.token0Amount
-    .plus(pool.token1Amount);
 
-  const lendingYield = balance
-    .minus(oldPoolBalance)
-    .minus(event.params.assets0)
-    .minus(event.params.assets1);
-  const lendingYieldUSD = convertTokenToUSD(
+  // Calculate lending yield in USD using our helper function
+  // todo: include deposit amount here as it shouldn't be tracked as yield
+  const lendingYieldUSD = calculateLendingYieldUSD(
+    pool.token0Amount,
+    pool.token1Amount,
+    token0Balance.minus(event.params.assets0),
+    token1Balance.minus(event.params.assets1),
     token0,
-    lendingYield
+    token1
   );
+
 
   let depositUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
   depositUSD = depositUSD.plus(
@@ -206,22 +204,19 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
   );
   
   const results = _getNewPoolBalance(pool);
-  const balance = results[0];
   const token0Balance = results[1];
   const token1Balance = results[2];
 
-  const oldPoolBalance = pool.token0Amount
-    .plus(pool.token1Amount);
 
-  // yield between updates is higher than withdraw amount
-  const lendingYield = balance
-    .minus(oldPoolBalance)
-    .plus(event.params.assets0)
-    .plus(event.params.assets1);
-
-  const lendingYieldUSD = convertTokenToUSD(
+  // Calculate lending yield in USD using our helper function
+  // todo: include withdraw amount here as it shouldn't be tracked as yield
+  const lendingYieldUSD = calculateLendingYieldUSD(
+    pool.token0Amount,
+    pool.token1Amount,
+    token0Balance.plus(event.params.assets0),
+    token1Balance.plus(event.params.assets1),
     token0,
-    lendingYield
+    token1
   );
 
   let withdrawUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
@@ -323,20 +318,28 @@ export function updatePoolLendingYield(
   block: ethereum.Block
 ): BigDecimal {
   const result = _getNewPoolBalance(pool);
-  const balance = result[0];
   const token0Balance = result[1];
   const token1Balance = result[2];
 
+
+  // Get token entities for USD conversion
+  const token0 = getOrCreateToken(pool.token0);
+  const token1 = getOrCreateToken(pool.token1);
+
+  // Calculate lending yield in USD using our helper function
+  const lendingYieldUSD = calculateLendingYieldUSD(
+    pool.token0Amount,
+    pool.token1Amount,
+    token0Balance,
+    token1Balance,
+    token0,
+    token1
+  );
+
+
   pool.token0Amount = token0Balance;
   pool.token1Amount = token1Balance;
-  const oldPoolBalance = pool.token0Amount
-    .plus(pool.token1Amount);
-  const lendingYield = balance
-    .minus(oldPoolBalance);
-  const lendingYieldUSD = convertTokenToUSD(
-    getOrCreateToken(pool.token0),
-    lendingYield
-  );
+
 
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
@@ -394,6 +397,33 @@ export function trackFeesCollected(pool: Pool, event: FeesCollectedEvent): void 
 function _updateTimestamps(pool: Pool, block: ethereum.Block): void {
   pool.updatedAtTimestamp = block.timestamp;
   pool.updatedAtBlockNumber = block.number;
+}
+
+/**
+ * Calculates lending yield in USD by accounting for different token decimals
+ * @param lendingYield The total lending yield in token units
+ * @param token0Balance The balance of token0
+ * @param token1Balance The balance of token1
+ * @param token0 Token0 entity
+ * @param token1 Token1 entity
+ * @returns The lending yield in USD
+ */
+function calculateLendingYieldUSD(
+  token0BalanceBefore: BigInt,
+  token1BalanceBefore: BigInt,
+  token0BalanceAfter: BigInt,
+  token1BalanceAfter: BigInt,
+  token0: Token,
+  token1: Token
+): BigDecimal {
+  const token0Yield = token0BalanceAfter
+    .minus(token0BalanceBefore);
+  const token1Yield = token1BalanceAfter
+    .minus(token1BalanceBefore);
+
+  return convertTokenToUSD(token0, token0Yield).plus(
+    convertTokenToUSD(token1, token1Yield)
+  );
 }
 
 
