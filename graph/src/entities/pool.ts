@@ -115,7 +115,9 @@ export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1:
     token1Balance,
     _token0,
     _token1
-  );
+  )
+  // ideally we'd minus the amount of tokens before the swap
+  .minus(feeUSD);
 
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD).plus(lendingYieldUSD);
