@@ -275,14 +275,15 @@ export function getOrCreateSnapshot(
   block: ethereum.Block
 ): PoolHourlySnapshots {
   let idNum = block.timestamp.toI64() / SECONDS_IN_HOUR;
-  let id: string = idNum.toString();
+  let id: string = `${pool.id}-${idNum.toString()}`;
   let snapshot = PoolHourlySnapshots.load(id);
   if (snapshot) {
     // shouldn't happen, but just in case
     return snapshot;
   }
 
-  const previousSnapshot = PoolHourlySnapshots.load((idNum - 1).toString());
+  const prevId = `${pool.id}-${(idNum - 1).toString()}`;
+  const previousSnapshot = PoolHourlySnapshots.load(prevId);
   let rate = ZERO_BD;
   if (previousSnapshot) {
     const usdYield = pool.cumulativeLendingYieldUSD
@@ -308,6 +309,8 @@ export function getOrCreateSnapshot(
   snapshot.claimedProtocolFeeUSD = pool.claimedProtocolFeeUSD;
   snapshot.rate = rate;
   snapshot.shares = pool.shares;
+  snapshot.createdAtTimestamp = block.timestamp;
+  snapshot.createdAtBlockNumber = block.number;
   snapshot.save();
   return snapshot;
 }

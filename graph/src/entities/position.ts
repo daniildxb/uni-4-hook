@@ -58,7 +58,7 @@ export function _getPositionId(accountAddress: string, poolId: string): string {
 
 // need to handle multiple transactions in the same block, to do so we need to 
 export function getOrCreateSnapshot(position: Position, event: ethereum.Event): PositionSnapshots {
-  const id = `${event.block.timestamp.toString()}-${event.transactionLogIndex.toString()}`;
+  const id = `${position.id}-${event.transaction.hash.toHexString()}-${event.transactionLogIndex.toString()}`;
   let snapshot = PositionSnapshots.load(id);
   if (snapshot) {
     return snapshot;
@@ -67,7 +67,8 @@ export function getOrCreateSnapshot(position: Position, event: ethereum.Event): 
   snapshot = new PositionSnapshots(id);
   snapshot.shares = position.shares;
   snapshot.position = position.id;
-  snapshot.createdAtTimestamp = position.createdAtTimestamp;
+  snapshot.createdAtTimestamp = event.block.timestamp;
+  snapshot.createdAtBlockNumber = event.block.number;
   snapshot.save();
   return snapshot;
 }
@@ -75,11 +76,12 @@ export function getOrCreateSnapshot(position: Position, event: ethereum.Event): 
 // for the initial position snapshot
 export function createEmptyPositionSnapshot(position: Position, event: ethereum.Event): PositionSnapshots {
   const synthethicTimestamp = event.block.timestamp.minus(ONE_BI)
-  const id = `${(synthethicTimestamp).toString()}-${event.transactionLogIndex.toString()}`;
+  const id = `${position.id}-${event.transaction.hash.toHexString()}-${event.transactionLogIndex.toString()}`;
   let snapshot = new PositionSnapshots(id);
   snapshot.shares = ZERO_BI;
   snapshot.position = position.id;
   snapshot.createdAtTimestamp = synthethicTimestamp;
+  snapshot.createdAtBlockNumber = event.block.number.minus(ONE_BI);
   snapshot.save();
   return snapshot;
 }
