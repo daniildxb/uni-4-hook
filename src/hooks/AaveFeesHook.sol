@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {HotBufferHook} from "./HotBufferHook.sol";
+import {DepositCapHook} from "./DepositCapHook.sol";
 import {AaveHook} from "./AaveHook.sol";
 import {CustodyHook} from "./CustodyHook.sol";
 import {FeeTrackingHook} from "./FeeTrackingHook.sol";
@@ -73,15 +74,22 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         return AaveHook._afterSwap(sender, _key, swapParams, delta, hookData);
     }
 
-    function _beforeHookDeposit(uint256 amount0, uint256 amount1) internal virtual override trackFeesBefore {}
+    function _beforeHookDeposit(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override
+        trackFeesBefore
+    {
+        super._beforeHookDeposit(amount0, amount1, receiver);
+    }
 
-    function _afterHookDeposit(uint256 amount0, uint256 amount1)
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address receiver)
         internal
         virtual
         override(CustodyHook, HotBufferHook)
         setAssetsAfter
     {
-        super._afterHookDeposit(amount0, amount1);
+        super._afterHookDeposit(amount0, amount1, receiver);
     }
 
     function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
@@ -89,7 +97,9 @@ abstract contract AaveFeesHook is HotBufferHook, FeeTrackingHook {
         virtual
         override
         trackFeesBefore
-    {}
+    {
+        super._beforeHookWithdrawal(amount0, amount1, receiver);
+    }
 
     function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
         internal

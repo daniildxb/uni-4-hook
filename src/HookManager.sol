@@ -45,9 +45,7 @@ contract HookManager {
         bytes32 salt
     ) external {
         require(msg.sender == admin, "Only admin can deploy hooks");
-        address hook = IHookDeployer(hookDeployer).deployHook(
-            poolManager, hookParams, expectedAddress, salt
-        );
+        address hook = IHookDeployer(hookDeployer).deployHook(poolManager, hookParams, expectedAddress, salt);
 
         PoolKey memory key = PoolKey(hookParams.token0, hookParams.token1, fee, tickSpacing, IHooks(hook));
         IPoolManager(poolManager).initialize(key, sqrtPriceX96);

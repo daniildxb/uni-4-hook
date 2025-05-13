@@ -178,7 +178,7 @@ abstract contract AaveHook is CustodyHook {
      * @dev Implementation of the deposit processing for CustodyHook
      * Deposits tokens to Aave
      */
-    function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual override {
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address) internal virtual override {
         _depositToAave(Currency.unwrap(key.currency0), amount0);
         _depositToAave(Currency.unwrap(key.currency1), amount1);
     }

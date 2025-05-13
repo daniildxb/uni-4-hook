@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {AaveFeesHook} from "./hooks/AaveFeesHook.sol";
+import {CustodyHook} from "./hooks/CustodyHook.sol";
+import {AllowlistedHook} from "./hooks/AllowlistedHook.sol";
+import {DepositCapHook} from "./hooks/DepositCapHook.sol";
 import {AaveHook} from "./hooks/AaveHook.sol";
 import {ExtendedHook} from "./hooks/ExtendedHook.sol";
 import {HotBufferHook} from "./hooks/HotBufferHook.sol";
@@ -12,6 +16,8 @@ import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -38,7 +44,7 @@ struct ModularHookV1HookConfig {
  * @notice Most of the functionality is inherited, only defines permissions
  * and overrides for abstract methods
  */
-contract ModularHookV1 is AaveFeesHook {
+contract ModularHookV1 is AllowlistedHook, DepositCapHook, AaveFeesHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20Metadata;
@@ -70,7 +76,58 @@ contract ModularHookV1 is AaveFeesHook {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+    
+    // overrides of methods defined in multiple contracts
+    // todo: check if we can just call super instead of AaveFeesHook
+    function totalAssets() public view virtual override(AaveFeesHook, ERC4626) returns (uint256) {
+        return AaveFeesHook.totalAssets();
+    }
 
-    function _beforeFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual override {}
-    function _afterFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual override {}
+    function _beforeSwap(
+        address sender,
+        PoolKey calldata _key,
+        IPoolManager.SwapParams calldata swapParams,
+        bytes calldata hookData
+    ) internal virtual override(AaveFeesHook, BaseHook) returns (bytes4, BeforeSwapDelta, uint24) {
+        return AaveFeesHook._beforeSwap(sender, _key, swapParams, hookData);
+    }
+
+    function _afterSwap(
+        address sender,
+        PoolKey calldata _key,
+        IPoolManager.SwapParams calldata swapParams,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) internal virtual override(AaveFeesHook, BaseHook) returns (bytes4 selector, int128 hookDelta) {
+        return AaveFeesHook._afterSwap(sender, _key, swapParams, delta, hookData);
+    }
+
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address receiver) internal virtual override(AaveFeesHook, CustodyHook) {
+        return AaveFeesHook._afterHookDeposit(amount0, amount1, receiver);
+    }
+
+    // todo: check it calls all three overrides
+    function _beforeHookDeposit(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override(AaveFeesHook, AllowlistedHook, DepositCapHook)
+    {
+        return super._beforeHookDeposit(amount0, amount1, receiver);
+    }
+
+    function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override(AaveFeesHook, CustodyHook)
+    {
+        return AaveFeesHook._beforeHookWithdrawal(amount0, amount1, receiver);
+    }
+
+    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override(AaveFeesHook, CustodyHook)
+    {
+        return AaveFeesHook._afterHookWithdrawal(amount0, amount1, receiver);
+    }
 }

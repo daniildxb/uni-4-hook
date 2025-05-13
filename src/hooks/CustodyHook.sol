@@ -57,7 +57,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
         uint256 amount0 = uint256(int256(-delta.amount0()));
         uint256 amount1 = uint256(int256(-delta.amount1()));
 
-        _beforeHookDeposit(amount0, amount1);
+        _beforeHookDeposit(amount0, amount1, receiver);
 
         // Receive tokens from user
         IERC20Metadata(Currency.unwrap(key.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
@@ -69,7 +69,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
         _mint(receiver, shares);
         emit Deposit(msg.sender, receiver, amount0, amount1, shares);
 
-        _afterHookDeposit(amount0, amount1);
+        _afterHookDeposit(amount0, amount1, receiver);
 
         return shares;
     }
@@ -118,20 +118,20 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
     /**
      * @dev Hook for processing deposits, to be implemented by child contracts
      */
-    function _beforeHookDeposit(uint256 amount0, uint256 amount1) internal virtual;
+    function _beforeHookDeposit(uint256 amount0, uint256 amount1, address receiver) internal virtual {}
 
     /**
      * @dev Hook for processing deposits, to be implemented by child contracts
      */
-    function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual;
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address receiver) internal virtual {}
 
     /**
      * @dev Hook for processing withdrawals, to be implemented by child contracts
      */
-    function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual;
+    function _beforeHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual {}
 
     /**
      * @dev Hook for processing withdrawals, to be implemented by child contracts
      */
-    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual;
+    function _afterHookWithdrawal(uint256 amount0, uint256 amount1, address receiver) internal virtual {}
 }

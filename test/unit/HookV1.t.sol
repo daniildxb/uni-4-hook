@@ -19,6 +19,9 @@ contract HookV1Test is BaseTest {
     using StateLibrary for IPoolManager;
     using SafeERC20 for IERC20;
 
+    address public allowedUser = address(777);
+    address public nonAllowedUser = address(888);
+
     function test_construction() public {
         assertNotEq(address(hook), address(0));
     }
@@ -323,5 +326,140 @@ contract HookV1Test is BaseTest {
             4, // compounding from other 1 deltas ; todo: verify
             "User 2 should redeem ~2x the assets of User 1"
         );
+    }
+
+    // New tests for the combined functionality
+
+    /**
+     * @notice Test scenario where:
+     * 1. Admin enables allowlist and adds an allowlisted user
+     * 2. Admin sets deposit caps
+     * 3. Allowlisted user can deposit within caps
+     * 4. Non-allowlisted user cannot deposit
+     * 5. Allowlisted user cannot exceed deposit caps
+     */
+    function test_allowlist_and_deposit_cap_combined() public {
+        // Setup initial state
+        deal(Currency.unwrap(token0), address(manager), 1e18, false);
+        deal(Currency.unwrap(token1), address(manager), 1e18, false);
+
+        // Set deposit caps
+        uint256 depositCap = 150;
+        uint256 allowListedUserShares = 0;
+        uint256 nonAllowListedUserShares = 0;
+
+        vm.startPrank(admin);
+        ModularHookV1(address(hook)).setDepositCaps(depositCap, depositCap);
+
+        // Enable allowlist and add allowedUser
+        ModularHookV1(address(hook)).flipAllowlist();
+        ModularHookV1(address(hook)).flipAddressInAllowList(allowedUser);
+        vm.stopPrank();
+
+        // Verify settings
+        {
+            bool isAllowlistEnabled = ModularHookV1(address(hook)).isAllowlistEnabled();
+            bool isUserAllowed = ModularHookV1(address(hook)).allowlist(allowedUser);
+            uint256 cap0 = ModularHookV1(address(hook)).depositCap0();
+            uint256 cap1 = ModularHookV1(address(hook)).depositCap1();
+
+            assertEq(isAllowlistEnabled, true, "Allowlist should be enabled");
+            assertEq(isUserAllowed, true, "User should be allowlisted");
+            assertEq(cap0, depositCap, "Deposit cap0 should be set");
+            assertEq(cap1, depositCap, "Deposit cap1 should be set");
+        }
+
+        // Test 1: Non-allowlisted user cannot deposit
+        uint256 smallDeposit = 500;
+        (uint256 smallToken0Amount, uint256 smallToken1Amount) = getTokenAmountsForLiquidity(smallDeposit);
+
+        vm.startPrank(nonAllowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), smallToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), smallToken1Amount);
+
+        // Should revert because user is not allowlisted
+        vm.expectRevert("Not allowed");
+        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser);
+        vm.stopPrank();
+
+        // Test 2: Allowlisted user can deposit within caps
+        vm.startPrank(allowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), smallToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), smallToken1Amount);
+
+        // Should succeed because user is allowlisted and within caps
+        allowListedUserShares += hook.deposit(smallDeposit, allowedUser);
+        vm.stopPrank();
+
+        // Verify successful deposit
+        uint256 allowedUserShares = ModularHookV1(address(hook)).balanceOf(allowedUser);
+        assertEq(allowedUserShares, allowListedUserShares, "Allowlisted user's deposit within caps should succeed");
+
+        // Test 3: Allowlisted user cannot exceed deposit caps
+        uint256 largeDeposit = 1000;
+        (uint256 largeToken0Amount, uint256 largeToken1Amount) = getTokenAmountsForLiquidity(largeDeposit);
+
+        vm.startPrank(allowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
+
+        // Should revert because it exceeds deposit caps
+        vm.expectRevert();
+        hook.deposit(largeDeposit, allowedUser);
+        vm.stopPrank();
+
+        // Test 4: Disabling allowlist should still enforce deposit caps
+        vm.startPrank(admin);
+        ModularHookV1(address(hook)).flipAllowlist();
+        vm.stopPrank();
+
+        vm.startPrank(nonAllowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), smallToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), smallToken1Amount);
+
+        // Should succeed now that allowlist is disabled, but still under caps
+        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser);
+        vm.stopPrank();
+
+        // Verify non-allowlisted user's deposit succeeded
+        uint256 nonAllowedUserShares = ModularHookV1(address(hook)).balanceOf(nonAllowedUser);
+        assertEq(
+            nonAllowedUserShares,
+            nonAllowListedUserShares,
+            "Non-allowlisted user's deposit should succeed when allowlist is disabled"
+        );
+
+        // Test 5: Removing deposit caps but keeping allowlist
+        vm.startPrank(admin);
+        ModularHookV1(address(hook)).setDepositCaps(0, 0);
+        ModularHookV1(address(hook)).flipAllowlist();
+        vm.stopPrank();
+
+        // Try large deposit with allowlisted user
+        vm.startPrank(allowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
+
+        // Should succeed because caps are removed
+        allowListedUserShares += hook.deposit(largeDeposit, allowedUser);
+        vm.stopPrank();
+
+        // Verify large deposit succeeded
+        uint256 allowedUserSharesAfterLargeDeposit = ModularHookV1(address(hook)).balanceOf(allowedUser);
+        assertEq(
+            allowedUserSharesAfterLargeDeposit,
+            allowListedUserShares,
+            "Allowlisted user's large deposit should succeed when caps are removed"
+        );
+
+        // Try large deposit with non-allowlisted user
+        vm.startPrank(nonAllowedUser);
+        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
+        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
+
+        // Should revert because allowlist is enabled
+        vm.expectRevert("Not allowed");
+        hook.deposit(largeDeposit, nonAllowedUser);
+        vm.stopPrank();
     }
 }

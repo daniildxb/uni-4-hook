@@ -20,8 +20,9 @@ contract RescueFromHookScript is Script, Deployers, Config {
         uint256 chainId = vm.envUint("CHAIN_ID");
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
-        // Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
-        ModularHookV1 hook = ModularHookV1(address(0xf30eA78C670775f4B9Bcae390c3d045ED01D88c0));
+        Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
+        // ModularHookV1 hook = ModularHookV1(address(0xccC7C10b872A9F449FA41Ef7a723ACB1615548C0));
+        ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         rescueToken(Currency.unwrap(hook.token0()), hook);

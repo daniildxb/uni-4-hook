@@ -76,6 +76,7 @@ abstract contract ExtendedHook is RescueHook, BaseHook {
         return PoolId.unwrap(key.toId());
     }
 
+    // returns negative values!!
     function getTokenAmountsForLiquidity(uint256 liqudity) public view returns (int128 amount0, int128 amount1) {
         BalanceDelta delta = getPoolDelta(liqudity.toInt128());
         return (delta.amount0(), delta.amount1());

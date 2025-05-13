@@ -84,7 +84,7 @@ abstract contract HotBufferHook is AaveHook {
      * @dev Buffer aware implementation of the _afterHookWithdraw function
      * tokens have already been transferred to the hook
      */
-    function _afterHookDeposit(uint256 amount0, uint256 amount1) internal virtual override {
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address) internal virtual override {
         _handleAfterHookDeposit(Currency.unwrap(token0), amount0, bufferSize0, minTransferAmount0);
         _handleAfterHookDeposit(Currency.unwrap(token1), amount1, bufferSize1, minTransferAmount1);
     }

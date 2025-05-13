@@ -51,8 +51,6 @@ abstract contract FeeTrackingHook is CustodyHook {
         return super.totalAssets() - unclaimedFees;
     }
 
-    function _beforeFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual;
-    function _afterFeesCollected(uint128 amount0, uint128 amount1, address treasury) internal virtual;
     function _transferFees(uint128 amount0, uint128 amount1, address treasury) internal virtual;
     function getUnclaimedFees() public view virtual returns (int128 amount0, int128 amount1);
 
@@ -62,11 +60,9 @@ abstract contract FeeTrackingHook is CustodyHook {
         amount0 = _amount0.toUint128();
         amount1 = _amount1.toUint128();
         unclaimedFees = 0;
-        _beforeFeesCollected(amount0, amount1, feeCollector);
         _transferFees(amount0, amount1, feeCollector);
         lastSeenAssets = totalAssets();
         emit FeesCollected(unclaimedFees, amount0, amount1, feeCollector);
-        _afterFeesCollected(amount0, amount1, feeCollector);
     }
 
     function _setFeeCollector(address _feeCollector) internal {
