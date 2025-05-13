@@ -4,6 +4,7 @@ import {
   Withdraw1 as WithdrawEvent,
   FeesTracked as FeesTrackedEvent,
   FeesCollected as FeesCollectedEvent,
+  Transfer as TransferEvent
 } from "../../generated/HookV1/HookV1";
 import {
   getPoolFromHookAddress,
@@ -16,12 +17,14 @@ import {
   createPosition,
   getPosition,
   trackDeposit,
+  trackTransfer,
   trackWithdraw,
 } from "../entities/position";
 import { createDeposit } from "../entities/deposit";
 import { getOrCreateAccount } from "../entities/account";
 import { createWithdraw } from "../entities/withdraw";
 import { getOrCreateToken } from "../entities/token";
+import { createTransfer } from "../entities/transfer";
 
 export function handleDeposit(event: DepositEvent): void {
   const pool = getPoolFromHookAddress(event.address);
@@ -39,7 +42,7 @@ export function handleDeposit(event: DepositEvent): void {
   let position = getPosition(accountAddress, pool.id);
   if (position === null) {
     // Create a new position if it doesn't exist
-    position = createPosition(accountAddress, pool.id, event);
+    position = createPosition(accountAddress, pool.id, event.params.shares, event);
   } else {
     trackDeposit(position, event);
   }
@@ -98,4 +101,31 @@ export function handleFeesCollected(event: FeesCollectedEvent): void {
   }
 
   trackFeesCollected(pool, event);
+}
+
+export function handleTransfer(event: TransferEvent): void {
+  // ignore transfers to or from the zero address
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+  if (event.params.from.toHexString() == ZERO_ADDRESS || event.params.to.toHexString() == ZERO_ADDRESS) {
+    return;
+  }
+
+  if (event.params.from.toHexString() == event.params.to.toHexString()) {
+    // Ignore self transfers
+    return;
+  }
+  const pool = getPoolFromHookAddress(event.address);
+  if (pool === null) {
+    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    return;
+  }
+
+  // Load or create user
+  const fromAccountAddress = event.params.from.toHexString();
+
+  const toAccountAddress = event.params.to.toHexString();
+
+  createTransfer(pool, event)
+
+  trackTransfer(fromAccountAddress, toAccountAddress, pool, event);
 }

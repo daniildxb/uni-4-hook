@@ -363,8 +363,8 @@ export function trackProtocolFee(pool: Pool, event: FeesTrackedEvent): void {
   // we need to convert this to token amounts
   const hookContract = HookV1.bind(Address.fromBytes(pool.hook));
   const result = hookContract.getTokenAmountsForLiquidity(feeLiquidity);
-  const token0Amount = result.value0;
-  const token1Amount = result.value1;
+  const token0Amount = result.value0.abs();
+  const token1Amount = result.value1.abs();
   // and then to USD
 
   const feeUSD = convertTokenToUSD(

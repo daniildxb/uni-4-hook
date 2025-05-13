@@ -1,9 +1,10 @@
-import { Position, PositionSnapshots } from "../../generated/schema";
+import { Pool, Position, PositionSnapshots } from "../../generated/schema";
 import {
   Deposit1 as DepositEvent,
+  Transfer as TransferEvent,
   Withdraw1 as WithdrawEvent,
 } from "../../generated/HookV1/HookV1";
-import { ethereum } from "@graphprotocol/graph-ts";
+import { ethereum, BigInt } from "@graphprotocol/graph-ts";
 import { ONE_BI, ZERO_BI } from "../helpers";
 
 export function getPosition(
@@ -17,13 +18,14 @@ export function getPosition(
 export function createPosition(
   accountAddress: string,
   poolId: string,
-  event: DepositEvent
+  shares: BigInt,
+  event: ethereum.Event
 ): Position {
   let positionId = _getPositionId(accountAddress, poolId);
   let position = new Position(positionId);
   position.account = accountAddress;
   position.pool = poolId;
-  position.shares = event.params.shares;
+  position.shares = shares;
   position.createdAtTimestamp = event.block.timestamp;
   position.createdAtBlockNumber = event.block.number;
   position.updatedAtTimestamp = event.block.timestamp;
@@ -33,6 +35,18 @@ export function createPosition(
   createEmptyPositionSnapshot(position, event);
   // track first deposit
   getOrCreateSnapshot(position, event);
+  return position;
+}
+
+export function getOrCreatePosition(
+  accountAddress: string,
+  poolId: string,
+  shares: BigInt,
+  event: ethereum.Event): Position {
+  let position = getPosition(accountAddress, poolId);
+  if (position === null) {
+    position = createPosition(accountAddress, poolId, shares, event);
+  }
   return position;
 }
 
@@ -84,4 +98,32 @@ export function createEmptyPositionSnapshot(position: Position, event: ethereum.
   snapshot.createdAtBlockNumber = event.block.number.minus(ONE_BI);
   snapshot.save();
   return snapshot;
+}
+
+export function trackTransfer(
+  fromAddress: string,
+  toAddress: string,
+  pool: Pool,
+  event: TransferEvent
+): void {
+  const fromPosition = getPosition(fromAddress, pool.id);
+  if (fromPosition === null) {
+    // shouldn't happen unless the position was created and transfered in the same TX
+    return;
+  }
+
+  fromPosition.shares = fromPosition.shares.minus(event.params.value);
+  fromPosition.updatedAtTimestamp = event.block.timestamp;
+  fromPosition.updatedAtBlockNumber = event.block.number;
+  fromPosition.save();
+
+  const toPosition = getOrCreatePosition(toAddress, pool.id, event.params.value, event);
+
+  toPosition.shares = toPosition.shares.plus(event.params.value);
+  toPosition.updatedAtTimestamp = event.block.timestamp;
+  toPosition.updatedAtBlockNumber = event.block.number;
+  toPosition.save();
+  getOrCreateSnapshot(fromPosition, event);
+  getOrCreateSnapshot(toPosition, event);
+
 }
