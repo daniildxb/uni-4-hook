@@ -20,8 +20,6 @@ import {HookManager} from "src/HookManager.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 import {Create2Impl} from "permit2/lib/openzeppelin-contracts/contracts/mocks/Create2Impl.sol";
 
-import {HookDeployer} from "src/HookDeployer.sol";
-
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
 import {ModularHookV1, ModularHookV1HookConfig} from "../src/ModularHookV1.sol";
@@ -41,14 +39,12 @@ contract BaseTest is Test, Deployers {
     string shareName = "name";
     string shareSymbol = "symbol";
     HookManager hookManager;
-    HookDeployer hookDeployer;
     ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
     int24 tickSpacing = 60;
     uint256 fee_bps = 1000; // 10%
     uint256 bufferSize = 1e7;
     uint256 minTransferAmount = 1e6;
-    address feeCollector = address(0x1);
     address admin = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
 
@@ -119,9 +115,7 @@ contract BaseTest is Test, Deployers {
 
     function _deployHookManager() internal virtual {
         vm.startPrank(admin);
-        hookManager = new HookManager(address(manager));
-        hookDeployer = new HookDeployer(address(hookManager));
-        hookManager.setHookDeployer(address(hookDeployer));
+        hookManager = new HookManager(address(manager), admin);
         vm.stopPrank();
     }
 
@@ -135,7 +129,7 @@ contract BaseTest is Test, Deployers {
         vm.startPrank(admin);
         uint160 flags =
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144); // Namespace the hook to avoid collisions
-        address expectedAddress = address(flags);
+
         ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(manager),
             token0: token0,
@@ -145,7 +139,6 @@ contract BaseTest is Test, Deployers {
             aavePoolAddressesProvider: aavePoolAddressesProvider,
             shareName: shareName,
             shareSymbol: shareSymbol,
-            feeCollector: feeCollector,
             fee_bps: fee_bps,
             bufferSize0: bufferSize,
             bufferSize1: bufferSize,
@@ -153,14 +146,18 @@ contract BaseTest is Test, Deployers {
             minTransferAmount1: minTransferAmount
         });
         bytes memory constructorArgs = abi.encode(hookParams); //Add all the necessary constructor arguments from the hook
-        (address hookAddress, bytes32 salt) =
-            HookMiner.find(address(hookDeployer), flags, type(ModularHookV1).creationCode, constructorArgs);
+        bytes memory creationCode = abi.encodePacked(type(ModularHookV1).creationCode, constructorArgs);
 
-        hookManager.deployHook(hookParams, hookAddress, SQRT_PRICE_1_1, fee, tickSpacing, salt); // Deploy the hook using the hook manager
-        hook = ModularHookV1(hookAddress); // Changed from HookV1 to ModularHookV1
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(address(hookManager), flags, type(ModularHookV1).creationCode, constructorArgs);
+        hookManager.deployHook(
+            hookParams.token0, hookParams.token1, hookAddress, SQRT_PRICE_1_1, fee, tickSpacing, salt, creationCode
+        ); // Deploy the hook using the hook manager
+        hook = ModularHookV1(hookAddress);
         simpleKey =
             PoolKey({currency0: token0, currency1: token1, fee: fee, tickSpacing: tickSpacing, hooks: IHooks(hook)});
-        simplePoolId = PoolId.wrap(keccak256(abi.encode(simpleKey, address(hook), fee, tickSpacing, salt))); // Create the pool ID using the hook address
+        // Set the pool ID
+        simplePoolId = PoolId.wrap(keccak256(abi.encode(simpleKey)));
         vm.stopPrank();
     }
 

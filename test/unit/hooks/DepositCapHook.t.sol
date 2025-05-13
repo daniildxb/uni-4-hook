@@ -54,7 +54,7 @@ contract DepositCapHookTest is BaseTest {
         uint256 newCap0 = 1000;
         uint256 newCap1 = 1000;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(newCap0, newCap1);
         vm.stopPrank();
 
@@ -69,7 +69,7 @@ contract DepositCapHookTest is BaseTest {
         // Set deposit caps
         uint256 capAmount = 1000;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(capAmount, capAmount);
         vm.stopPrank();
 
@@ -99,7 +99,7 @@ contract DepositCapHookTest is BaseTest {
         uint256 cap0 = 50;
         uint256 cap1 = 1000;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(cap0, cap1);
         vm.stopPrank();
 
@@ -126,7 +126,7 @@ contract DepositCapHookTest is BaseTest {
         uint256 cap0 = 1000;
         uint256 cap1 = 50;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(cap0, cap1);
         vm.stopPrank();
 
@@ -152,7 +152,7 @@ contract DepositCapHookTest is BaseTest {
         // Set deposit caps
         uint256 capAmount = 200;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(capAmount, capAmount);
         vm.stopPrank();
 
@@ -190,7 +190,7 @@ contract DepositCapHookTest is BaseTest {
         // First set low deposit caps
         uint256 initialCap = 100;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(initialCap, initialCap);
         vm.stopPrank();
 
@@ -210,7 +210,7 @@ contract DepositCapHookTest is BaseTest {
         // Now increase the caps
         uint256 newCap = 1000;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(newCap, newCap);
         vm.stopPrank();
 
@@ -229,7 +229,7 @@ contract DepositCapHookTest is BaseTest {
         // First set deposit caps
         uint256 capAmount = 100;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(capAmount, capAmount);
         vm.stopPrank();
 
@@ -240,7 +240,7 @@ contract DepositCapHookTest is BaseTest {
         assertEq(depositCap1, capAmount, "Deposit cap for token1 should be set");
 
         // Now disable caps by setting to 0
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(0, 0);
         vm.stopPrank();
 
@@ -270,7 +270,7 @@ contract DepositCapHookTest is BaseTest {
     function test_only_admin_can_set_deposit_caps() public {
         // Try to set deposit caps as non-admin
         vm.startPrank(depositUser);
-        vm.expectRevert("Not admin");
+        vm.expectRevert("Not hook manager");
         ModularHookV1(address(hook)).setDepositCaps(1000, 1000);
         vm.stopPrank();
     }

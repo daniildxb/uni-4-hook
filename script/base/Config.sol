@@ -51,7 +51,7 @@ contract Config is SqrtPriceCalculator {
     address constant ARBITRUM_AAVE_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant ARBITRUM_HOOK_MANAGER = 0x10BF3E582fc11D5629743E93beDC39b838C603cc;
 
-    address constant LOCAL_HOOK_MANAGER = 0xfd69667cC5EB6A200270FE157a3318A42140685e;
+    address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
     struct ConfigData {
         address poolManager;

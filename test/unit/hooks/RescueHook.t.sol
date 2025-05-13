@@ -40,12 +40,12 @@ contract RescueHookTest is BaseTest {
         uint256 adminBalanceBefore = IERC20(tokenAddress).balanceOf(adminAddress);
 
         // Act as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
 
         // Rescue tokens
         vm.expectEmit(true, true, true, true);
         emit RescueHook.ERC20Rescued(adminAddress, tokenAddress, rescueAmount);
-        hook.rescue(tokenAddress, rescueAmount);
+        hook.rescue(tokenAddress, rescueAmount, adminAddress);
 
         // Verify balances changed correctly
         uint256 hookBalanceAfter = IERC20(tokenAddress).balanceOf(address(hook));
@@ -64,8 +64,8 @@ contract RescueHookTest is BaseTest {
         vm.prank(nonAdminUser);
 
         // Attempt to rescue tokens and expect revert
-        vm.expectRevert("Not owner");
-        hook.rescue(tokenAddress, rescueAmount);
+        vm.expectRevert("Not hook manager");
+        hook.rescue(tokenAddress, rescueAmount, adminAddress);
     }
 
     function test_RescueWithZeroAmount() public {
@@ -74,11 +74,11 @@ contract RescueHookTest is BaseTest {
         address tokenAddress = Currency.unwrap(token0);
 
         // Act as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
 
         // Attempt to rescue with zero amount and expect revert
         vm.expectRevert("Zero amount");
-        hook.rescue(tokenAddress, rescueAmount);
+        hook.rescue(tokenAddress, rescueAmount, adminAddress);
     }
 
     function test_RescueMoreThanBalance() public {
@@ -88,11 +88,11 @@ contract RescueHookTest is BaseTest {
         uint256 rescueAmount = hookBalance + 1;
 
         // Act as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
 
         // Attempt to rescue more than available and expect revert
         vm.expectRevert("Insufficient balance");
-        hook.rescue(tokenAddress, rescueAmount);
+        hook.rescue(tokenAddress, rescueAmount, adminAddress);
     }
 
     function test_RescueEntireBalance() public {
@@ -102,10 +102,10 @@ contract RescueHookTest is BaseTest {
         uint256 adminBalanceBefore = IERC20(tokenAddress).balanceOf(adminAddress);
 
         // Act as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
 
         // Rescue entire balance
-        hook.rescue(tokenAddress, hookBalance);
+        hook.rescue(tokenAddress, hookBalance, adminAddress);
 
         // Verify balances
         uint256 hookBalanceAfter = IERC20(tokenAddress).balanceOf(address(hook));
@@ -127,10 +127,10 @@ contract RescueHookTest is BaseTest {
         uint256 adminBalanceBefore = IERC20(token1Address).balanceOf(adminAddress);
 
         // Act as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
 
         // Rescue tokens
-        hook.rescue(token1Address, rescueAmount);
+        hook.rescue(token1Address, rescueAmount, adminAddress);
 
         // Verify balances
         uint256 hookBalanceAfter = IERC20(token1Address).balanceOf(address(hook));

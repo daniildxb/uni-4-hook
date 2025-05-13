@@ -41,25 +41,25 @@ contract HotBufferHookTest is BaseTest {
     function test_BufferConfig() public {
         // Test the initial buffer configurations
         // Test setting new buffer size as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(2e7, 2e7);
         assertEq(hook.bufferSize0(), 2e7, "Buffer size should be updated");
         assertEq(hook.bufferSize1(), 2e7, "Buffer size should be updated");
 
         // Test setting new min transfer amount as admin
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(2e6, 2e6);
         assertEq(hook.minTransferAmount0(), 2e6, "Min transfer amount should be updated");
         assertEq(hook.minTransferAmount1(), 2e6, "Min transfer amount should be updated");
 
         // Test setting buffer size as non-admin
         vm.prank(testUser);
-        vm.expectRevert("Not owner");
+        vm.expectRevert("Not hook manager");
         hook.setBufferSize(3e7, 3e7);
 
         // Test setting min transfer amount as non-admin
         vm.prank(testUser);
-        vm.expectRevert("Not owner");
+        vm.expectRevert("Not hook manager");
         hook.setMinTransferAmount(3e6, 3e6);
     }
 
@@ -68,9 +68,9 @@ contract HotBufferHookTest is BaseTest {
         // Tokens should remain in hook and not be sent to Aave
 
         // Set smaller buffer size for this test
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(1000, 1000);
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(100, 100);
 
         // Use a small deposit amount that's less than buffer size
@@ -102,9 +102,9 @@ contract HotBufferHookTest is BaseTest {
         // Excess tokens should be sent to Aave
 
         // Set smaller buffer size for this test
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(100, 100);
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(10, 10);
 
         // Use a large deposit amount
@@ -179,9 +179,9 @@ contract HotBufferHookTest is BaseTest {
         // Test case: Large swap that requires withdrawing from Aave
 
         // Reduce buffer size for this test
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(100, 100);
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(10, 10);
 
         // First deposit a large amount to fill Aave
@@ -235,9 +235,9 @@ contract HotBufferHookTest is BaseTest {
         // Test case: Swap that uses both buffer and Aave tokens
 
         // Reduce buffer size for this test
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(100, 100);
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(10, 10);
 
         // First deposit a large amount to fill Aave
@@ -331,9 +331,9 @@ contract HotBufferHookTest is BaseTest {
         // Test case: Withdrawal that uses buffer
 
         // Set up a smaller deposit that will mostly go into buffer
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setBufferSize(1000, 1000);
-        vm.prank(adminAddress);
+        vm.prank(address(hookManager));
         hook.setMinTransferAmount(100, 100);
 
         uint256 depositAmount = 2000;

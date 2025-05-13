@@ -122,7 +122,7 @@ abstract contract AaveHook is CustodyHook {
      * @dev Before swap hook that takes provisions liquidity from aave to uniswap
      * doesn't actually transfer tokens
      */
-    function _beforeSwap(address sender, PoolKey calldata _key, IPoolManager.SwapParams calldata, bytes calldata)
+    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata)
         internal
         virtual
         override
@@ -138,14 +138,14 @@ abstract contract AaveHook is CustodyHook {
             salt: 0
         });
 
-        (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
+        poolManager.modifyLiquidity(key, params, abi.encode(0));
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     /**
      * @dev After swap hook that withdraws liquidity from the pool and deposits it back to Aave
      */
-    function _afterSwap(address, PoolKey calldata _key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+    function _afterSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
         internal
         virtual
         override
@@ -162,15 +162,13 @@ abstract contract AaveHook is CustodyHook {
             salt: 0
         });
 
-        (BalanceDelta delta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, params, abi.encode(0));
+        poolManager.modifyLiquidity(key, params, abi.encode(0));
 
         int256 token0Delta = poolManager.currencyDelta(address(this), token0);
         int256 token1Delta = poolManager.currencyDelta(address(this), token1);
 
         _settleSwap(token0Delta, token1Delta);
 
-        token0Delta = poolManager.currencyDelta(address(this), token0);
-        token1Delta = poolManager.currencyDelta(address(this), token1);
         return (BaseHook.afterSwap.selector, 0);
     }
 

@@ -348,7 +348,7 @@ contract HookV1Test is BaseTest {
         uint256 allowListedUserShares = 0;
         uint256 nonAllowListedUserShares = 0;
 
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(depositCap, depositCap);
 
         // Enable allowlist and add allowedUser
@@ -409,7 +409,7 @@ contract HookV1Test is BaseTest {
         vm.stopPrank();
 
         // Test 4: Disabling allowlist should still enforce deposit caps
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         vm.stopPrank();
 
@@ -430,7 +430,7 @@ contract HookV1Test is BaseTest {
         );
 
         // Test 5: Removing deposit caps but keeping allowlist
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).setDepositCaps(0, 0);
         ModularHookV1(address(hook)).flipAllowlist();
         vm.stopPrank();

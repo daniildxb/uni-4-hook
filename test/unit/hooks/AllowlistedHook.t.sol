@@ -52,7 +52,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_enable_allowlist() public {
         // Enable allowlist as admin
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         vm.stopPrank();
 
@@ -63,7 +63,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_add_to_allowlist() public {
         // Enable allowlist and add allowedUser to it
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         ModularHookV1(address(hook)).flipAddressInAllowList(allowedUser);
         vm.stopPrank();
@@ -75,7 +75,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_deposit_rejected_for_non_allowlisted() public {
         // Enable allowlist
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         vm.stopPrank();
 
@@ -95,7 +95,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_deposit_accepted_for_allowlisted() public {
         // Enable allowlist and add allowedUser
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         ModularHookV1(address(hook)).flipAddressInAllowList(allowedUser);
         vm.stopPrank();
@@ -119,7 +119,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_remove_from_allowlist() public {
         // Enable allowlist and add allowedUser
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
         ModularHookV1(address(hook)).flipAddressInAllowList(allowedUser);
 
@@ -151,7 +151,7 @@ contract AllowlistedHookTest is BaseTest {
 
     function test_disable_allowlist() public {
         // First enable allowlist
-        vm.startPrank(admin);
+        vm.startPrank(address(hookManager));
         ModularHookV1(address(hook)).flipAllowlist();
 
         // Verify allowlist is enabled
@@ -186,11 +186,11 @@ contract AllowlistedHookTest is BaseTest {
     function test_only_admin_can_manage_allowlist() public {
         // Try to flip allowlist as non-admin
         vm.startPrank(nonAllowedUser);
-        vm.expectRevert("Not admin");
+        vm.expectRevert("Not hook manager");
         ModularHookV1(address(hook)).flipAllowlist();
 
         // Try to add to allowlist as non-admin
-        vm.expectRevert("Not admin");
+        vm.expectRevert("Not hook manager");
         ModularHookV1(address(hook)).flipAddressInAllowList(allowedUser);
         vm.stopPrank();
     }

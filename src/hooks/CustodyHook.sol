@@ -28,7 +28,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
     // ensures that liquidity is only added through the hook
     function _beforeAddLiquidity(
         address sender,
-        PoolKey calldata _key,
+        PoolKey calldata,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) internal override returns (bytes4) {

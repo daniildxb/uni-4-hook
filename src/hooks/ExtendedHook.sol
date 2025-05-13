@@ -15,13 +15,12 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {RescueHook} from "./RescueHook.sol";
 
 /**
  * @title Base Hook
  * @notice Base contract for Uniswap V4 hooks that provides common functionality
  */
-abstract contract ExtendedHook is RescueHook, BaseHook {
+abstract contract ExtendedHook is BaseHook {
     event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
     event Withdraw(
         address indexed sender,

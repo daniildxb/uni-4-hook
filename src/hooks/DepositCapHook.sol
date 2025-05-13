@@ -2,18 +2,18 @@
 pragma solidity ^0.8.26;
 
 import {CustodyHook} from "./CustodyHook.sol";
+import {RolesHook} from "./RolesHook.sol";
 
 /**
  * @title Hook that introduces a deposit cap
  * Using AllowlistedHook as a base to utilize admin functionality
  * todo: add rbac hook as a base here
  */
-abstract contract DepositCapHook is CustodyHook {
+abstract contract DepositCapHook is CustodyHook, RolesHook {
     uint256 public depositCap0;
     uint256 public depositCap1;
 
-    function setDepositCaps(uint256 _cap0, uint256 _cap1) external {
-        require(msg.sender == admin, "Not admin");
+    function setDepositCaps(uint256 _cap0, uint256 _cap1) external onlyHookManager {
         depositCap0 = _cap0;
         depositCap1 = _cap1;
     }

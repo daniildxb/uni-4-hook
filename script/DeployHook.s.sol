@@ -56,7 +56,6 @@ contract DeployScript is Script, Deployers, Config {
                 aavePoolAddressesProvider: config.aavePoolAddressesProvider,
                 shareName: shareName,
                 shareSymbol: shareSymbol,
-                feeCollector: address(0x1),
                 fee_bps: 1000, // 10%
                 bufferSize0: 25e6, // 25 tokens with 6 decimals
                 bufferSize1: 25e6, // 25 tokens with 6 decimals
@@ -72,9 +71,9 @@ contract DeployScript is Script, Deployers, Config {
         // Move the mining and deployment into the run function where execution occurs
         uint160 flags =
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
+        bytes memory creationCode = abi.encodePacked(type(ModularHookV1).creationCode, constructorArgs);
 
-        (address hookAddress, bytes32 salt) =
-            HookMiner.find(hookManager.hookDeployer(), flags, type(ModularHookV1).creationCode, constructorArgs);
+        (address hookAddress, bytes32 salt) = HookMiner.find(address(hookManager), flags, creationCode, new bytes(0));
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         {
@@ -83,7 +82,10 @@ contract DeployScript is Script, Deployers, Config {
 
             console.log("price", price);
             console.log("tick at price", TickMath.getTickAtSqrtPrice(price));
-            hookManager.deployHook(hookParams, hookAddress, price, fee, tickSpacing, salt);
+            console.log("expected  address", hookAddress);
+            hookManager.deployHook(
+                config.token0, config.token1, hookAddress, price, fee, tickSpacing, salt, creationCode
+            );
         }
         vm.stopBroadcast();
         ModularHookV1 hook = ModularHookV1(hookAddress);

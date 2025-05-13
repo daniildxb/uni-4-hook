@@ -38,6 +38,6 @@ contract RescueFromHookScript is Script, Deployers, Config {
             console.log("No tokens to rescue");
             return;
         }
-        hook.rescue(token, amountToRescue);
+        hook.rescue(token, amountToRescue, receiver);
     }
 }

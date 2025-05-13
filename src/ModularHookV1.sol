@@ -3,6 +3,8 @@ pragma solidity ^0.8.26;
 
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {AaveFeesHook} from "./hooks/AaveFeesHook.sol";
+import {RescueHook} from "./hooks/RescueHook.sol";
+import {RolesHook} from "./hooks/RolesHook.sol";
 import {CustodyHook} from "./hooks/CustodyHook.sol";
 import {AllowlistedHook} from "./hooks/AllowlistedHook.sol";
 import {DepositCapHook} from "./hooks/DepositCapHook.sol";
@@ -31,7 +33,6 @@ struct ModularHookV1HookConfig {
     address aavePoolAddressesProvider;
     string shareName;
     string shareSymbol;
-    address feeCollector;
     uint256 fee_bps;
     uint256 bufferSize0;
     uint256 bufferSize1;
@@ -44,16 +45,17 @@ struct ModularHookV1HookConfig {
  * @notice Most of the functionality is inherited, only defines permissions
  * and overrides for abstract methods
  */
-contract ModularHookV1 is AllowlistedHook, DepositCapHook, AaveFeesHook {
+contract ModularHookV1 is AllowlistedHook, DepositCapHook, RescueHook, AaveFeesHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20Metadata;
 
     constructor(ModularHookV1HookConfig memory config)
+        RolesHook(msg.sender)
         AaveHook(config.aavePoolAddressesProvider)
         HotBufferHook(config.bufferSize0, config.bufferSize1, config.minTransferAmount0, config.minTransferAmount1)
         ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)
-        FeeTrackingHook(config.feeCollector, config.fee_bps)
+        FeeTrackingHook(config.fee_bps)
         ERC4626(IERC20Metadata(Currency.unwrap(config.token0)))
         ERC20(config.shareName, config.shareSymbol)
     {}
@@ -76,7 +78,7 @@ contract ModularHookV1 is AllowlistedHook, DepositCapHook, AaveFeesHook {
             afterRemoveLiquidityReturnDelta: false
         });
     }
-    
+
     // overrides of methods defined in multiple contracts
     // todo: check if we can just call super instead of AaveFeesHook
     function totalAssets() public view virtual override(AaveFeesHook, ERC4626) returns (uint256) {
@@ -102,7 +104,11 @@ contract ModularHookV1 is AllowlistedHook, DepositCapHook, AaveFeesHook {
         return AaveFeesHook._afterSwap(sender, _key, swapParams, delta, hookData);
     }
 
-    function _afterHookDeposit(uint256 amount0, uint256 amount1, address receiver) internal virtual override(AaveFeesHook, CustodyHook) {
+    function _afterHookDeposit(uint256 amount0, uint256 amount1, address receiver)
+        internal
+        virtual
+        override(AaveFeesHook, CustodyHook)
+    {
         return AaveFeesHook._afterHookDeposit(amount0, amount1, receiver);
     }
 

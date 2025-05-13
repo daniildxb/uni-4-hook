@@ -2,21 +2,20 @@
 pragma solidity ^0.8.26;
 
 import {CustodyHook} from "./CustodyHook.sol";
+import {RolesHook} from "./RolesHook.sol";
 
 /**
  * @title Hook that only allows deposits from the allowlisted addresses
  */
-abstract contract AllowlistedHook is CustodyHook {
+abstract contract AllowlistedHook is CustodyHook, RolesHook {
     mapping(address => bool) public allowlist;
     bool public isAllowlistEnabled;
 
-    function flipAllowlist() external {
-        require(msg.sender == admin, "Not admin");
+    function flipAllowlist() external onlyHookManager {
         isAllowlistEnabled = !isAllowlistEnabled;
     }
 
-    function flipAddressInAllowList(address user) external {
-        require(msg.sender == admin, "Not admin");
+    function flipAddressInAllowList(address user) external onlyHookManager {
         allowlist[user] = !allowlist[user];
     }
 

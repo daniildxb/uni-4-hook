@@ -3,11 +3,10 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
 import {HookManager} from "../src/HookManager.sol";
-import {HookDeployer} from "../src/HookDeployer.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
 
-/// @notice Deploys HookManager and HookDeployer contracts
+/// @notice Deploys HookManager
 contract DeployPeripheryScript is Script, Deployers, Config {
     function run() external {
         uint256 chainId = vm.envUint("CHAIN_ID");
@@ -16,10 +15,11 @@ contract DeployPeripheryScript is Script, Deployers, Config {
         Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        HookManager hookManager = new HookManager(config.poolManager);
-        HookDeployer hookDeployer = new HookDeployer(address(hookManager));
-        hookManager.setHookDeployer(address(hookDeployer));
-
+        // Deploy the simplified HookManager that handles deployment directly
+        HookManager hookManager = new HookManager(config.poolManager, receiver);
         vm.stopBroadcast();
+
+        // Log the address
+        console.log("HookManager deployed at:", address(hookManager));
     }
 }

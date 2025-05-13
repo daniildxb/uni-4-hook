@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {AaveHook} from "./AaveHook.sol";
+import {RolesHook} from "./RolesHook.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -16,7 +17,7 @@ import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
  * Additionally it overrides deposits to fill buffer before supplying to aave.
  * todo: disable feature with 0 buffer
  */
-abstract contract HotBufferHook is AaveHook {
+abstract contract HotBufferHook is AaveHook, RolesHook {
     using SafeERC20 for IERC20Metadata;
     using StateLibrary for IPoolManager;
     using TransientStateLibrary for IPoolManager;
@@ -32,26 +33,19 @@ abstract contract HotBufferHook is AaveHook {
     uint256 public minTransferAmount1;
 
     constructor(uint256 _bufferSize0, uint256 _bufferSize1, uint256 _minTransferAmount0, uint256 _minTransferAmount1) {
-        uint8 token0Decimals = IERC20Metadata(Currency.unwrap(token0)).decimals();
-        uint8 token1Decimals = IERC20Metadata(Currency.unwrap(token1)).decimals();
-
-        // Set default values
+        // Set values directly without computing unused decimals
         bufferSize0 = _bufferSize0;
         bufferSize1 = _bufferSize1;
         minTransferAmount0 = _minTransferAmount0;
         minTransferAmount1 = _minTransferAmount1;
     }
 
-    // todo: add RBAC
-    function setBufferSize(uint256 _bufferSize0, uint256 _bufferSize1) external {
-        require(msg.sender == admin, "Not owner");
+    function setBufferSize(uint256 _bufferSize0, uint256 _bufferSize1) external onlyHookManager {
         bufferSize0 = _bufferSize0;
         bufferSize1 = _bufferSize1;
     }
 
-    // todo: add RBAC
-    function setMinTransferAmount(uint256 _minTransferAmount0, uint256 _minTransferAmount1) external {
-        require(msg.sender == admin, "Not owner");
+    function setMinTransferAmount(uint256 _minTransferAmount0, uint256 _minTransferAmount1) external onlyHookManager {
         minTransferAmount0 = _minTransferAmount0;
         minTransferAmount1 = _minTransferAmount1;
     }
@@ -89,7 +83,7 @@ abstract contract HotBufferHook is AaveHook {
         _handleAfterHookDeposit(Currency.unwrap(token1), amount1, bufferSize1, minTransferAmount1);
     }
 
-    function _handleAfterHookDeposit(address token, uint256 amount, uint256 bufferSize, uint256 minTransferAmount)
+    function _handleAfterHookDeposit(address token, uint256, uint256 bufferSize, uint256 minTransferAmount)
         internal
         virtual
     {
@@ -118,8 +112,8 @@ abstract contract HotBufferHook is AaveHook {
         address aToken,
         uint256 amount,
         address receiver,
-        uint256 bufferSize,
-        uint256 minTransferAmount
+        uint256,
+        uint256
     ) internal virtual {
         uint256 tokenBuffer = IERC20Metadata(token).balanceOf(address(this));
         uint256 aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
@@ -231,7 +225,7 @@ abstract contract HotBufferHook is AaveHook {
         uint256 owedAmount,
         uint256 currentBalance,
         uint256 bufferSize,
-        uint256 minTransferAmount
+        uint256
     ) private {
         // Calculate how much to withdraw to maintain target buffer size
         uint256 amountToWithdraw = _calculateWithdrawalAmount(
