@@ -95,7 +95,8 @@ type Position @entity(immutable: false) {
   shares: BigInt!
   deposits: [Deposit!]! @derivedFrom(field: "position")
   withdrawals: [Withdrawal!]! @derivedFrom(field: "position")
-  transfers: [Transfer!]! @derivedFrom(field: "position")
+  outgoingTransfers: [Transfer!]! @derivedFrom(field: "senderPosition")
+  incomingTransfers: [Transfer!]! @derivedFrom(field: "receiverPosition")
   createdAtTimestamp: BigInt!
   createdAtBlockNumber: BigInt!
   updatedAtTimestamp: BigInt!
@@ -140,13 +141,13 @@ type Withdrawal @entity(immutable: true) {
   blockNumber: BigInt!
 }
 
-# todo: implement handlers
 type Transfer @entity(immutable: true) {
   id: ID!
   sender: Account!
   receiver: Account!
   pool: Pool!
-  position: Position!
+  senderPosition: Position!
+  receiverPosition: Position!
   token0Amount: BigInt!
   token1Amount: BigInt!
   amountUSD: BigDecimal!

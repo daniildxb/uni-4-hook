@@ -21,13 +21,15 @@ export function createTransfer(
   );
 
   
-  let positionId = _getPositionId(event.params.from.toHexString(), pool.id);
-  let transferId = `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`;
+  const senderPositionId = _getPositionId(event.params.from.toHexString(), pool.id);
+  const receiverPosition = _getPositionId(event.params.to.toHexString(), pool.id);
+  const transferId = `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`;
   let transfer = new Transfer(transferId);
   transfer.sender = event.params.from.toHexString();
   transfer.receiver = event.params.to.toHexString();
   transfer.pool = pool.id;
-  transfer.position = positionId;
+  transfer.senderPosition = senderPositionId;
+  transfer.receiverPosition = receiverPosition;
   transfer.token0Amount = token0Amount;
   transfer.token1Amount = token1Amount;
   transfer.shares = event.params.value;
