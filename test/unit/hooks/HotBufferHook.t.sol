@@ -140,7 +140,6 @@ contract HotBufferHookTest is BaseTest {
         uint256 depositAmount = 1e4;
         depositTokensToHook(depositAmount, depositAmount, testUser);
 
-
         // Get balances before swap
         TokenBalances memory before = getBalances(testUser);
 
@@ -309,10 +308,16 @@ contract HotBufferHookTest is BaseTest {
 
         // Verify user received correct amount of tokens (with tolerance for rounding)
         assertApproxEqAbs(
-            before.hookAToken0 - afterBalances.hookAToken0, withdrawAmount, 1, "User should receive correct token0 amount"
+            before.hookAToken0 - afterBalances.hookAToken0,
+            withdrawAmount,
+            1,
+            "User should receive correct token0 amount"
         );
         assertApproxEqAbs(
-            before.hookAToken1 - afterBalances.hookAToken1, withdrawAmount, 1, "User should receive correct token1 amount"
+            before.hookAToken1 - afterBalances.hookAToken1,
+            withdrawAmount,
+            1,
+            "User should receive correct token1 amount"
         );
     }
 
@@ -336,7 +341,7 @@ contract HotBufferHookTest is BaseTest {
 
         // Calculate a withdrawal amount that will use buffer
         uint256 withdrawAmount = 1500;
-        
+
         withdrawTokensFromHook(withdrawAmount, withdrawAmount, testUser);
 
         // Get balances after withdrawal

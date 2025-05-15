@@ -83,7 +83,7 @@ contract HookV1Test is BaseTest {
 
         IERC20(Currency.unwrap(token0)).forceApprove(address(hook), depositAmount);
         IERC20(Currency.unwrap(token1)).forceApprove(address(hook), depositAmount);
-        
+
         depositTokensToHook(depositAmount, depositAmount, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
@@ -137,7 +137,8 @@ contract HookV1Test is BaseTest {
         deal(Currency.unwrap(token0), user1, user1DepositAmount, false);
         deal(Currency.unwrap(token1), user1, user1DepositAmount, false);
 
-        (,, int128 user1amount0, int128 user1amount1) = depositTokensToHook(user1DepositAmount, user1DepositAmount, user1);
+        (,, int128 user1amount0, int128 user1amount1) =
+            depositTokensToHook(user1DepositAmount, user1DepositAmount, user1);
 
         // Record User 1's initial share balance and value
         uint256 user1InitialShares = IERC20(address(hook)).balanceOf(user1);
@@ -150,7 +151,8 @@ contract HookV1Test is BaseTest {
         deal(Currency.unwrap(token0), user2, user2DepositAmount, false);
         deal(Currency.unwrap(token1), user2, user2DepositAmount, false);
 
-        (,, int128 user2amount0, int128 user2amount1) = depositTokensToHook(user2DepositAmount, user2DepositAmount, user2);
+        (,, int128 user2amount0, int128 user2amount1) =
+            depositTokensToHook(user2DepositAmount, user2DepositAmount, user2);
 
         // Verify User 2 deposited approximately twice as many tokens
         assertApproxEqAbs(user2amount0, user1amount0 * 2, 1, "User 2 should deposit ~2x token0 amount");
@@ -401,7 +403,6 @@ contract HookV1Test is BaseTest {
         // Test 3: Allowlisted user cannot exceed deposit caps
         uint256 largeDeposit = 1000;
         depositTokensToHookExpectRevert(largeDeposit, largeDeposit, allowedUser);
-      
 
         // Test 4: Disabling allowlist should still enforce deposit caps
         vm.startPrank(address(hookManager));
@@ -432,7 +433,7 @@ contract HookV1Test is BaseTest {
 
         // Try large deposit with allowlisted user
         (uint256 largeDepositShares,,,) = depositTokensToHook(largeDeposit, largeDeposit, allowedUser);
-        allowListedUserShares += largeDepositShares;        
+        allowListedUserShares += largeDepositShares;
         // Verify large deposit succeeded
         uint256 allowedUserSharesAfterLargeDeposit = ModularHookV1(address(hook)).balanceOf(allowedUser);
         assertEq(
