@@ -84,15 +84,27 @@ contract HookManager is Ownable {
         hookCount++;
     }
 
-    function setBufferSize(address hook, uint256 bufferSize0, uint256 bufferSize1) external onlyOwner isValidHook(hook) {
+    function setBufferSize(address hook, uint256 bufferSize0, uint256 bufferSize1)
+        external
+        onlyOwner
+        isValidHook(hook)
+    {
         IHook(hook).setBufferSize(bufferSize0, bufferSize1);
     }
 
-    function setMinTransferAmount(address hook, uint256 minTransferAmount0, uint256 minTransferAmount1) external onlyOwner isValidHook(hook) {
+    function setMinTransferAmount(address hook, uint256 minTransferAmount0, uint256 minTransferAmount1)
+        external
+        onlyOwner
+        isValidHook(hook)
+    {
         IHook(hook).setMinTransferAmount(minTransferAmount0, minTransferAmount1);
     }
 
-    function setDepositCap(address hook, uint256 depositCap0, uint256 depositCap1) external onlyOwner isValidHook(hook) {
+    function setDepositCap(address hook, uint256 depositCap0, uint256 depositCap1)
+        external
+        onlyOwner
+        isValidHook(hook)
+    {
         IHook(hook).setDepositCaps(depositCap0, depositCap1);
     }
 

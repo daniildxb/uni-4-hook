@@ -230,4 +230,18 @@ contract BaseTest is Test, Deployers {
 
         return (user1ShareValue, user2ShareValue);
     }
+
+    function depositTokensToHook(uint256 token0Amount, uint256 token1Amount, address receiver)
+        internal
+        returns (uint256 shares, uint128 liquidity, int128 amount0, int128 amount1)
+    {
+        (liquidity, amount0, amount1) = hook.getLiquidityForTokenAmounts(token0Amount, token1Amount);
+        vm.startPrank(receiver);
+        IERC20(token0Address).approve(address(hook), token0Amount);
+        IERC20(token1Address).approve(address(hook), token1Amount);
+        shares = hook.deposit(liquidity, receiver);
+        vm.stopPrank();
+        amount0 = amount0 < 0 ? -amount0 : amount0;
+        amount1 = amount1 < 0 ? -amount1 : amount1;
+    }
 }

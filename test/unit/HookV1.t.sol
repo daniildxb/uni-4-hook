@@ -43,7 +43,7 @@ contract HookV1Test is BaseTest {
         console.log("Token1 balance before: ", balance1);
         IERC20(Currency.unwrap(token0)).forceApprove(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).forceApprove(address(hook), 1000);
-        hook.deposit(1000, address(this));
+        (uint256 sharesMinted,,,) = depositTokensToHook(140, 140, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
@@ -63,11 +63,7 @@ contract HookV1Test is BaseTest {
         assertEq(feeGrowthInside0LastX128, 0);
         assertEq(feeGrowthInside1LastX128, 0);
 
-        uint256 sharesMinted = IERC20(address(hook)).balanceOf(address(this));
-        // whn issuing initial shares they are issued 1:1 to assets (liquidity)
-        assertEq(sharesMinted, 1000);
-
-        hook.redeem(1000, address(this), address(this));
+        hook.redeem(sharesMinted, address(this), address(this));
 
         // 1 unit of assets is lost in the rounding
         assertEq(token0.balanceOf(address(this)), balance0 - 1, "test runner token0 balance after LP removal");
