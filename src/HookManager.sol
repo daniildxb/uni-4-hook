@@ -8,7 +8,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
-
+import {IHookManager} from "./interfaces/IHookManager.sol";
 // aggregated interface of all RBAC methods on hooks
 interface IHook {
     function addPool(PoolKey memory key) external;
@@ -22,10 +22,8 @@ interface IHook {
     function rescue(address token, uint256 amount, address to) external;
 }
 
-contract HookManager is Ownable {
+contract HookManager is IHookManager, Ownable {
     using PoolIdLibrary for PoolKey;
-
-    event HookDeployed(address indexed hook, bytes32 indexed poolId, uint256 hookIndex, uint160 sqrtPriceX96);
 
     address public constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
 
@@ -82,6 +80,14 @@ contract HookManager is Ownable {
         _storeHook(hookAddress, poolId);
         emit HookDeployed(hookAddress, poolId, hookCount, sqrtPriceX96);
         hookCount++;
+    }
+
+    function getAllHooks() external view returns (address[] memory) {
+        address[] memory hooks = new address[](hookCount);
+        for (uint256 i = 0; i < hookCount; i++) {
+            hooks[i] = indexToHook[i];
+        }
+        return hooks;
     }
 
     function setBufferSize(address hook, uint256 bufferSize0, uint256 bufferSize1)

@@ -15,12 +15,13 @@ import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {IModularHook} from "../interfaces/IModularHook.sol";
 
 /**
  * @title Base Hook
  * @notice Base contract for Uniswap V4 hooks that provides common functionality
  */
-abstract contract ExtendedHook is BaseHook {
+abstract contract ExtendedHook is IModularHook, BaseHook {
     event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
     event Withdraw(
         address indexed sender,
@@ -73,6 +74,10 @@ abstract contract ExtendedHook is BaseHook {
 
     function getPoolId() public view returns (bytes32) {
         return PoolId.unwrap(key.toId());
+    }
+
+    function getHookTokens() public view returns (address, address) {
+        return (Currency.unwrap(token0), Currency.unwrap(token1));
     }
 
     // returns negative values!!

@@ -23,10 +23,12 @@ contract Config is SqrtPriceCalculator {
     uint256 constant USDT_DAI_POOL = 1; // 6/18 decimals
     uint256 constant DAI_USDE_POOL = 2; // won't work
     uint256 constant DAI_GHO_POOL = 3; // 18/18 decimals
+    uint256 constant USDC_GHO_POOL = 4; // 6/18 decimals
 
     // Network identifiers
     uint256 constant MAINNET = 1;
     uint256 constant ARBITRUM = 42161;
+    uint256 constant BASE = 8453;
     uint256 constant LOCAL = 0;
 
     // Token addresses - Mainnet
@@ -41,6 +43,9 @@ contract Config is SqrtPriceCalculator {
     address constant ARBITRUM_USDE = 0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34;
     address constant ARBITRUM_GHO = 0x7dfF72693f6A4149b17e7C6314655f6A9F7c8B33;
 
+    address constant BASE_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address constant BASE_GHO = 0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee;
+
     // Infrastructure addresses - Mainnet
     address constant MAINNET_POOL_MANAGER = 0x000000000004444c5dc75cB358380D2e3dE08A90;
     address constant MAINNET_AAVE_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
@@ -50,6 +55,10 @@ contract Config is SqrtPriceCalculator {
     address constant ARBITRUM_POOL_MANAGER = 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32;
     address constant ARBITRUM_AAVE_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant ARBITRUM_HOOK_MANAGER = 0x10BF3E582fc11D5629743E93beDC39b838C603cc;
+
+    address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
+    address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
+    address constant BASE_HOOK_MANAGER = 0x294181A97bafAB680154fC61420c00503a98B790;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
@@ -106,6 +115,11 @@ contract Config is SqrtPriceCalculator {
             aaveProvider = ARBITRUM_AAVE_PROVIDER;
             hookManager = ARBITRUM_HOOK_MANAGER;
             return _getArbitrumPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+        } else if (chainId == BASE) {
+            poolManager = BASE_POOL_MANAGER;
+            aaveProvider = BASE_AAVE_PROVIDER;
+            hookManager = BASE_HOOK_MANAGER;
+            return _getBasePoolConfig(poolId, poolManager, aaveProvider, hookManager);
         } else if (chainId == LOCAL) {
             poolManager = MAINNET_POOL_MANAGER;
             aaveProvider = MAINNET_AAVE_PROVIDER;
@@ -188,6 +202,28 @@ contract Config is SqrtPriceCalculator {
             });
         } else {
             revert("Unsupported pool ID for Arbitrum");
+        }
+
+        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
+    }
+
+
+    function _getBasePoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
+        private
+        pure
+        returns (ConfigData memory)
+    {
+        TokenPair memory tokenPair;
+
+        if (poolId == USDC_GHO_POOL) {
+            tokenPair = TokenPair({
+                token0Address: BASE_GHO,
+                token1Address: BASE_USDC,
+                hookAddress: 0xD57ac671734C838415F14F58c8a79F178013C8c0,
+                poolId: "0xe04215f46f01f9452ff458fa93213778c2c6a3974106bc1c0a5078b70267cd0f"
+            });
+        } else {
+            revert("Unsupported pool ID for Base");
         }
 
         return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);

@@ -17,8 +17,8 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
 
     function run() public {
         // usdc
-        uint256 maxTokenAmount0 = 10 * 1e18;
-        uint256 maxTokenAmount1 = 10 * 1e6;
+        uint256 maxTokenAmount0 = 8 * 1e18;
+        uint256 maxTokenAmount1 = 8 * 1e6;
         uint256 chainId = vm.envUint("CHAIN_ID");
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
