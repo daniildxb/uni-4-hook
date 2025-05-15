@@ -67,4 +67,33 @@ contract SwapPricePreviewHookTest is BaseTest {
         );
         assert(true);
     }
+
+    function test_shouldFailIfNotEnoughLiquidity() public {
+        // setup
+        uint256 depositAmount = 100 * 1e6;
+        deal(Currency.unwrap(token0), user1, depositAmount, false);
+        deal(Currency.unwrap(token1), user1, depositAmount, false);
+        depositTokensToHook(depositAmount, depositAmount, user1);
+
+        // preview swap
+        int256 swapAmount = 1000 * 1e6;
+        deal(Currency.unwrap(token0), user1, uint256(swapAmount * 2), false);
+        deal(Currency.unwrap(token1), user1, uint256(swapAmount * 2), false);
+
+        bool zeroForOne = true;
+
+        IPoolManager.SwapParams memory swapParams =
+            IPoolManager.SwapParams({amountSpecified: swapAmount, zeroForOne: zeroForOne, sqrtPriceLimitX96: 0});
+
+        // should fail for zero for one
+        {
+            vm.expectRevert("Not enough token0");
+            (BalanceDelta swapDelta, uint24 swapFee, Pool.SwapResult memory result) = hook.previewSwap(swapParams);
+        }
+        swapParams.zeroForOne = false;
+        {
+            vm.expectRevert("Not enough token1");
+            (BalanceDelta swapDelta, uint24 swapFee, Pool.SwapResult memory result) = hook.previewSwap(swapParams);
+        }
+    }
 }

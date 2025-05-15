@@ -207,7 +207,6 @@ contract Config is SqrtPriceCalculator {
         return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
     }
 
-
     function _getBasePoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
         private
         pure

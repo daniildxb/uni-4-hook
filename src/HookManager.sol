@@ -10,6 +10,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {IHookManager} from "./interfaces/IHookManager.sol";
 // aggregated interface of all RBAC methods on hooks
+
 interface IHook {
     function addPool(PoolKey memory key) external;
     function setBufferSize(uint256 bufferSize0, uint256 bufferSize1) external;

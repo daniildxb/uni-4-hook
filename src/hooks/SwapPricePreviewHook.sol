@@ -31,6 +31,10 @@ abstract contract SwapPricePreviewHook is CustodyHook {
     using Pool for *;
     using ProtocolFeeLibrary for *;
 
+    function _abs(int256 x) internal pure returns (uint256) {
+        return x < 0 ? uint256(-x) : uint256(x);
+    }
+
     function previewSwap(IPoolManager.SwapParams memory params)
         public
         view
@@ -48,6 +52,19 @@ abstract contract SwapPricePreviewHook is CustodyHook {
 
             // Calculate swap fee
             swapFee = protocolFee == 0 ? lpFee : uint16(protocolFee).calculateSwapFee(lpFee);
+        }
+
+        // amounts are negative here
+        (int128 amount0, int128 amount1) = getTokenAmountsForLiquidity(result.liquidity);
+        // check if we got enough of requested token to do the swap
+        if (params.zeroForOne) {
+            if (_abs(int256(amount0)) < _abs(params.amountSpecified)) {
+                revert("Not enough token0");
+            }
+        } else {
+            if (_abs(int256(amount1)) < _abs(params.amountSpecified)) {
+                revert("Not enough token1");
+            }
         }
 
         // Local computation scope

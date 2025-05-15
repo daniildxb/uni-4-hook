@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {Currency} from "v4-core/src/types/Currency.sol";
 
-
 interface IHookManager {
     event HookDeployed(address indexed hook, bytes32 indexed poolId, uint256 hookIndex, uint160 sqrtPriceX96);
 
