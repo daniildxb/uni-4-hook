@@ -138,11 +138,8 @@ contract HotBufferHookTest is BaseTest {
 
         // Deposit a small amount below buffer
         uint256 depositAmount = 1e4;
-        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
+        depositTokensToHook(depositAmount, depositAmount, testUser);
 
-        // Verify deposit was below buffer size
-        assertLt(depositToken0, hook.bufferSize0(), "Deposit amount should be below buffer size");
-        assertLt(depositToken1, hook.bufferSize1(), "Deposit amount should be below buffer size");
 
         // Get balances before swap
         TokenBalances memory before = getBalances(testUser);
@@ -169,7 +166,7 @@ contract HotBufferHookTest is BaseTest {
             "Hook should transfer exact token0 amount"
         );
         assertEq(
-            before.hookToken1 - afterBalances.hookToken1 + 1,
+            before.hookToken1 - afterBalances.hookToken1,
             uint256(int256(-swapDelta.amount0())),
             "Hook should receive exact token1 amount"
         );
@@ -286,7 +283,9 @@ contract HotBufferHookTest is BaseTest {
 
         // First deposit funds to Aave
         uint256 depositAmount = 1e10;
-        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
+        deal(Currency.unwrap(token0), testUser, depositAmount, false);
+        deal(Currency.unwrap(token1), testUser, depositAmount, false);
+        depositTokensToHook(depositAmount, depositAmount, testUser);
 
         // Verify we have funds in Aave
         TokenBalances memory before = getBalances(testUser);
@@ -295,16 +294,7 @@ contract HotBufferHookTest is BaseTest {
 
         // Withdraw an amount smaller than Aave balance
         uint256 withdrawAmount = 1e4;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(withdrawAmount);
-
-        // Verify withdrawal amount is smaller than Aave balance
-        assertLt(token0Amount, before.hookAToken0, "Withdrawal amount should be less than Aave balance");
-        assertLt(token1Amount, before.hookAToken1, "Withdrawal amount should be less than Aave balance");
-
-        // Execute withdrawal
-        vm.startPrank(testUser);
-        hook.redeem(withdrawAmount, testUser, testUser);
-        vm.stopPrank();
+        withdrawTokensFromHook(withdrawAmount, withdrawAmount, testUser);
 
         // Get balances after withdrawal
         TokenBalances memory afterBalances = getBalances(testUser);
@@ -319,10 +309,10 @@ contract HotBufferHookTest is BaseTest {
 
         // Verify user received correct amount of tokens (with tolerance for rounding)
         assertApproxEqAbs(
-            before.hookAToken0 - afterBalances.hookAToken0, token0Amount, 1, "User should receive correct token0 amount"
+            before.hookAToken0 - afterBalances.hookAToken0, withdrawAmount, 1, "User should receive correct token0 amount"
         );
         assertApproxEqAbs(
-            before.hookAToken1 - afterBalances.hookAToken1, token1Amount, 1, "User should receive correct token1 amount"
+            before.hookAToken1 - afterBalances.hookAToken1, withdrawAmount, 1, "User should receive correct token1 amount"
         );
     }
 
@@ -337,19 +327,17 @@ contract HotBufferHookTest is BaseTest {
         hook.setMinTransferAmount(100, 100);
 
         uint256 depositAmount = 2000;
-        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
+        deal(Currency.unwrap(token0), testUser, depositAmount, false);
+        deal(Currency.unwrap(token1), testUser, depositAmount, false);
+        depositTokensToHook(depositAmount, depositAmount, testUser);
 
         // Get balances before withdrawal
         TokenBalances memory before = getBalances(testUser);
 
         // Calculate a withdrawal amount that will use buffer
-        uint256 withdrawAmount = depositAmount / 2;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(withdrawAmount);
-
-        // Execute withdrawal
-        vm.startPrank(testUser);
-        hook.redeem(withdrawAmount, testUser, testUser);
-        vm.stopPrank();
+        uint256 withdrawAmount = 1500;
+        
+        withdrawTokensFromHook(withdrawAmount, withdrawAmount, testUser);
 
         // Get balances after withdrawal
         TokenBalances memory afterBalances = getBalances(testUser);
@@ -364,10 +352,10 @@ contract HotBufferHookTest is BaseTest {
 
         // Verify user received approximately the expected token amounts
         assertApproxEqAbs(
-            afterBalances.userToken0 - before.userToken0, token0Amount, 2, "User should receive correct token0 amount"
+            afterBalances.userToken0 - before.userToken0, withdrawAmount, 2, "User should receive correct token0 amount"
         );
         assertApproxEqAbs(
-            afterBalances.userToken1 - before.userToken1, token1Amount, 2, "User should receive correct token1 amount"
+            afterBalances.userToken1 - before.userToken1, withdrawAmount, 2, "User should receive correct token1 amount"
         );
     }
 

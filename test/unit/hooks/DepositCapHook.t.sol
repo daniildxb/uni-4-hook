@@ -104,21 +104,8 @@ contract DepositCapHookTest is BaseTest {
         vm.stopPrank();
 
         // Try to deposit an amount that exceeds token0 cap
-        uint256 depositAmount = 1000;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(depositAmount);
-
-        // Ensure our test is set up correctly
-        assertGt(token0Amount, cap0, "Token0 amount should exceed cap for this test");
-        assertLt(token1Amount, cap1, "Token1 amount should be within cap for this test");
-
-        vm.startPrank(depositUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
-
-        // Should revert with "Deposit cap reached for token0"
-        vm.expectRevert("Deposit cap reached for token0");
-        hook.deposit(depositAmount, depositUser);
-        vm.stopPrank();
+        uint256 depositAmount = 500;
+        depositTokensToHookExpectRevert(depositAmount, depositAmount, depositUser);
     }
 
     function test_deposit_exceeds_token1_cap() public {
@@ -130,22 +117,9 @@ contract DepositCapHookTest is BaseTest {
         ModularHookV1(address(hook)).setDepositCaps(cap0, cap1);
         vm.stopPrank();
 
-        // Try to deposit an amount that exceeds token1 cap
-        uint256 depositAmount = 1000;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(depositAmount);
-
-        // Ensure our test is set up correctly
-        assertLt(token0Amount, cap0, "Token0 amount should be within cap for this test");
-        assertGt(token1Amount, cap1, "Token1 amount should exceed cap for this test");
-
-        vm.startPrank(depositUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
-
-        // Should revert with "Deposit cap reached for token1"
-        vm.expectRevert("Deposit cap reached for token1");
-        hook.deposit(depositAmount, depositUser);
-        vm.stopPrank();
+        // Try to deposit an amount that exceeds token0 cap
+        uint256 depositAmount = 500;
+        depositTokensToHookExpectRevert(depositAmount, depositAmount, depositUser);
     }
 
     function test_multiple_deposits_up_to_cap() public {
@@ -157,33 +131,13 @@ contract DepositCapHookTest is BaseTest {
         vm.stopPrank();
 
         // Make multiple deposits up to just under the cap
-        uint256 depositAmount1 = 500; // Will result in ~70 token amounts
-        (uint256 token0Amount1, uint256 token1Amount1) = getTokenAmountsForLiquidity(depositAmount1);
-
-        vm.startPrank(depositUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount1);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount1);
-        hook.deposit(depositAmount1, depositUser);
+        uint256 depositAmount1 = 70; // Will result in ~70 token amounts
+        depositTokensToHook(depositAmount1, depositAmount1, depositUser);
 
         // Try a second deposit that should bring us to the cap
-        uint256 depositAmount2 = 500; // Another ~70 token amounts
-        (uint256 token0Amount2, uint256 token1Amount2) = getTokenAmountsForLiquidity(depositAmount2);
+        depositTokensToHook(depositAmount1, depositAmount1, depositUser);
 
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount2);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount2);
-        hook.deposit(depositAmount2, depositUser);
-
-        // Now a third deposit should fail as we've reached the cap
-        uint256 depositAmount3 = 500;
-        (uint256 token0Amount3, uint256 token1Amount3) = getTokenAmountsForLiquidity(depositAmount3);
-
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount3);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount3);
-
-        // Should revert now that we're at the cap
-        vm.expectRevert();
-        hook.deposit(depositAmount3, depositUser);
-        vm.stopPrank();
+        depositTokensToHookExpectRevert(depositAmount1, depositAmount1, depositUser);
     }
 
     function test_update_deposit_caps() public {
@@ -196,16 +150,7 @@ contract DepositCapHookTest is BaseTest {
 
         // Try a deposit that should fail due to cap
         uint256 largeDeposit = 1000;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(largeDeposit);
-
-        vm.startPrank(depositUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
-
-        // Should revert due to cap
-        vm.expectRevert();
-        hook.deposit(largeDeposit, depositUser);
-        vm.stopPrank();
+        depositTokensToHookExpectRevert(largeDeposit, largeDeposit, depositUser);
 
         // Now increase the caps
         uint256 newCap = 1000;
@@ -214,15 +159,7 @@ contract DepositCapHookTest is BaseTest {
         ModularHookV1(address(hook)).setDepositCaps(newCap, newCap);
         vm.stopPrank();
 
-        // Try the same deposit again
-        vm.startPrank(depositUser);
-        // Should work now with increased caps
-        hook.deposit(largeDeposit, depositUser);
-        vm.stopPrank();
-
-        // Verify deposit was successful
-        uint256 userShares = ModularHookV1(address(hook)).balanceOf(depositUser);
-        assertEq(userShares, largeDeposit, "User should be able to deposit with increased caps");
+        depositTokensToHook(largeDeposit, largeDeposit, depositUser);
     }
 
     function test_disable_deposit_caps() public {

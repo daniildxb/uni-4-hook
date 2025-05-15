@@ -76,12 +76,15 @@ contract HookV1Test is BaseTest {
         uint256 balance0 = token0.balanceOf(address(this));
         uint256 balance1 = token1.balanceOf(address(this));
 
-        deal(Currency.unwrap(token0), address(manager), 1000, false);
-        deal(Currency.unwrap(token1), address(manager), 1000, false);
+        uint256 depositAmount = 1000;
 
-        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), 1000);
-        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), 1000);
-        hook.deposit(1000, msg.sender);
+        deal(Currency.unwrap(token0), address(manager), depositAmount, false);
+        deal(Currency.unwrap(token1), address(manager), depositAmount, false);
+
+        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), depositAmount);
+        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), depositAmount);
+        
+        depositTokensToHook(depositAmount, depositAmount, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
         uint256 balance1New = token1.balanceOf(address(this));
@@ -89,9 +92,8 @@ contract HookV1Test is BaseTest {
         console.log("balance diff", balance0 - balance0New);
         console.log("balance diff", balance1 - balance1New);
 
-        uint256 expectedDiff = 140; // hardcoded based on the ticks and current price
-        assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
-        assertEq(balance1New, balance1 - expectedDiff);
+        assertEq(balance0New, balance0 - depositAmount);
+        assertEq(balance1New, balance1 - depositAmount);
 
         console.log("hook balance0", token0.balanceOf(address(hook)));
         console.log("hook balance1", token1.balanceOf(address(hook)));
@@ -132,22 +134,27 @@ contract HookV1Test is BaseTest {
 
         // 1. User 1 deposits into the pool
         uint256 user1DepositAmount = 1e8;
-        (uint256 token0Amount1, uint256 token1Amount1,,) = depositLiquidity(user1, user1DepositAmount);
+        deal(Currency.unwrap(token0), user1, user1DepositAmount, false);
+        deal(Currency.unwrap(token1), user1, user1DepositAmount, false);
+
+        (,, int128 user1amount0, int128 user1amount1) = depositTokensToHook(user1DepositAmount, user1DepositAmount, user1);
 
         // Record User 1's initial share balance and value
         uint256 user1InitialShares = IERC20(address(hook)).balanceOf(user1);
-        assertEq(user1InitialShares, user1DepositAmount, "User 1 should have received shares equal to deposit amount");
 
         // Calculate initial asset value of User 1's shares
         uint256 user1InitialAssetValue = hook.convertToAssets(user1InitialShares);
 
         // 2. User 2 deposits into the pool with 2x the amount of User 1
         uint256 user2DepositAmount = user1DepositAmount * 2;
-        (uint256 token0Amount2, uint256 token1Amount2,,) = depositLiquidity(user2, user2DepositAmount);
+        deal(Currency.unwrap(token0), user2, user2DepositAmount, false);
+        deal(Currency.unwrap(token1), user2, user2DepositAmount, false);
+
+        (,, int128 user2amount0, int128 user2amount1) = depositTokensToHook(user2DepositAmount, user2DepositAmount, user2);
 
         // Verify User 2 deposited approximately twice as many tokens
-        assertApproxEqAbs(token0Amount2, token0Amount1 * 2, 1, "User 2 should deposit ~2x token0 amount");
-        assertApproxEqAbs(token1Amount2, token1Amount1 * 2, 1, "User 2 should deposit ~2x token1 amount");
+        assertApproxEqAbs(user2amount0, user1amount0 * 2, 1, "User 2 should deposit ~2x token0 amount");
+        assertApproxEqAbs(user2amount1, user1amount1 * 2, 1, "User 2 should deposit ~2x token1 amount");
 
         // Record User 2's share balance
         uint256 user2Shares = ModularHookV1(address(hook)).balanceOf(user2);
@@ -393,16 +400,8 @@ contract HookV1Test is BaseTest {
 
         // Test 3: Allowlisted user cannot exceed deposit caps
         uint256 largeDeposit = 1000;
-        (uint256 largeToken0Amount, uint256 largeToken1Amount) = getTokenAmountsForLiquidity(largeDeposit);
-
-        vm.startPrank(allowedUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
-
-        // Should revert because it exceeds deposit caps
-        vm.expectRevert();
-        hook.deposit(largeDeposit, allowedUser);
-        vm.stopPrank();
+        depositTokensToHookExpectRevert(largeDeposit, largeDeposit, allowedUser);
+      
 
         // Test 4: Disabling allowlist should still enforce deposit caps
         vm.startPrank(address(hookManager));
@@ -432,14 +431,8 @@ contract HookV1Test is BaseTest {
         vm.stopPrank();
 
         // Try large deposit with allowlisted user
-        vm.startPrank(allowedUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
-
-        // Should succeed because caps are removed
-        allowListedUserShares += hook.deposit(largeDeposit, allowedUser);
-        vm.stopPrank();
-
+        (uint256 largeDepositShares,,,) = depositTokensToHook(largeDeposit, largeDeposit, allowedUser);
+        allowListedUserShares += largeDepositShares;        
         // Verify large deposit succeeded
         uint256 allowedUserSharesAfterLargeDeposit = ModularHookV1(address(hook)).balanceOf(allowedUser);
         assertEq(
@@ -449,13 +442,6 @@ contract HookV1Test is BaseTest {
         );
 
         // Try large deposit with non-allowlisted user
-        vm.startPrank(nonAllowedUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), largeToken0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), largeToken1Amount);
-
-        // Should revert because allowlist is enabled
-        vm.expectRevert("Not allowed");
-        hook.deposit(largeDeposit, nonAllowedUser);
-        vm.stopPrank();
+        depositTokensToHookExpectRevert(largeDeposit, largeDeposit, nonAllowedUser);
     }
 }

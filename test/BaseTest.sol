@@ -33,16 +33,16 @@ contract BaseTest is Test, Deployers {
     Currency token0;
     Currency token1;
     // todo: update to use 60 / -60 ticks an 0.01% fee
-    int24 tickMin = -3000;
-    int24 tickMax = 3000;
+    int24 tickMin = -2;
+    int24 tickMax = 2;
     address aavePoolAddressesProvider;
     string shareName = "name";
     string shareSymbol = "symbol";
     HookManager hookManager;
     ModularHookV1 hook; // Changed from HookV1 to ModularHookV1
     uint24 fee = 3000;
-    int24 tickSpacing = 60;
-    uint256 fee_bps = 1000; // 10%
+    int24 tickSpacing = 1;
+    uint256 fee_bps = 10; // 0.0001%
     uint256 bufferSize = 1e7;
     uint256 minTransferAmount = 1e6;
     address admin = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
@@ -243,5 +243,34 @@ contract BaseTest is Test, Deployers {
         vm.stopPrank();
         amount0 = amount0 < 0 ? -amount0 : amount0;
         amount1 = amount1 < 0 ? -amount1 : amount1;
+    }
+
+    function depositTokensToHookExpectRevert(uint256 token0Amount, uint256 token1Amount, address receiver) internal {
+        (uint256 liquidity,,) = hook.getLiquidityForTokenAmounts(token0Amount, token1Amount);
+        vm.startPrank(receiver);
+        IERC20(token0Address).approve(address(hook), token0Amount);
+        IERC20(token1Address).approve(address(hook), token1Amount);
+        vm.expectRevert();
+        hook.deposit(liquidity, receiver);
+        vm.stopPrank();
+    }
+
+    function withdrawTokensFromHook(uint256 token0Amount, uint256 token1Amount, address receiver)
+        internal
+        returns (uint256 shares, uint128 liquidity, uint256 amount0, uint256 amount1)
+    {
+        uint256 token0BalanceBefore = IERC20(token0Address).balanceOf(receiver);
+        uint256 token1BalanceBefore = IERC20(token1Address).balanceOf(receiver);
+        (liquidity,,) = hook.getLiquidityForTokenAmounts(token0Amount, token1Amount);
+        uint256 sharesToExit = hook.convertToShares(liquidity);
+        vm.startPrank(receiver);
+        shares = hook.redeem(sharesToExit, receiver, receiver);
+        vm.stopPrank();
+
+        uint256 token0BalanceAfter = IERC20(token0Address).balanceOf(receiver);
+        uint256 token1BalanceAfter = IERC20(token1Address).balanceOf(receiver);
+
+        amount0 = token0BalanceAfter - token0BalanceBefore;
+        amount1 = token1BalanceAfter - token1BalanceBefore;
     }
 }
