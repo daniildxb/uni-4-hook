@@ -8,3 +8,4 @@ v4-core/=lib/v4-periphery/lib/v4-core/
 @openzeppelin/=lib/v4-periphery/lib/v4-core/lib/openzeppelin-contracts/
 @openzeppelin/uniswap-hooks=lib/uniswap-hooks/
 @aave-v3-core=lib/aave-v3-core/contracts
+@uniswapx/=lib/uniswapx/src
