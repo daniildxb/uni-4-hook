@@ -12,6 +12,7 @@ import {IHookManager} from "./interfaces/IHookManager.sol";
 // aggregated interface of all RBAC methods on hooks
 
 interface IHook {
+    function key() external view returns (PoolKey memory);
     function addPool(PoolKey memory key) external;
     function setBufferSize(uint256 bufferSize0, uint256 bufferSize1) external;
     function setMinTransferAmount(uint256 minTransferAmount0, uint256 minTransferAmount1) external;
@@ -23,6 +24,13 @@ interface IHook {
     function rescue(address token, uint256 amount, address to) external;
 }
 
+interface IExecutor {
+    function registerPool(PoolKey calldata key) external;
+    function unwrapWETH(address to) external;
+    function withdrawETH(address to) external;
+    function rescue(address token, uint256 amount, address to) external;
+}
+
 contract HookManager is IHookManager, Ownable {
     using PoolIdLibrary for PoolKey;
 
@@ -30,17 +38,19 @@ contract HookManager is IHookManager, Ownable {
 
     address public poolManager;
     uint256 public hookCount = 0;
+    uint256 public executorCount = 0;
 
-    mapping(bytes32 => address) public poolIdToHook;
-    mapping(address => bytes32) public hookToPoolId;
+    mapping(PoolId => address) public poolIdToHook;
+    mapping(address => PoolId) public hookToPoolId;
     mapping(uint256 => address) public indexToHook;
+    mapping(uint256 => address) public indexToExecutor;
 
     constructor(address _poolManager, address _owner) Ownable(_owner) {
         poolManager = _poolManager;
     }
 
     modifier isValidHook(address hook) {
-        require(hookToPoolId[hook] != bytes32(0), "Hook not found");
+        require(PoolId.unwrap(hookToPoolId[hook]) != bytes32(0), "Hook not found");
         _;
     }
 
@@ -77,16 +87,32 @@ contract HookManager is IHookManager, Ownable {
         IHook(hookAddress).addPool(key);
 
         // Track the hook
-        bytes32 poolId = PoolId.unwrap(key.toId());
+        PoolId poolId = key.toId();
         _storeHook(hookAddress, poolId);
+        _addHookToExecutors(key);
         emit HookDeployed(hookAddress, poolId, hookCount, sqrtPriceX96);
         hookCount++;
+    }
+
+    function addExecutor(address executor) external onlyOwner {
+        require(executor != address(0), "Invalid executor address");
+        indexToExecutor[executorCount] = executor;
+        IExecutor executorContract = IExecutor(executor);
+        for (uint256 i = 0; i < hookCount; i++) {
+            IHook hook = IHook(indexToHook[i]);
+            PoolKey memory key = hook.key();
+            executorContract.registerPool(key);
+        }
+
+        emit ExecutorAdded(executor, executorCount);
+        executorCount++;
     }
 
     function getAllHooks() external view returns (address[] memory) {
         address[] memory hooks = new address[](hookCount);
         for (uint256 i = 0; i < hookCount; i++) {
-            hooks[i] = indexToHook[i];
+            address hookAddress = indexToHook[i];
+            PoolId poolId = hookToPoolId[hookAddress];
         }
         return hooks;
     }
@@ -135,15 +161,44 @@ contract HookManager is IHookManager, Ownable {
         IHook(hook).rescue(token, amount, to);
     }
 
+    function unwrapExecutorETH(uint256 executorIndex, address to) external onlyOwner {
+        require(executorIndex < executorCount, "Invalid executor index");
+        address executor = indexToExecutor[executorIndex];
+        IExecutor executorContract = IExecutor(executor);
+        executorContract.unwrapWETH(to);
+    }
+
+    function withdrawExecutorETH(uint256 executorIndex, address to) external onlyOwner {
+        require(executorIndex < executorCount, "Invalid executor index");
+        address executor = indexToExecutor[executorIndex];
+        IExecutor executorContract = IExecutor(executor);
+        executorContract.withdrawETH(to);
+    }
+
+    function rescueExecutorERC20(uint256 executorIndex, address token, uint256 amount, address to) external onlyOwner {
+        require(executorIndex < executorCount, "Invalid executor index");
+        address executor = indexToExecutor[executorIndex];
+        IExecutor executorContract = IExecutor(executor);
+        executorContract.rescue(token, amount, to);
+    }
+
     /**
      * @dev Stores a hook in the registry
      * @param hook The address of the hook
      * @param poolId The pool ID associated with the hook
      */
-    function _storeHook(address hook, bytes32 poolId) internal {
+    function _storeHook(address hook, PoolId poolId) internal {
         require(poolIdToHook[poolId] == address(0), "Hook already exists for this poolId");
         poolIdToHook[poolId] = hook;
         hookToPoolId[hook] = poolId;
         indexToHook[hookCount] = hook;
+    }
+
+    function _addHookToExecutors(PoolKey memory key) internal {
+        for (uint256 i = 0; i < executorCount; i++) {
+            address executor = indexToExecutor[i];
+            IExecutor executorContract = IExecutor(executor);
+            executorContract.registerPool(key);
+        }
     }
 }

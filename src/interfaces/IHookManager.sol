@@ -2,9 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {Currency} from "v4-core/src/types/Currency.sol";
+import {PoolId} from "v4-core/src/types/PoolId.sol";
 
 interface IHookManager {
-    event HookDeployed(address indexed hook, bytes32 indexed poolId, uint256 hookIndex, uint160 sqrtPriceX96);
+    event HookDeployed(address indexed hook, PoolId indexed poolId, uint256 hookIndex, uint160 sqrtPriceX96);
+    event ExecutorAdded(address indexed executor, uint256 executorIndex);
 
     /**
      * @notice Deploys a ModularHookV1 hook with CREATE2 and initializes it
@@ -28,5 +30,15 @@ interface IHookManager {
         bytes calldata creationCode
     ) external;
 
+    /**
+     * @notice Returns the address of the hook for a given poolId
+     * @param executor address of the exucutor
+     */
+    function addExecutor(address executor) external;
+
+    /**
+     * @notice Returns the addresses all hooks
+     * @return The addresses of the hook
+     */
     function getAllHooks() external view returns (address[] memory);
 }

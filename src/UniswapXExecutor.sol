@@ -13,6 +13,10 @@ import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /*
 // the flow is the following
@@ -25,14 +29,18 @@ import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.
 6. poolmanager calls callback2
 7. in the callback2 we actually swap
 8. and approve tokens to reactor
-
 */
-contract UniswapXExecutor is IReactorCallback {
+
+contract UniswapXExecutor is IReactorCallback, Ownable {
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
     using BalanceDeltaLibrary for BalanceDelta;
     using CurrencySettler for Currency;
     using SafeERC20 for IERC20Metadata;
+
+    WETH private immutable weth;
+
+    using SafeTransferLib for ERC20;
 
     uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_PRICE + 1;
     uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_PRICE - 1;
@@ -41,10 +49,15 @@ contract UniswapXExecutor is IReactorCallback {
     address private immutable whitelistedCaller;
     IReactor private immutable reactor;
 
-    constructor(IPoolManager _manager, address _reactor, address _whitelistedCaller) {
-        manager = _manager;
+    // _whitelistedCaller is the address of the filler
+    // _owner is HookManager
+    constructor(address _manager, address _reactor, address _whitelistedCaller, address _weth, address _owner)
+        Ownable(_owner)
+    {
+        manager = IPoolManager(_manager);
         whitelistedCaller = _whitelistedCaller;
         reactor = IReactor(_reactor);
+        weth = WETH(payable(_weth));
     }
 
     struct OrderRoutingData {
@@ -58,9 +71,9 @@ contract UniswapXExecutor is IReactorCallback {
 
     //reverse mapping of poolId to PoolKey
     mapping(bytes32 => PoolKey) public poolKeys;
-    
+
     // Function to register a pool key
-    function registerPool(PoolKey calldata key) external onlyWhitelistedCaller {
+    function registerPool(PoolKey calldata key) external onlyOwner {
         bytes32 poolId = PoolId.unwrap(key.toId());
         poolKeys[poolId] = key;
     }
@@ -163,5 +176,31 @@ contract UniswapXExecutor is IReactorCallback {
     function _transferNative(address recipient, uint256 amount) internal {
         (bool success,) = recipient.call{value: amount}("");
         if (!success) revert("Native transfer failed");
+    }
+
+    /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
+    /// @param recipient The address receiving ETH
+    function unwrapWETH(address recipient) external onlyOwner {
+        uint256 balanceWETH = weth.balanceOf(address(this));
+
+        weth.withdraw(balanceWETH);
+        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Transfer all ETH in this contract to the recipient. Can only be called by owner.
+    /// @param recipient The recipient of the ETH
+    function withdrawETH(address recipient) external onlyOwner {
+        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
+    receive() external payable {}
+
+    function rescue(address token, uint256 amount, address to) external onlyOwner {
+        if (token == address(0)) {
+            SafeTransferLib.safeTransferETH(to, amount);
+        } else {
+            ERC20(token).safeTransfer(to, amount);
+        }
     }
 }
