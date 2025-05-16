@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IReactorCallback} from "@uniswapx/interfaces/IReactorCallback.sol";
-import {SignedOrder, ResolvedOrder} from "@uniswapx/base/ReactorStructs.sol";
+import {IReactorCallback} from "@uniswapx/src/interfaces/IReactorCallback.sol";
+import {SignedOrder, ResolvedOrder} from "@uniswapx/src/base/ReactorStructs.sol";
 import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {IReactor} from "@uniswapx/interfaces/IReactor.sol";
+import {IReactor} from "@uniswapx/src/interfaces/IReactor.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "v4-periphery/lib/v4-core/test/utils/CurrencySettler.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -29,7 +29,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.
 */
 contract UniswapXExecutor is IReactorCallback {
     using CurrencyLibrary for Currency;
-    using PoolIdLibrary for PoolId;
+    using PoolIdLibrary for PoolKey;
     using BalanceDeltaLibrary for BalanceDelta;
     using CurrencySettler for Currency;
     using SafeERC20 for IERC20Metadata;
@@ -58,6 +58,12 @@ contract UniswapXExecutor is IReactorCallback {
 
     //reverse mapping of poolId to PoolKey
     mapping(bytes32 => PoolKey) public poolKeys;
+    
+    // Function to register a pool key
+    function registerPool(PoolKey calldata key) external onlyWhitelistedCaller {
+        bytes32 poolId = PoolId.unwrap(key.toId());
+        poolKeys[poolId] = key;
+    }
 
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
@@ -79,7 +85,7 @@ contract UniswapXExecutor is IReactorCallback {
         _;
     }
 
-    function fillOrder(SignedOrder calldata order, bytes calldata callbackData) external {
+    function fillOrder(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
         reactor.executeWithCallback(order, callbackData);
     }
 
