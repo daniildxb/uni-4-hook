@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import {HookManager} from "../src/HookManager.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
+import {UniswapXExecutor} from "../src/UniswapXExecutor.sol";
 
 /// @notice Deploys HookManager
 contract DeployPeripheryScript is Script, Deployers, Config {
@@ -17,9 +18,14 @@ contract DeployPeripheryScript is Script, Deployers, Config {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         // Deploy the simplified HookManager that handles deployment directly
         HookManager hookManager = new HookManager(config.poolManager, receiver);
+        UniswapXExecutor executor =
+            new UniswapXExecutor(config.poolManager, config.reactor, filler, config.weth, address(hookManager));
+
+        hookManager.addExecutor(address(executor));
         vm.stopBroadcast();
 
         // Log the address
         console.log("HookManager deployed at:", address(hookManager));
+        console.log("UniswapXExecutor deployed at:", address(executor));
     }
 }

@@ -10,9 +10,12 @@ import {SqrtPriceCalculator} from "./PriceCalculator.sol";
 contract Config is SqrtPriceCalculator {
     // for tokens with the same decimals
     address receiver = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
+    address filler = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
     uint256 fee_bps = 1000; // 10%
     uint256 bufferSize = 1e7; // 10 tokens with 6 decimals
     uint256 minTransferAmount = 1e6; // 1 token with 6 decimals
+    // todo: check if need to update for other networks
+    address weth = address(0x4200000000000000000000000000000000000006);
 
     // Fee and tick constants
     uint24 constant DEFAULT_FEE = 10;
@@ -50,20 +53,26 @@ contract Config is SqrtPriceCalculator {
     address constant MAINNET_POOL_MANAGER = 0x000000000004444c5dc75cB358380D2e3dE08A90;
     address constant MAINNET_AAVE_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address constant MAINNET_HOOK_MANAGER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address constant MAINNET_REACTOR = address(0);
 
     // Infrastructure addresses - Arbitrum
     address constant ARBITRUM_POOL_MANAGER = 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32;
     address constant ARBITRUM_AAVE_PROVIDER = 0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb;
     address constant ARBITRUM_HOOK_MANAGER = 0x10BF3E582fc11D5629743E93beDC39b838C603cc;
+    address constant ARBITRUM_REACTOR = address(0);
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0x294181A97bafAB680154fC61420c00503a98B790;
+    address constant BASE_HOOK_MANAGER = 0x9e40bEfbA2FdA555E3cc74d556Bc1120C22dB23C;
+    address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
+    address constant BASE_EXECUTOR = 0x550527F89b993Fb9B0639f6358B4975bea2b5439;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
     struct ConfigData {
         address poolManager;
+        address reactor;
+        address weth;
         address aavePoolAddressesProvider;
         address hookManager;
         Currency token0;
@@ -80,7 +89,7 @@ contract Config is SqrtPriceCalculator {
     }
 
     // Get available pool IDs for a specific network
-    function getAvailablePoolIds(uint256 chainId) public pure returns (uint256[] memory) {
+    function getAvailablePoolIds(uint256 chainId) public view returns (uint256[] memory) {
         if (chainId == MAINNET) {
             uint256[] memory poolIds = new uint256[](1);
             poolIds[0] = USDC_USDT_POOL;
@@ -99,42 +108,49 @@ contract Config is SqrtPriceCalculator {
         }
     }
 
-    function getConfigPerNetwork(uint256 chainId, uint256 poolId) public pure returns (ConfigData memory) {
+    function getConfigPerNetwork(uint256 chainId, uint256 poolId) public view returns (ConfigData memory) {
         // Get network base config
         address poolManager;
         address aaveProvider;
         address hookManager;
+        address reactor;
 
         if (chainId == MAINNET) {
             poolManager = MAINNET_POOL_MANAGER;
             aaveProvider = MAINNET_AAVE_PROVIDER;
             hookManager = MAINNET_HOOK_MANAGER;
-            return _getMainnetPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+            reactor = MAINNET_REACTOR;
+            return _getMainnetPoolConfig(poolId, poolManager, aaveProvider, hookManager, reactor);
         } else if (chainId == ARBITRUM) {
             poolManager = ARBITRUM_POOL_MANAGER;
             aaveProvider = ARBITRUM_AAVE_PROVIDER;
             hookManager = ARBITRUM_HOOK_MANAGER;
-            return _getArbitrumPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+            reactor = ARBITRUM_REACTOR;
+            return _getArbitrumPoolConfig(poolId, poolManager, aaveProvider, hookManager, reactor);
         } else if (chainId == BASE) {
             poolManager = BASE_POOL_MANAGER;
             aaveProvider = BASE_AAVE_PROVIDER;
             hookManager = BASE_HOOK_MANAGER;
-            return _getBasePoolConfig(poolId, poolManager, aaveProvider, hookManager);
+            reactor = BASE_REACTOR;
+            return _getBasePoolConfig(poolId, poolManager, aaveProvider, hookManager, reactor);
         } else if (chainId == LOCAL) {
             poolManager = MAINNET_POOL_MANAGER;
             aaveProvider = MAINNET_AAVE_PROVIDER;
             hookManager = LOCAL_HOOK_MANAGER;
-            return _getLocalPoolConfig(poolId, poolManager, aaveProvider, hookManager);
+            reactor = MAINNET_REACTOR;
+            return _getLocalPoolConfig(poolId, poolManager, aaveProvider, hookManager, reactor);
         } else {
             revert("Unsupported network");
         }
     }
 
-    function _getMainnetPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
-        private
-        pure
-        returns (ConfigData memory)
-    {
+    function _getMainnetPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager,
+        address reactor
+    ) private view returns (ConfigData memory) {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -148,14 +164,16 @@ contract Config is SqrtPriceCalculator {
             revert("Unsupported pool ID for Mainnet");
         }
 
-        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
+        return _buildConfigData(poolManager, aaveProvider, hookManager, reactor, tokenPair);
     }
 
-    function _getLocalPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
-        private
-        pure
-        returns (ConfigData memory)
-    {
+    function _getLocalPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager,
+        address reactor
+    ) private view returns (ConfigData memory) {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -169,14 +187,16 @@ contract Config is SqrtPriceCalculator {
             revert("Unsupported pool ID for Local");
         }
 
-        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
+        return _buildConfigData(poolManager, aaveProvider, hookManager, reactor, tokenPair);
     }
 
-    function _getArbitrumPoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
-        private
-        pure
-        returns (ConfigData memory)
-    {
+    function _getArbitrumPoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager,
+        address reactor
+    ) private view returns (ConfigData memory) {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_USDT_POOL) {
@@ -204,14 +224,16 @@ contract Config is SqrtPriceCalculator {
             revert("Unsupported pool ID for Arbitrum");
         }
 
-        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
+        return _buildConfigData(poolManager, aaveProvider, hookManager, reactor, tokenPair);
     }
 
-    function _getBasePoolConfig(uint256 poolId, address poolManager, address aaveProvider, address hookManager)
-        private
-        pure
-        returns (ConfigData memory)
-    {
+    function _getBasePoolConfig(
+        uint256 poolId,
+        address poolManager,
+        address aaveProvider,
+        address hookManager,
+        address reactor
+    ) private view returns (ConfigData memory) {
         TokenPair memory tokenPair;
 
         if (poolId == USDC_GHO_POOL) {
@@ -225,7 +247,7 @@ contract Config is SqrtPriceCalculator {
             revert("Unsupported pool ID for Base");
         }
 
-        return _buildConfigData(poolManager, aaveProvider, hookManager, tokenPair);
+        return _buildConfigData(poolManager, aaveProvider, hookManager, reactor, tokenPair);
     }
 
     // Helper function to build full config data from base config and token pair
@@ -233,8 +255,9 @@ contract Config is SqrtPriceCalculator {
         address poolManager,
         address aaveProvider,
         address hookManager,
+        address reactor,
         TokenPair memory tokenPair
-    ) private pure returns (ConfigData memory) {
+    ) private view returns (ConfigData memory) {
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(tokenPair.token0Address),
             currency1: Currency.wrap(tokenPair.token1Address),
@@ -245,6 +268,8 @@ contract Config is SqrtPriceCalculator {
 
         return ConfigData({
             poolManager: poolManager,
+            reactor: reactor,
+            weth: weth,
             aavePoolAddressesProvider: aaveProvider,
             hookManager: hookManager,
             token0: Currency.wrap(tokenPair.token0Address),
