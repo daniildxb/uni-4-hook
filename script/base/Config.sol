@@ -63,9 +63,9 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0x9e40bEfbA2FdA555E3cc74d556Bc1120C22dB23C;
+    address constant BASE_HOOK_MANAGER = 0x72C1947FC0a2A0d065539696f1E15CCD14dB7a57;
     address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
-    address constant BASE_EXECUTOR = 0x550527F89b993Fb9B0639f6358B4975bea2b5439;
+    address constant BASE_EXECUTOR = 0xdCE85Da368E93886392508330b620F645E0c256B;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
@@ -86,26 +86,6 @@ contract Config is SqrtPriceCalculator {
         address token1Address;
         address hookAddress;
         bytes poolId;
-    }
-
-    // Get available pool IDs for a specific network
-    function getAvailablePoolIds(uint256 chainId) public view returns (uint256[] memory) {
-        if (chainId == MAINNET) {
-            uint256[] memory poolIds = new uint256[](1);
-            poolIds[0] = USDC_USDT_POOL;
-            return poolIds;
-        } else if (chainId == ARBITRUM) {
-            uint256[] memory poolIds = new uint256[](2);
-            poolIds[0] = USDC_USDT_POOL;
-            poolIds[1] = USDT_DAI_POOL;
-            return poolIds;
-        } else if (chainId == LOCAL) {
-            uint256[] memory poolIds = new uint256[](1);
-            poolIds[0] = USDC_USDT_POOL;
-            return poolIds;
-        } else {
-            revert("Unsupported network");
-        }
     }
 
     function getConfigPerNetwork(uint256 chainId, uint256 poolId) public view returns (ConfigData memory) {
@@ -240,8 +220,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: BASE_GHO,
                 token1Address: BASE_USDC,
-                hookAddress: 0xD57ac671734C838415F14F58c8a79F178013C8c0,
-                poolId: "0xe04215f46f01f9452ff458fa93213778c2c6a3974106bc1c0a5078b70267cd0f"
+                hookAddress: 0x9C0e8bEe63d4cd5eCea2469B8dbb97695FAd08c0,
+                poolId: "0xa1579f4bca57d2f131a02d37dddada2ab677e6e35d371f6e3a311779d1b20529"
             });
         } else {
             revert("Unsupported pool ID for Base");

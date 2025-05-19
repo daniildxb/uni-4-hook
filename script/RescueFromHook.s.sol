@@ -23,16 +23,17 @@ contract RescueFromHookScript is Script, Deployers, Config {
         uint256 chainId = vm.envUint("CHAIN_ID");
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
-        Config.ConfigData memory config = getConfigPerNetwork(chainId, pool_enum);
-        // ModularHookV1 hook = ModularHookV1(address(0xccC7C10b872A9F449FA41Ef7a723ACB1615548C0));
-        hookManager = HookManager(config.hookManager);
-        ModularHookV1 hook = ModularHookV1(address(config.poolKey.hooks));
+        Config.ConfigData memory configData = getConfigPerNetwork(chainId, pool_enum);
+        
+        // Access the hook manager from the config
+        hookManager = HookManager(configData.hookManager);
+        ModularHookV1 hook = ModularHookV1(address(configData.poolKey.hooks));
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-        rescueToken(Currency.unwrap(hook.token0()), address(config.poolKey.hooks));
-        rescueToken(Currency.unwrap(hook.token1()), address(config.poolKey.hooks));
-        rescueToken(hook.aToken0(), address(config.poolKey.hooks));
-        rescueToken(hook.aToken1(), address(config.poolKey.hooks));
+        rescueToken(Currency.unwrap(hook.token0()), address(hook));
+        rescueToken(Currency.unwrap(hook.token1()), address(hook));
+        rescueToken(hook.aToken0(), address(hook));
+        rescueToken(hook.aToken1(), address(hook));
         vm.stopBroadcast();
     }
 

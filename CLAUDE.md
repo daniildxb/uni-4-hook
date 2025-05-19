@@ -13,3 +13,5 @@
 6. Don't add unnecessary abstractions or over-engineer solutions.
 
 7. Maintain the architectural integrity of the project.
+
+8. Never stage or commit changes yourself, always leave it up to me to decide when to commit.

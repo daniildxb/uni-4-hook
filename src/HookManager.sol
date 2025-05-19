@@ -112,7 +112,7 @@ contract HookManager is IHookManager, Ownable {
         address[] memory hooks = new address[](hookCount);
         for (uint256 i = 0; i < hookCount; i++) {
             address hookAddress = indexToHook[i];
-            PoolId poolId = hookToPoolId[hookAddress];
+            hooks[i] = hookAddress;
         }
         return hooks;
     }

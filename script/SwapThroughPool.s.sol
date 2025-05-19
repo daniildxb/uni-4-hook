@@ -49,7 +49,7 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("2");
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         console.log("3");
-        deploySwapRouter(config);
+        deploySwapRouter(config, chainId);
         console.log("4");
 
         // approve the swap router
@@ -70,8 +70,13 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
     }
 
     // do it only once and then reuse
-    function deploySwapRouter(Config.ConfigData memory config) public {
-        // swapRouter = new PoolSwapTest(IPoolManager(config.poolManager));
-        swapRouter = PoolSwapTest(0xf719c9761e6e6D03F9867F8a1fBEE04D5d34ceBb);
+    function deploySwapRouter(Config.ConfigData memory config, uint256 chainId) public {
+        if (chainId == 42161) {
+            swapRouter = PoolSwapTest(0xf719c9761e6e6D03F9867F8a1fBEE04D5d34ceBb);
+        } else if (chainId == 8453) {
+            swapRouter = PoolSwapTest(0xF118AD1ACb3b98A315c4660dCa90B7D0742c44E6);
+        } else {
+            swapRouter = new PoolSwapTest(IPoolManager(config.poolManager));
+        }
     }
 }

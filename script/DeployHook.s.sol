@@ -35,15 +35,17 @@ contract DeployScript is Script, Deployers, Config {
         {
             uint8 token0Decimals = ERC20(Currency.unwrap(config.token0)).decimals();
             uint8 token1Decimals = ERC20(Currency.unwrap(config.token1)).decimals();
-            price = calculateSqrtPriceX96(token1Decimals, token0Decimals);
+            price = calculateSqrtPriceX96(token0Decimals, token1Decimals);
         }
 
         ModularHookV1HookConfig memory hookParams;
         {
-            // @note we need to pass those in an order
+            // Calculate the tick range centered around the adjusted price
             int24 baseTick = TickMath.getTickAtSqrtPrice(price);
-            int24 _tickMin = baseTick - 2;
-            int24 _tickMax = baseTick + 2;
+            // Use a symmetric range around the adjusted price to ensure balanced liquidity
+            int24 tickRange = 5; // Width of the range on each side
+            int24 _tickMin = baseTick - tickRange;
+            int24 _tickMax = baseTick + tickRange;
             string memory shareName = "LP";
             string memory shareSymbol = "LP";
 
