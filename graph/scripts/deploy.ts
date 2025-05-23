@@ -46,7 +46,7 @@ const getDeployCommands = (
 ): { authCommand: string; deployCommand: string } => {
     return {
         authCommand: `goldsky login --token ${GOLDSKY_API_KEY}`,
-        deployCommand: `goldsky subgraph deploy ${subgraphSlug}/${version} --path ${buildDirectory}`,
+        deployCommand: `goldsky subgraph deploy ${subgraphSlug}-${version} --path ${buildDirectory}`,
     }
 };
 
@@ -57,7 +57,7 @@ const deploy = async (): Promise<void> => {
     const srcDirectory = path.resolve(__dirname, `../src`);
     const buildDirectory = path.resolve(__dirname, `../build/${network}`);
 
-    const { authCommand, deployCommand } = getDeployCommands(buildDirectory, SUBGRAPH_SLUG);
+    const { authCommand, deployCommand } = getDeployCommands(buildDirectory, `${network}/${SUBGRAPH_SLUG}`);
     const command = [
         authCommand, 
         `cd ${srcDirectory}`,
