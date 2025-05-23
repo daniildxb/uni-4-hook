@@ -43,7 +43,7 @@ contract DeployScript is Script, Deployers, Config {
             // Calculate the tick range centered around the adjusted price
             int24 baseTick = TickMath.getTickAtSqrtPrice(price);
             // Use a symmetric range around the adjusted price to ensure balanced liquidity
-            int24 tickRange = 2; // Width of the range on each side
+            int24 tickRange = 1; // Width of the range on each side
             int24 _tickMin = baseTick - tickRange;
             int24 _tickMax = baseTick + tickRange;
             string memory shareName = "LP";
@@ -58,7 +58,7 @@ contract DeployScript is Script, Deployers, Config {
                 aavePoolAddressesProvider: config.aavePoolAddressesProvider,
                 shareName: shareName,
                 shareSymbol: shareSymbol,
-                fee_bps: 5000, // 10%
+                fee_bps: 1000, // 10%
                 bufferSize0: 100e18, // 25 tokens with 18 decimals
                 bufferSize1: 100e6, // 25 tokens with 6 decimals
                 minTransferAmount0: 25e18, // 5 tokens with 6 decimals
@@ -79,7 +79,7 @@ contract DeployScript is Script, Deployers, Config {
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         {
-            uint24 fee = 10;
+            uint24 fee = 50;
             int24 tickSpacing = 1;
 
             console.log("price", price);
