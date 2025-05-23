@@ -11,7 +11,6 @@ import {Config} from "./base/Config.sol";
 import {ModularHookV1} from "src/ModularHookV1.sol";
 
 /// @notice Withdraws liquidity from an existing pool
-/// todo: handle recent changes to config structur
 contract WithdrawFromPoolScript is Script, Deployers, Config {
     using SafeCast for *;
     using SafeERC20 for IERC20;

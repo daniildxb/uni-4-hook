@@ -21,7 +21,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 /*
 // the flow is the following
 
-1. Filler calls fillOrder
+1. Filler calls execute
 2. We call reactor
 3. reactor calls callback1
 4. in the callback1 we call swap
@@ -98,8 +98,12 @@ contract UniswapXExecutor is IReactorCallback, Ownable {
         _;
     }
 
-    function fillOrder(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
+    function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
         reactor.executeWithCallback(order, callbackData);
+    }
+
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
+        reactor.executeBatchWithCallback(orders, callbackData);
     }
 
     // input token has been transferred from reactor to us

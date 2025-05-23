@@ -156,7 +156,7 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
 
         // Execute order with routing data
         vm.prank(address(this));
-        executor.fillOrder(signedOrder, abi.encode(routingData));
+        executor.execute(signedOrder, abi.encode(routingData));
 
         // Check balances after swap
         uint256 swapperToken0After = IERC20(Currency.unwrap(token0)).balanceOf(swapper);
@@ -205,7 +205,7 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
 
         // Execute order with routing data
         vm.prank(address(this));
-        executor.fillOrder(signedOrder, abi.encode(routingData));
+        executor.execute(signedOrder, abi.encode(routingData));
 
         // Check balances after swap
         uint256 swapperToken0After = IERC20(Currency.unwrap(token0)).balanceOf(swapper);
@@ -251,7 +251,7 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
         // Execute order with routing data
         vm.prank(address(this));
         vm.expectRevert();
-        executor.fillOrder(signedOrder, abi.encode(routingData));
+        executor.execute(signedOrder, abi.encode(routingData));
     }
 
     function test_revertWhen_InvalidCaller() public {
@@ -288,7 +288,7 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
         // Try to call with a non-whitelisted address
         vm.prank(address(0xBAD));
         vm.expectRevert(UniswapXExecutor.CallerNotWhitelisted.selector);
-        executor.fillOrder(signedOrder, abi.encode(routingData));
+        executor.execute(signedOrder, abi.encode(routingData));
     }
 
     function test_revertWhen_InvalidPoolId() public {
@@ -326,7 +326,7 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
         // Execute should revert because the pool key is not registered
         vm.prank(address(this));
         vm.expectRevert(); // Will revert when trying to access an unregistered pool key
-        executor.fillOrder(signedOrder, abi.encode(routingData));
+        executor.execute(signedOrder, abi.encode(routingData));
     }
 
     // Helper function to sign cosigner data

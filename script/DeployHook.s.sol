@@ -43,7 +43,7 @@ contract DeployScript is Script, Deployers, Config {
             // Calculate the tick range centered around the adjusted price
             int24 baseTick = TickMath.getTickAtSqrtPrice(price);
             // Use a symmetric range around the adjusted price to ensure balanced liquidity
-            int24 tickRange = 5; // Width of the range on each side
+            int24 tickRange = 2; // Width of the range on each side
             int24 _tickMin = baseTick - tickRange;
             int24 _tickMax = baseTick + tickRange;
             string memory shareName = "LP";

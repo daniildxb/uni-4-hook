@@ -19,3 +19,7 @@ Next steps:
 1. Non-correlated pairs
 2. Leveraged LP
 3. Morpho integration
+
+
+!!!!!
+CHECK IMBALANCED PRICING OF THE HOOKS

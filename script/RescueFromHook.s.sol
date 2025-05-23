@@ -12,7 +12,6 @@ import {ModularHookV1} from "src/ModularHookV1.sol";
 import {HookManager} from "src/HookManager.sol";
 
 /// @notice Withdraws liquidity from an existing pool
-/// todo: handle recent changes to config structur
 contract RescueFromHookScript is Script, Deployers, Config {
     using SafeCast for *;
     using SafeERC20 for IERC20;
@@ -24,7 +23,7 @@ contract RescueFromHookScript is Script, Deployers, Config {
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
         Config.ConfigData memory configData = getConfigPerNetwork(chainId, pool_enum);
-        
+
         // Access the hook manager from the config
         hookManager = HookManager(configData.hookManager);
         ModularHookV1 hook = ModularHookV1(address(configData.poolKey.hooks));
