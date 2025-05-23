@@ -63,9 +63,9 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0xbDc4699aaD4A10C59D93981b2042B5c40cB4e421;
+    address constant BASE_HOOK_MANAGER = 0xa02CE7e107775823db1263A2BBDA6d1cfb22E4C7;
     address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
-    address constant BASE_EXECUTOR = 0x02b87d344762CaF4bfAA483146783Edd3ba57A19;
+    address constant BASE_EXECUTOR = 0xCd9D0d5282797A996e835fE06630D64f4cdf41C9;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
@@ -220,8 +220,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: BASE_GHO,
                 token1Address: BASE_USDC,
-                hookAddress: 0xeB5e9365704c9689Fd76F81545dC89bDF5B288C0,
-                poolId: "0xcf3950f1dbdeb560dd0270f2ac8c8196c227cd4cf78165daaaa7f4676c28be55"
+                hookAddress: 0xbb6318ec0799E851AD423116fe11f86fD6d688c0,
+                poolId: "0x2c4f6cefb5d06260bd86d475d30b05325687e3487154f1c0d2935635141338e2"
             });
         } else {
             revert("Unsupported pool ID for Base");

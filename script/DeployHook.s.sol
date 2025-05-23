@@ -58,11 +58,11 @@ contract DeployScript is Script, Deployers, Config {
                 aavePoolAddressesProvider: config.aavePoolAddressesProvider,
                 shareName: shareName,
                 shareSymbol: shareSymbol,
-                fee_bps: 1000, // 10%
-                bufferSize0: 25e18, // 25 tokens with 6 decimals
-                bufferSize1: 25e6, // 25 tokens with 6 decimals
-                minTransferAmount0: 5e18, // 5 tokens with 6 decimals
-                minTransferAmount1: 5e6 // 5 tokens with 6 decimals
+                fee_bps: 5000, // 10%
+                bufferSize0: 100e18, // 25 tokens with 18 decimals
+                bufferSize1: 100e6, // 25 tokens with 6 decimals
+                minTransferAmount0: 25e18, // 5 tokens with 6 decimals
+                minTransferAmount1: 25e6 // 5 tokens with 6 decimals
             });
         }
 
