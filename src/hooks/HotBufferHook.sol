@@ -61,7 +61,11 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
 
     function _handleTransferFees(address token, address aToken, uint256 amount, address treasury) internal virtual {
         // 1. Withdraw from Aave to the hook
-        uint256 aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
+
+        uint256 aTokenBalance = 0;
+        if (_tokenSupportedByAave(token)) {
+            aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
+        }
         if (aTokenBalance >= amount) {
             _withdrawFromAave(token, amount, treasury);
             return;
@@ -116,7 +120,10 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
         uint256
     ) internal virtual {
         uint256 tokenBuffer = IERC20Metadata(token).balanceOf(address(this));
-        uint256 aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
+        uint256 aTokenBalance = 0;
+        if (_tokenSupportedByAave(token)) {
+            aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
+        }
 
         if (aTokenBalance >= amount) {
             _withdrawFromAave(token, amount, receiver);
@@ -194,6 +201,7 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
             // We have enough balance to pay directly
             _payDirectlyFromBalance(owedCurrency, owedAmount);
         } else {
+            // this shouldn't happen for tokens not supported by aave as that would mean we swapped more than what we have and should revert
             // We need to withdraw from Aave
             _withdrawAndPayWithBuffer(
                 owedCurrency, aTokenAddress, owedAmount, currentBalance, bufferSize, minTransferAmount
@@ -227,10 +235,12 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
         uint256 bufferSize,
         uint256
     ) private {
+        uint256 aTokenBalance = 0;
+        if (_tokenSupportedByAave(Currency.unwrap(currency))) {
+            aTokenBalance = IERC20Metadata(aTokenAddress).balanceOf(address(this));
+        }
         // Calculate how much to withdraw to maintain target buffer size
-        uint256 amountToWithdraw = _calculateWithdrawalAmount(
-            owedAmount, currentBalance, IERC20Metadata(aTokenAddress).balanceOf(address(this)), bufferSize
-        );
+        uint256 amountToWithdraw = _calculateWithdrawalAmount(owedAmount, currentBalance, aTokenBalance, bufferSize);
 
         // Withdraw from Aave to the hook
         poolManager.sync(currency);
@@ -255,6 +265,10 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
         uint256 bufferSize
     ) private pure returns (uint256) {
         uint256 amountToWithdraw = owedAmount;
+        // nothing to withdraw
+        if (aTokenBalance == 0) {
+            return 0;
+        }
 
         // If current balance after paying would be less than 0
         // withdraw from aave to cover the owed amount and maintain buffer size

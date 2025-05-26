@@ -16,7 +16,8 @@ Next steps:
 
 # Future feature ideas
 
-1. Non-correlated pairs
+1. Non-correlated pairs (via full range LPs)
+1.1. Support pairs where only one token gets deposited into AAVE by specifying uint256.max buffer for the other token and allowing zero address for pools (override balance checks for aTokens to not throw)
 2. Leveraged LP
 3. Morpho integration
 

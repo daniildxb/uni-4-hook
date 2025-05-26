@@ -191,7 +191,24 @@ contract AdHocScript is Script, Deployers, Config {
             hex"00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020cf3950f1dbdeb560dd0270f2ac8c8196c227cd4cf78165daaaa7f4676c28be55";
         OrderRoutingData memory routingData = abi.decode(callbackData, (OrderRoutingData));
 
-        console.log("pool id");
-        console.logBytes32(routingData.poolId);
+        /*        {
+    "currency0": "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee",
+    "currency1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "fee": "100",
+    "tickSpacing": "1",
+    "hooks": "0x0000000000000000000000000000000000000000"
+        }*/
+
+        PoolKey memory poolKey = PoolKey({
+            currency0: Currency.wrap(0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee),
+            currency1: Currency.wrap(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913),
+            fee: 100,
+            tickSpacing: 1,
+            hooks: IHooks(address(0))
+        });
+
+        PoolId poolId = poolKey.toId();
+        console.log("Constructed PoolId:");
+        console.logBytes32(PoolId.unwrap(poolId));
     }
 }

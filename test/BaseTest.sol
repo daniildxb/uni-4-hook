@@ -90,7 +90,7 @@ contract BaseTest is Test, Deployers {
 
         console.log("6");
         _deployHookManager();
-        _deployHook();
+        _deployHook(token0, token1);
 
         // Store commonly used addresses
         token0Address = Currency.unwrap(token0);
@@ -125,15 +125,15 @@ contract BaseTest is Test, Deployers {
         vm.stopPrank();
     }
 
-    function _deployHook() internal virtual {
+    function _deployHook(Currency _token0, Currency _token1) internal virtual {
         vm.startPrank(admin);
         uint160 flags =
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144); // Namespace the hook to avoid collisions
 
         ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(manager),
-            token0: token0,
-            token1: token1,
+            token0: _token0,
+            token1: _token1,
             tickMin: tickMin,
             tickMax: tickMax,
             aavePoolAddressesProvider: aavePoolAddressesProvider,
@@ -155,7 +155,7 @@ contract BaseTest is Test, Deployers {
         ); // Deploy the hook using the hook manager
         hook = ModularHookV1(hookAddress);
         simpleKey =
-            PoolKey({currency0: token0, currency1: token1, fee: fee, tickSpacing: tickSpacing, hooks: IHooks(hook)});
+            PoolKey({currency0: _token0, currency1: _token1, fee: fee, tickSpacing: tickSpacing, hooks: IHooks(hook)});
         // Set the pool ID
         simplePoolId = PoolId.wrap(keccak256(abi.encode(simpleKey)));
         vm.stopPrank();

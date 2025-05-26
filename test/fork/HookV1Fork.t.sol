@@ -25,7 +25,7 @@ contract HookV1ForkTest is HookV1Test {
         token1 = Currency.wrap(address(0xdAC17F958D2ee523a2206206994597C13D831ec7));
         // usdc
         token0 = Currency.wrap(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48));
-        _deployHook();
+        _deployHook(token0, token1);
         (simpleKey, simplePoolId) = initPool(token0, token1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         hook.addPool(simpleKey);
 

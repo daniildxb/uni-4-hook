@@ -44,8 +44,6 @@ abstract contract AaveHook is CustodyHook {
         aavePoolAddressesProvider = IPoolAddressesProvider(_aavePoolAddressesProvider);
         aToken0 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token0)).aTokenAddress;
         aToken1 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token1)).aTokenAddress;
-        require(aToken0 != address(0), "Token 0 is not supported by AAVE");
-        require(aToken1 != address(0), "Token 1 is not supported by AAVE");
     }
 
     /**
@@ -55,14 +53,8 @@ abstract contract AaveHook is CustodyHook {
         // this function worked on the assumption that when we deposit tokens
         // into uniswap resulting liquidity amount is a sum of two liquidities per token
         // this is not the case and results in us double counting liquidity
-        uint256 aToken0Balance = IERC20Metadata(aToken0).balanceOf(address(this));
-        uint256 aToken1Balance = IERC20Metadata(aToken1).balanceOf(address(this));
-
-        uint256 token0Balance = IERC20Metadata(Currency.unwrap(token0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20Metadata(Currency.unwrap(token1)).balanceOf(address(this));
-
-        uint256 totalToken0Balance = aToken0Balance + token0Balance;
-        uint256 totalToken1Balance = aToken1Balance + token1Balance;
+        uint256 totalToken0Balance = _getTokenBalance(Currency.unwrap(token0), aToken0);
+        uint256 totalToken1Balance = _getTokenBalance(Currency.unwrap(token1), aToken1);
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
 
@@ -77,13 +69,8 @@ abstract contract AaveHook is CustodyHook {
     }
 
     function liquidityForHookTokens() public view virtual returns (uint256) {
-        uint256 aToken0Balance = IERC20Metadata(aToken0).balanceOf(address(this));
-        uint256 aToken1Balance = IERC20Metadata(aToken1).balanceOf(address(this));
-        uint256 token0Balance = IERC20Metadata(Currency.unwrap(token0)).balanceOf(address(this));
-        uint256 token1Balance = IERC20Metadata(Currency.unwrap(token1)).balanceOf(address(this));
-
-        uint256 totalToken0Balance = aToken0Balance + token0Balance;
-        uint256 totalToken1Balance = aToken1Balance + token1Balance;
+        uint256 totalToken0Balance = _getTokenBalance(Currency.unwrap(token0), aToken0);
+        uint256 totalToken1Balance = _getTokenBalance(Currency.unwrap(token1), aToken1);
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         uint128 liquidityDelta = LiquidityAmounts.getLiquidityForAmounts(
@@ -102,9 +89,11 @@ abstract contract AaveHook is CustodyHook {
      * @param amount The amount to deposit
      */
     function _depositToAave(address token, uint256 amount) internal {
-        emit MoneyMarketDeposit(token, amount);
-        IERC20Metadata(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
-        IPool(aavePoolAddressesProvider.getPool()).supply(token, amount, address(this), 0);
+        if (_tokenSupportedByAave(token)) {
+            emit MoneyMarketDeposit(token, amount);
+            IERC20Metadata(token).forceApprove(aavePoolAddressesProvider.getPool(), amount);
+            IPool(aavePoolAddressesProvider.getPool()).supply(token, amount, address(this), 0);
+        }
     }
 
     /**
@@ -114,8 +103,13 @@ abstract contract AaveHook is CustodyHook {
      * @param receiver The address to receive the withdrawn tokens
      */
     function _withdrawFromAave(address token, uint256 amount, address receiver) internal returns (uint256) {
-        emit MoneyMarketWithdrawal(token, amount);
-        return IPool(aavePoolAddressesProvider.getPool()).withdraw(token, amount, receiver);
+        if (amount == 0) {
+            return 0; // No withdrawal needed
+        }
+        if (_tokenSupportedByAave(token)) {
+            emit MoneyMarketWithdrawal(token, amount);
+            return IPool(aavePoolAddressesProvider.getPool()).withdraw(token, amount, receiver);
+        }
     }
 
     /**
@@ -207,6 +201,21 @@ abstract contract AaveHook is CustodyHook {
             poolManager.sync(token0);
             _withdrawFromAave(Currency.unwrap(token0), uint256(-token0Delta), address(poolManager));
             poolManager.settle();
+        }
+    }
+
+    function _tokenSupportedByAave(address token) internal view returns (bool) {
+        if (token == address(0)) {
+            return false; // Aave does not support native currency
+        }
+        address aTokenAddress = IPool(aavePoolAddressesProvider.getPool()).getReserveData(token).aTokenAddress;
+        return aTokenAddress != address(0);
+    }
+
+    function _getTokenBalance(address token, address aToken) internal view returns (uint256 balance) {
+        balance = IERC20Metadata(token).balanceOf(address(this));
+        if (aToken != address(0)) {
+            balance += IERC20Metadata(aToken).balanceOf(address(this));
         }
     }
 }

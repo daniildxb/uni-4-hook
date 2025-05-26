@@ -28,8 +28,7 @@ contract MockAavePool is Test {
             console.log("token1");
             return _getReserveData1();
         } else {
-            console.log("fuck");
-            revert("INVALID_TOKEN");
+            return _getEmptyReserveData();
         }
     }
 
@@ -95,6 +94,26 @@ contract MockAavePool is Test {
             lastUpdateTimestamp: 0,
             id: 0,
             aTokenAddress: address(aToken1),
+            stableDebtTokenAddress: address(0),
+            variableDebtTokenAddress: address(0),
+            interestRateStrategyAddress: address(0),
+            accruedToTreasury: 0,
+            unbacked: 0,
+            isolationModeTotalDebt: 0
+        });
+    }
+
+    function _getEmptyReserveData() internal pure returns (DataTypes.ReserveData memory) {
+          return DataTypes.ReserveData({
+            configuration: DataTypes.ReserveConfigurationMap(0),
+            liquidityIndex: 0,
+            currentLiquidityRate: 0,
+            variableBorrowIndex: 0,
+            currentVariableBorrowRate: 0,
+            currentStableBorrowRate: 0,
+            lastUpdateTimestamp: 0,
+            id: 0,
+            aTokenAddress: address(0),
             stableDebtTokenAddress: address(0),
             variableDebtTokenAddress: address(0),
             interestRateStrategyAddress: address(0),
