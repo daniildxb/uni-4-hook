@@ -12,6 +12,7 @@ out/
 /broadcast/SwapThroughPool.s.sol/
 /broadcast/WithdrawFromPool.s.sol/
 /broadcast/RescueFromHook.s.sol/
+/broadcast/SetAllowList.s.sol/
 
 # Docs
 docs/
