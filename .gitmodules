@@ -13,3 +13,6 @@
 [submodule "lib/UniswapX"]
 	path = lib/UniswapX
 	url = https://github.com/Uniswap/UniswapX
+[submodule "lib/v3-periphery"]
+	path = lib/v3-periphery
+	url = https://github.com/Uniswap/v3-periphery
