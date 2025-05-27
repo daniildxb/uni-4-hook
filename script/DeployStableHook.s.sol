@@ -18,7 +18,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 
 /// @notice Mines the address and deploys the ModularHookV1.sol Hook contract
-contract DeployScript is Script, Deployers, Config {
+/// used for stable pairs
+contract DeployStableScript is Script, Deployers, Config {
     using PoolIdLibrary for PoolKey;
 
     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
@@ -58,11 +59,11 @@ contract DeployScript is Script, Deployers, Config {
                 aavePoolAddressesProvider: config.aavePoolAddressesProvider,
                 shareName: shareName,
                 shareSymbol: shareSymbol,
-                fee_bps: 1000, // 10%
-                bufferSize0: 100e18, // 25 tokens with 18 decimals
-                bufferSize1: 100e6, // 25 tokens with 6 decimals
-                minTransferAmount0: 25e18, // 5 tokens with 6 decimals
-                minTransferAmount1: 25e6 // 5 tokens with 6 decimals
+                fee_bps: 1000, // hook fee, not pool one 10%
+                bufferSize0: 25e18, // 25 tokens with 18 decimals
+                bufferSize1: 25e6, // 25 tokens with 6 decimals
+                minTransferAmount0: 10e18, // 5 tokens with 6 decimals
+                minTransferAmount1: 10e6 // 5 tokens with 6 decimals
             });
         }
 
@@ -79,7 +80,7 @@ contract DeployScript is Script, Deployers, Config {
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         {
-            uint24 fee = 50;
+            uint24 fee = 50; // pool fee in mbps 10 = 0.001%
             int24 tickSpacing = 1;
 
             console.log("price", price);

@@ -25,6 +25,7 @@ import { getOrCreateAccount } from "../entities/account";
 import { createWithdraw } from "../entities/withdraw";
 import { getOrCreateToken } from "../entities/token";
 import { createTransfer } from "../entities/transfer";
+import { ZERO_BD } from "../helpers";
 
 export function handleDeposit(event: DepositEvent): void {
   const pool = getPoolFromHookAddress(event.address);
@@ -47,8 +48,8 @@ export function handleDeposit(event: DepositEvent): void {
     trackDeposit(position, event);
   }
 
-  let token0 = getOrCreateToken(pool.token0);
-  let token1 = getOrCreateToken(pool.token1);
+  let token0 = getOrCreateToken(pool.token0, ZERO_BD);
+  let token1 = getOrCreateToken(pool.token1, ZERO_BD);
   // add deposit entity
   createDeposit(accountAddress, pool.id, event, token0, token1);
 
@@ -75,8 +76,8 @@ export function handleWithdraw(event: WithdrawEvent): void {
   // Update position
   trackWithdraw(position, event);
 
-  let token0 = getOrCreateToken(pool.token0);
-  let token1 = getOrCreateToken(pool.token1);
+  let token0 = getOrCreateToken(pool.token0, ZERO_BD);
+  let token1 = getOrCreateToken(pool.token1, ZERO_BD);
   // add withdraw entity
   createWithdraw(address, pool.id, event, token0, token1);
   trackHookWithdraw(pool, event, token0, token1);

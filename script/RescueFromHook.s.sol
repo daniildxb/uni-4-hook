@@ -37,6 +37,10 @@ contract RescueFromHookScript is Script, Deployers, Config {
     }
 
     function rescueToken(address token, address hook) internal {
+        if (token == address(0)) {
+            console.log("Token address is zero, skipping rescue");
+            return;
+        }
         uint256 amountToRescue = IERC20(token).balanceOf(address(hook));
         if (amountToRescue == 0) {
             console.log("No tokens to rescue");

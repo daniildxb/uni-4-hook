@@ -1,7 +1,5 @@
 import { HookDeployed as HookDeployedEvent } from '../../generated/HookV1/HookManager';
 import {
-  Initialize as InitializeEvent,
-  PoolManager,
   Swap as SwapEvent,
 } from "../../generated/PoolManager/PoolManager";
 import {
@@ -13,7 +11,7 @@ import {
 } from "@graphprotocol/graph-ts";
 import { Pool, PoolHourlySnapshots, Protocol, Token } from "../../generated/schema";
 import { SECONDS_IN_HOUR } from "../helpers/constants";
-import { ZERO_BD, ZERO_BI } from "../helpers";
+import { getTokenPriceByAddress, ZERO_BD, ZERO_BI } from "../helpers";
 import { convertTokenToUSD, getOrCreateToken } from "./token";
 import { bumpProtocolStats, getOrCreateProtocol } from "./protocol";
 import {
@@ -42,8 +40,13 @@ export function createPoolFromHookManagerEvent(event: HookDeployedEvent): Pool {
 
   const hookContract = HookV1.bind(hookAddress);
 
-  let token0 = getOrCreateToken(hookContract.token0().toHexString());
-  let token1 = getOrCreateToken(hookContract.token1().toHexString());
+  // here we need to pass token prices
+  const token0Address = hookContract.token0();
+  const token1Address = hookContract.token1();
+  const token0Price = getTokenPriceByAddress(token0Address);
+  const token1Price = getTokenPriceByAddress(token1Address);
+  let token0 = getOrCreateToken(token0Address.toHexString(), token0Price);
+  let token1 = getOrCreateToken(token1Address.toHexString(), token1Price);
   const result = hookContract.key();
   const fee = result.value2;
   const tickSpacing = result.value3;
@@ -149,13 +152,6 @@ export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1:
 // export function track
 
 export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token, token1: Token): Pool {
-  let token0DecimalsBD = new BigDecimal(
-    BigInt.fromI32(10).pow(u8(token0.decimals))
-  );
-  let token1DecimalsBD = new BigDecimal(
-    BigInt.fromI32(10).pow(u8(token1.decimals))
-  );
-
   const results = _getNewPoolBalance(pool);
   const token0Balance = results[1];
   const token1Balance = results[2];
@@ -172,11 +168,8 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
     token1
   );
 
-
-  let depositUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
-  depositUSD = depositUSD.plus(
-    event.params.assets1.toBigDecimal().div(token1DecimalsBD)
-  );
+  const depositUSD = convertTokenToUSD(token0, event.params.assets0)
+    .plus(convertTokenToUSD(token1, event.params.assets1));
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD).plus(lendingYieldUSD);
   pool.cumulativeLendingYieldUSD =
@@ -198,13 +191,6 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
 }
 
 export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Token, token1: Token): Pool {
-  let token0DecimalsBD = new BigDecimal(
-    BigInt.fromI32(10).pow(u8(token0.decimals))
-  );
-  let token1DecimalsBD = new BigDecimal(
-    BigInt.fromI32(10).pow(u8(token1.decimals))
-  );
-  
   const results = _getNewPoolBalance(pool);
   const token0Balance = results[1];
   const token1Balance = results[2];
@@ -220,11 +206,9 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
     token0,
     token1
   );
-
-  let withdrawUSD = event.params.assets0.toBigDecimal().div(token0DecimalsBD);
-  withdrawUSD = withdrawUSD.plus(
-    event.params.assets1.toBigDecimal().div(token1DecimalsBD)
-  );
+  // here
+  const withdrawUSD = convertTokenToUSD(token0, event.params.assets0)
+    .plus(convertTokenToUSD(token1, event.params.assets1));
   pool.shares = pool.shares.minus(event.params.shares);
 
   pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD).plus(lendingYieldUSD);
@@ -328,8 +312,9 @@ export function updatePoolLendingYield(
 
 
   // Get token entities for USD conversion
-  const token0 = getOrCreateToken(pool.token0);
-  const token1 = getOrCreateToken(pool.token1);
+  // we expect that token already exists on the graph, so use zero_bd as price
+  const token0 = getOrCreateToken(pool.token0, ZERO_BD);
+  const token1 = getOrCreateToken(pool.token1, ZERO_BD);
 
   // Calculate lending yield in USD using our helper function
   const lendingYieldUSD = calculateLendingYieldUSD(
@@ -368,10 +353,10 @@ export function trackProtocolFee(pool: Pool, event: FeesTrackedEvent): void {
   // and then to USD
 
   const feeUSD = convertTokenToUSD(
-    getOrCreateToken(pool.token0),
+    getOrCreateToken(pool.token0, ZERO_BD),
     token0Amount
   ).plus(
-    convertTokenToUSD(getOrCreateToken(pool.token1), token1Amount)
+    convertTokenToUSD(getOrCreateToken(pool.token1, ZERO_BD), token1Amount)
   );
   pool.unclaimedProtocolFeeUSD = pool.unclaimedProtocolFeeUSD.plus(feeUSD);
   _updateTimestamps(pool, event.block);
@@ -387,10 +372,10 @@ export function trackFeesCollected(pool: Pool, event: FeesCollectedEvent): void 
   const token1Amount = event.params.amount1;
 
   const feeUSD = convertTokenToUSD(
-    getOrCreateToken(pool.token0),
+    getOrCreateToken(pool.token0, ZERO_BD),
     token0Amount
   ).plus(
-    convertTokenToUSD(getOrCreateToken(pool.token1), token1Amount)
+    convertTokenToUSD(getOrCreateToken(pool.token1, ZERO_BD), token1Amount)
   );
 
   // we always collect all fees
@@ -440,8 +425,21 @@ function _getNewPoolBalance(
   const token0Contract = ERC20.bind(Address.fromString(pool.token0));
   const token1Contract = ERC20.bind(Address.fromString(pool.token1));
 
-  const aToken0Balance = aToken0Contract.balanceOf(Address.fromBytes(pool.hook));
-  const aToken1Balance = aToken1Contract.balanceOf(Address.fromBytes(pool.hook));
+  let aToken0Balance = ZERO_BI;
+  if (pool.aToken0 !== Address.zero().toHexString()) {
+    const callRes = aToken0Contract.try_balanceOf(Address.fromBytes(pool.hook));
+    if (!callRes.reverted) {
+      aToken0Balance = callRes.value;
+    }
+  }
+  let aToken1Balance = ZERO_BI;
+  if (pool.aToken1 !== Address.zero().toHexString()) {
+    const callRes = aToken1Contract.try_balanceOf(Address.fromBytes(pool.hook));
+    if (!callRes.reverted) {
+      aToken1Balance = callRes.value;
+    }
+  }
+
   const token0Balance = token0Contract.balanceOf(Address.fromBytes(pool.hook));
   const token1Balance = token1Contract.balanceOf(Address.fromBytes(pool.hook));
 

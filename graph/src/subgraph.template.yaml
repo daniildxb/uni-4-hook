@@ -23,6 +23,8 @@ dataSources:
           file: ../abis/HookManager.json
         - name: ERC20
           file: ../abis/ERC20.json
+        - name: V2Quoter
+          file: ../abis/V2Quoter.json
       eventHandlers:
         - event: HookDeployed(indexed address,indexed bytes32,uint256,uint160)
           handler: handleHookDeployed
@@ -52,6 +54,8 @@ dataSources:
           file: ../abis/ERC20.json
         - name: HookV1
           file: ../abis/HookV1.json
+        - name: V2Quoter
+          file: ../abis/V2Quoter.json
       eventHandlers:
         - event: Swap(indexed bytes32,indexed address,int128,int128,uint160,uint128,int24,uint24)
           handler: handleSwap

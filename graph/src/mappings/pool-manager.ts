@@ -3,7 +3,7 @@ import { Swap as SwapEvent } from "../../generated/PoolManager/PoolManager";
 
 import { getPool, trackSwap } from "../entities/pool";
 import { createSwap } from "../entities/swap";
-import { updateSnapshots } from "../helpers";
+import { updateSnapshots, ZERO_BD } from "../helpers";
 import { getOrCreateToken } from "../entities/token";
 
 export function handleSwap(event: SwapEvent): void {
@@ -17,8 +17,8 @@ export function handleSwap(event: SwapEvent): void {
     return;
   }
   // create swap entity
-  const token0 = getOrCreateToken(pool.token0);
-  const token1 = getOrCreateToken(pool.token1);
+  const token0 = getOrCreateToken(pool.token0, ZERO_BD);
+  const token1 = getOrCreateToken(pool.token1, ZERO_BD);
   createSwap(event, token0, token1);
   trackSwap(pool, event, token0, token1);
 

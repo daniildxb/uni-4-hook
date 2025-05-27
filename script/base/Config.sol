@@ -27,6 +27,7 @@ contract Config is SqrtPriceCalculator {
     uint256 constant DAI_USDE_POOL = 2; // won't work
     uint256 constant DAI_GHO_POOL = 3; // 18/18 decimals
     uint256 constant USDC_GHO_POOL = 4; // 6/18 decimals
+    uint256 constant VIRTUALS_USDC_POOL = 5; // 6/18 decimals
 
     // Network identifiers
     uint256 constant MAINNET = 1;
@@ -48,6 +49,7 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address constant BASE_GHO = 0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee;
+    address constant BASE_VIRTUALS = 0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b;
 
     // Infrastructure addresses - Mainnet
     address constant MAINNET_POOL_MANAGER = 0x000000000004444c5dc75cB358380D2e3dE08A90;
@@ -63,7 +65,7 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0x68ca293b11D0D61Bd2DA61BE8966745B15cE4454;
+    address constant BASE_HOOK_MANAGER = 0xBDFFB8E8718dD9733F49a90853A2c45038f992Cd;
     address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
     address constant BASE_EXECUTOR = 0xEd82CA7f3Ea3a30777ECEB4C5F70D8fd3E0F244b;
 
@@ -220,8 +222,15 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: BASE_GHO,
                 token1Address: BASE_USDC,
-                hookAddress: 0xe5D4550B1749E7947C188395e4Fd26F62E5D48c0,
-                poolId: "0x624dce02c2d3884680ce822092b8b8dff26980ba5621feffdefe91a5df24cc46"
+                hookAddress: 0xEA25367302822821107D1fd6ba65e00a5b1D88C0,
+                poolId: "0x1fe290215dd1be12c039fa52df666835a56be4c1abc424552456aec0f4b0c589"
+            });
+        } else if (poolId == VIRTUALS_USDC_POOL) {
+            tokenPair = TokenPair({
+                token0Address: BASE_VIRTUALS,
+                token1Address: BASE_USDC,
+                hookAddress: 0x72a02919d65F12CD45765464dd0A18A0dB7aC8c0,
+                poolId: "0x884768e46324b79ede0e1eff55326e2d158f4a35a76c60d1e7b631b9d754a428"
             });
         } else {
             revert("Unsupported pool ID for Base");

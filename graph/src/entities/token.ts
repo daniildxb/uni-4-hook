@@ -1,9 +1,9 @@
 import { BigInt, BigDecimal, Address } from "@graphprotocol/graph-ts";
 import { Token } from "../../generated/schema";
 import { ERC20 } from "../../generated/HookV1/ERC20";
-import { ONE_BD } from "../helpers";
+import { getOrCreateProtocol } from "./protocol";
 
-export function getOrCreateToken(tokenAddress: string): Token {
+export function getOrCreateToken(tokenAddress: string, tokenPriceUSD: BigDecimal): Token {
   let address = Address.fromString(tokenAddress);
   let token = Token.load(address.toHexString());
 
@@ -34,12 +34,15 @@ export function getOrCreateToken(tokenAddress: string): Token {
     token.symbol = tokenSymbol;
     token.name = tokenName;
     token.decimals = tokenDecimals;
+    token.lastPriceUSD = tokenPriceUSD;
+    token.protocol = getOrCreateProtocol().id;
     token.save();
   }
 
   return token as Token;
 }
 
+// todo: update to handle non stable coins
 export function convertTokenToUSD(
   token: Token,
   amount: BigInt
@@ -49,7 +52,7 @@ export function convertTokenToUSD(
   let tokenDecimalsBD = new BigDecimal(
     BigInt.fromI32(10).pow(u8(token.decimals))
   );
-  let amountInUSD = amountBD.div(tokenDecimalsBD).times(ONE_BD);
+  let amountInUSD = amountBD.div(tokenDecimalsBD).times(token.lastPriceUSD);
 
   return amountInUSD;
 }
