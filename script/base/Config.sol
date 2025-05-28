@@ -65,9 +65,9 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0xBDFFB8E8718dD9733F49a90853A2c45038f992Cd;
+    address constant BASE_HOOK_MANAGER = 0x725345f4092D56352AaF26DcC490B9F3E0ceF235;
     address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
-    address constant BASE_EXECUTOR = 0xEd82CA7f3Ea3a30777ECEB4C5F70D8fd3E0F244b;
+    address constant BASE_EXECUTOR = 0xF1E5F45F184749bc88cb66B75d3b472eC0856519;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
@@ -86,6 +86,8 @@ contract Config is SqrtPriceCalculator {
     struct TokenPair {
         address token0Address;
         address token1Address;
+        uint24 fee;
+        int24 tickSpacing;
         address hookAddress;
         bytes poolId;
     }
@@ -139,6 +141,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: MAINNET_USDC,
                 token1Address: MAINNET_USDT,
+                fee: DEFAULT_FEE,
+                tickSpacing: DEFAULT_TICK_SPACING,
                 hookAddress: 0xdA29B9f65CA0E10Fc96A3b665CD45D75d6C548C0,
                 poolId: "0x8151abca3914de6ebfda6e05e3ade9000722a9dee5359d66e8ce7ee5e0f8da67"
             });
@@ -162,6 +166,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: MAINNET_USDC, // Using mainnet addresses for local development
                 token1Address: MAINNET_USDT,
+                fee: DEFAULT_FEE,
+                tickSpacing: DEFAULT_TICK_SPACING,
                 hookAddress: 0xd9C461354be60457759349378dEF760CeF3Ac8C0,
                 poolId: "0x437f292d4e7dbacf4b01f0962ae688e3c6f6838b8ef6e5371c5326e4936618d5"
             });
@@ -185,6 +191,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_USDC,
                 token1Address: ARBITRUM_USDT,
+                fee: DEFAULT_FEE,
+                tickSpacing: DEFAULT_TICK_SPACING,
                 hookAddress: 0xEe0e83e362f2F4A969D1d9c6eb04d400Bb1bC8c0,
                 poolId: "0x775253e1a54c55f1f0cbc143fb035cd60c459a1db2251b6bc494886f978a0f2a"
             });
@@ -192,6 +200,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_DAI,
                 token1Address: ARBITRUM_USDT,
+                fee: DEFAULT_FEE,
+                tickSpacing: DEFAULT_TICK_SPACING,
                 hookAddress: 0xccC7C10b872A9F449FA41Ef7a723ACB1615548C0,
                 poolId: "0x7ec8ddf47afeb8e2e6621e879272e1f92e8dd95f0979c22d399b7a3fe280d307"
             });
@@ -199,6 +209,8 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: ARBITRUM_GHO,
                 token1Address: ARBITRUM_DAI,
+                fee: DEFAULT_FEE,
+                tickSpacing: DEFAULT_TICK_SPACING,
                 hookAddress: 0x7e1993d03BD50AE43dEA6E3d2e1027aB1213C8c0,
                 poolId: "0xe4f5712fa24b6300c1c6bb7d821127f701e62ed93adb38024d309fe7a26d1b35"
             });
@@ -222,15 +234,19 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: BASE_GHO,
                 token1Address: BASE_USDC,
-                hookAddress: 0xEA25367302822821107D1fd6ba65e00a5b1D88C0,
-                poolId: "0x1fe290215dd1be12c039fa52df666835a56be4c1abc424552456aec0f4b0c589"
+                fee: 50,
+                tickSpacing: DEFAULT_TICK_SPACING,
+                hookAddress: 0xC93000eB1C02B37F497298f917319fa6c53A48C0,
+                poolId: "0xf27a601352d56e0e903ad5d1c86dd4c40e004acfb29832543ee5264d19280ba6"
             });
         } else if (poolId == VIRTUALS_USDC_POOL) {
             tokenPair = TokenPair({
                 token0Address: BASE_VIRTUALS,
                 token1Address: BASE_USDC,
-                hookAddress: 0x72a02919d65F12CD45765464dd0A18A0dB7aC8c0,
-                poolId: "0x884768e46324b79ede0e1eff55326e2d158f4a35a76c60d1e7b631b9d754a428"
+                fee: 100,
+                tickSpacing: 60,
+                hookAddress: 0x16227F74C9e0EC737037FE56b5895eD6abeCC8C0,
+                poolId: "0xaddbf171c2f10e93c483c21c1c56731ac53786d3702cb6a99c8230e2e6560bef"
             });
         } else {
             revert("Unsupported pool ID for Base");
@@ -250,8 +266,8 @@ contract Config is SqrtPriceCalculator {
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(tokenPair.token0Address),
             currency1: Currency.wrap(tokenPair.token1Address),
-            fee: DEFAULT_FEE,
-            tickSpacing: DEFAULT_TICK_SPACING,
+            fee: tokenPair.fee,
+            tickSpacing: tokenPair.tickSpacing,
             hooks: IHooks(tokenPair.hookAddress)
         });
 

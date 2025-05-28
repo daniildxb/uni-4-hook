@@ -33,13 +33,13 @@ contract DeployFullRangeScript is Script, Deployers, Config {
             uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
             config = getConfigPerNetwork(chainId, pool_enum);
         }
-        uint160 price = 123606690699871326385319; // needs to be fetched ad hoc
+        uint160 price = 123071741410724755212216; // needs to be fetched ad hoc
 
         ModularHookV1HookConfig memory hookParams;
         {
             // Use a symmetric range around the adjusted price to ensure balanced liquidity
-            int24 _tickMin = -887272;
-            int24 _tickMax = 887272;
+            int24 _tickMin = -887220; // has to be % by tick spacing
+            int24 _tickMax = 887220;
             string memory shareName = "LP";
             string memory shareSymbol = "LP";
 
@@ -75,6 +75,9 @@ contract DeployFullRangeScript is Script, Deployers, Config {
         {
             uint24 fee = 100; // pool fee in mbps 10 = 0.001%
             int24 tickSpacing = 60;
+
+            require(hookParams.tickMax % tickSpacing == 0, "tickMax must be divisible by tick spacing");
+            require(hookParams.tickMin % tickSpacing == 0, "tickMin must be divisible by tick spacing");
 
             console.log("price", price);
             console.log("tick at price", TickMath.getTickAtSqrtPrice(price));

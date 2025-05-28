@@ -24,3 +24,8 @@ Next steps:
 
 !!!!!
 CHECK IMBALANCED PRICING OF THE HOOKS
+
+
+!!! gho/usdc pool seems to miscalculate pool balances
+!!! check parameters for full range hooks, need to make sure ticks are aligned - done
+!!! check if quoter returns correct price for pools, if so remove price preview - quoter works fine

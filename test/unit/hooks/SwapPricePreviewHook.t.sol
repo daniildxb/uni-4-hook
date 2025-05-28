@@ -12,6 +12,8 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
+import { V4Quoter } from "v4-periphery/src/lens/V4Quoter.sol";
+import { IV4Quoter } from "v4-periphery/src/interfaces/IV4Quoter.sol";
 
 /**
  * @notice Test swap price preview hook functionality
@@ -42,6 +44,18 @@ contract SwapPricePreviewHookTest is BaseTest {
         (BalanceDelta previewSwapDelta, uint24 previewSwapFee, Pool.SwapResult memory previewResult) =
             hook.previewSwap(swapParams);
 
+
+        V4Quoter quoter = new V4Quoter(manager);
+        IV4Quoter.QuoteExactSingleParams memory quoteParams = 
+            IV4Quoter.QuoteExactSingleParams({
+              poolKey: simpleKey,
+              zeroForOne: zeroForOne,
+              exactAmount: uint128(uint256(swapAmount)),
+              hookData: ZERO_BYTES
+            });
+        (uint256 amountOut, uint256 gasEstimate) = quoter.quoteExactOutputSingle(quoteParams);
+        console.log("V4Quoter amountOut: ", amountOut);
+
         vm.startPrank(user1);
         IERC20(Currency.unwrap(token0)).forceApprove(address(swapRouter), uint256(swapAmount * 2));
         IERC20(Currency.unwrap(token1)).forceApprove(address(swapRouter), uint256(swapAmount * 2));
@@ -65,7 +79,11 @@ contract SwapPricePreviewHookTest is BaseTest {
             swapDelta.amount1(),
             "previewSwapDelta amount1 should be equal to swapDelta amount1"
         );
-        assert(true);
+        assertEq(
+            previewSwapDelta.amount0(),
+            -int256(amountOut),
+            "previewSwapDelta amount0 should be equal to -swapAmount"
+        );
     }
 
     function test_shouldFailIfNotEnoughLiquidity() public {
