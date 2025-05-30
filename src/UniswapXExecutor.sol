@@ -62,6 +62,7 @@ contract UniswapXExecutor is IReactorCallback, Ownable {
 
     struct OrderRoutingData {
         bytes32 poolId;
+        IPoolManager.SwapParams params;
     }
 
     struct CallbackData {
@@ -123,17 +124,10 @@ contract UniswapXExecutor is IReactorCallback, Ownable {
             zeroForOne = false;
         }
 
-        // swap callback will be called by the router
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: zeroForOne,
-            amountSpecified: -int256(order.input.amount),
-            sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT
-        });
-
         // need to approve the input token to the router
         // and output token to the reactor
         // no need to approve the input token yet
-        swap(key, params);
+        swap(key, routingData.params);
         // swap has been called and the tokens are now in the executor
 
         // transfer any native balance to the reactor

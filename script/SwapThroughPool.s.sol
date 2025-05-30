@@ -63,7 +63,7 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
 
         // token0 -> token1 (negative for exact input swap)
         console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap0));
-        swap(config.poolKey, true, -amountToSwap0, ZERO_BYTES);
+        swap(config.poolKey, true, amountToSwap1, ZERO_BYTES);
 
         console.log("6");
         vm.stopBroadcast();

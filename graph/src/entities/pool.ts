@@ -111,11 +111,13 @@ export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1:
 
 
   // Calculate lending yield in USD using our helper function
+  // todo: revert swap here to avoid price slippage
+  // swap input token is negative
   const lendingYieldUSD = calculateLendingYieldUSD(
     pool.token0Amount,
     pool.token1Amount,
-    token0Balance,
-    token1Balance,
+    token0Balance.plus(event.params.amount0),
+    token1Balance.plus(event.params.amount1),
     _token0,
     _token1
   )

@@ -12,7 +12,6 @@ export function handleSwap(event: SwapEvent): void {
 
   const pool = getPool(poolId);
   if (pool === null) {
-    log.log(log.Level.WARNING, `Swap - Pool not found: ${poolId}`);
     updateSnapshots(event.block);
     return;
   }
