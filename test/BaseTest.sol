@@ -208,7 +208,7 @@ contract BaseTest is Test, Deployers {
         before = getBalances(user);
 
         // Deposit liquidity
-        hook.deposit(depositAmount, user);
+        hook.deposit(depositAmount, user, ZERO_BYTES);
         vm.stopPrank();
 
         // Get balances after deposit
@@ -239,7 +239,7 @@ contract BaseTest is Test, Deployers {
         vm.startPrank(receiver);
         IERC20(token0Address).approve(address(hook), token0Amount);
         IERC20(token1Address).approve(address(hook), token1Amount);
-        shares = hook.deposit(liquidity, receiver);
+        shares = hook.deposit(liquidity, receiver, ZERO_BYTES);
         vm.stopPrank();
         amount0 = amount0 < 0 ? -amount0 : amount0;
         amount1 = amount1 < 0 ? -amount1 : amount1;
@@ -251,7 +251,7 @@ contract BaseTest is Test, Deployers {
         IERC20(token0Address).approve(address(hook), token0Amount);
         IERC20(token1Address).approve(address(hook), token1Amount);
         vm.expectRevert();
-        hook.deposit(liquidity, receiver);
+        hook.deposit(liquidity, receiver, ZERO_BYTES);
         vm.stopPrank();
     }
 

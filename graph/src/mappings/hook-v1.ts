@@ -21,7 +21,7 @@ import {
   trackWithdraw,
 } from "../entities/position";
 import { createDeposit } from "../entities/deposit";
-import { getOrCreateAccount } from "../entities/account";
+import { createAccount, getAccount } from "../entities/account";
 import { createWithdraw } from "../entities/withdraw";
 import { getOrCreateToken } from "../entities/token";
 import { createTransfer } from "../entities/transfer";
@@ -37,8 +37,12 @@ export function handleDeposit(event: DepositEvent): void {
 
   // Load or create user
   let accountAddress = event.params.owner.toHexString();
-  getOrCreateAccount(accountAddress);
-
+  // todo: change so that when if account is only created now - we'd track ref code
+  const account = getAccount(accountAddress);
+  if (account === null) {
+    // Create a new account if it doesn't exist
+    createAccount(accountAddress, event.params.referral);
+  }
   // Create position ID
   let position = getPosition(accountAddress, pool.id);
   if (position === null) {

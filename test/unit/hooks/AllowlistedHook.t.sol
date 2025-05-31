@@ -42,7 +42,7 @@ contract AllowlistedHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since allowlist is disabled
-        hook.deposit(depositAmount, nonAllowedUser);
+        hook.deposit(depositAmount, nonAllowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful
@@ -89,7 +89,7 @@ contract AllowlistedHookTest is BaseTest {
 
         // Should revert with "Not allowed"
         vm.expectRevert("Not allowed");
-        hook.deposit(depositAmount, nonAllowedUser);
+        hook.deposit(depositAmount, nonAllowedUser, ZERO_BYTES);
         vm.stopPrank();
     }
 
@@ -109,7 +109,7 @@ contract AllowlistedHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since user is allowlisted
-        hook.deposit(depositAmount, allowedUser);
+        hook.deposit(depositAmount, allowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful
@@ -145,7 +145,7 @@ contract AllowlistedHookTest is BaseTest {
 
         // Should revert with "Not allowed"
         vm.expectRevert("Not allowed");
-        hook.deposit(depositAmount, allowedUser);
+        hook.deposit(depositAmount, allowedUser, ZERO_BYTES);
         vm.stopPrank();
     }
 
@@ -175,7 +175,7 @@ contract AllowlistedHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since allowlist is disabled
-        hook.deposit(depositAmount, nonAllowedUser);
+        hook.deposit(depositAmount, nonAllowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful

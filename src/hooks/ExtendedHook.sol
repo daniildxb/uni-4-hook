@@ -22,7 +22,7 @@ import {IModularHook} from "../interfaces/IModularHook.sol";
  * @notice Base contract for Uniswap V4 hooks that provides common functionality
  */
 abstract contract ExtendedHook is IModularHook, BaseHook {
-    event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares);
+    event Deposit(address indexed sender, address indexed owner, uint256 assets0, uint256 assets1, uint256 shares, bytes referral);
     event Withdraw(
         address indexed sender,
         address indexed receiver,

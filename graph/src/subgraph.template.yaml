@@ -89,7 +89,7 @@ templates:
         - name: PoolManager
           file: ../abis/PoolManager.json
       eventHandlers:
-        - event: Deposit(indexed address,indexed address,uint256,uint256,uint256)
+        - event: Deposit(indexed address,indexed address,uint256,uint256,uint256,bytes)
           handler: handleDeposit
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleWithdraw

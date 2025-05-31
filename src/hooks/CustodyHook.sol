@@ -42,7 +42,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
      * @param liquidity The amount of liquidity to deposit
      * @param receiver The address to receive LP tokens
      */
-    function deposit(uint256 liquidity, address receiver) public virtual override returns (uint256) {
+    function deposit(uint256 liquidity, address receiver, bytes calldata referral) public virtual returns (uint256) {
         // ERC4626 deposit check
         uint256 maxAssets = maxDeposit(receiver);
         if (liquidity > maxAssets) {
@@ -67,7 +67,7 @@ abstract contract CustodyHook is ExtendedHook, ERC4626Wrapper {
 
         // Issue shares to represent the liquidity position
         _mint(receiver, shares);
-        emit Deposit(msg.sender, receiver, amount0, amount1, shares);
+        emit Deposit(msg.sender, receiver, amount0, amount1, shares, referral);
 
         _afterHookDeposit(amount0, amount1, receiver);
 

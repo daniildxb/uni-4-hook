@@ -384,7 +384,7 @@ contract HookV1Test is BaseTest {
 
         // Should revert because user is not allowlisted
         vm.expectRevert("Not allowed");
-        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser);
+        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Test 2: Allowlisted user can deposit within caps
@@ -393,7 +393,7 @@ contract HookV1Test is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), smallToken1Amount);
 
         // Should succeed because user is allowlisted and within caps
-        allowListedUserShares += hook.deposit(smallDeposit, allowedUser);
+        allowListedUserShares += hook.deposit(smallDeposit, allowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify successful deposit
@@ -414,7 +414,7 @@ contract HookV1Test is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), smallToken1Amount);
 
         // Should succeed now that allowlist is disabled, but still under caps
-        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser);
+        nonAllowListedUserShares += hook.deposit(smallDeposit, nonAllowedUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify non-allowlisted user's deposit succeeded

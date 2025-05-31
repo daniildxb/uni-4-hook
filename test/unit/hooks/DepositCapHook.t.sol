@@ -41,7 +41,7 @@ contract DepositCapHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since deposit caps are disabled
-        hook.deposit(depositAmount, depositUser);
+        hook.deposit(depositAmount, depositUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful
@@ -86,7 +86,7 @@ contract DepositCapHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since deposit is within cap
-        hook.deposit(depositAmount, depositUser);
+        hook.deposit(depositAmount, depositUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful
@@ -196,7 +196,7 @@ contract DepositCapHookTest is BaseTest {
         IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
 
         // Should not revert since caps are disabled
-        hook.deposit(largeDeposit, depositUser);
+        hook.deposit(largeDeposit, depositUser, ZERO_BYTES);
         vm.stopPrank();
 
         // Verify deposit was successful

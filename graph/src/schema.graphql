@@ -88,6 +88,7 @@ type Token @entity(immutable: false) {
 type Account @entity(immutable: true) {
   id: ID!
   positions: [Position!]! @derivedFrom(field: "account")
+  referralCodeUsed: Bytes
 }
 
 type Position @entity(immutable: false) {

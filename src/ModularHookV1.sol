@@ -116,7 +116,7 @@ contract ModularHookV1 is AllowlistedHook, DepositCapHook, RescueHook, AaveFeesH
     function _beforeHookDeposit(uint256 amount0, uint256 amount1, address receiver)
         internal
         virtual
-        override(AaveFeesHook, AllowlistedHook, DepositCapHook, CustodyHook)
+        override(AaveFeesHook, AllowlistedHook, DepositCapHook)
     {
         return super._beforeHookDeposit(amount0, amount1, receiver);
     }

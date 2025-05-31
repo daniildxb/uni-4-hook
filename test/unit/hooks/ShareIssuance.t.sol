@@ -73,7 +73,7 @@ contract ShareIssuanceTest is BaseTest {
         vm.startPrank(user);
         IERC20(Currency.unwrap(token0)).approve(address(hook), userDepositAmountInTokens);
         IERC20(Currency.unwrap(token1)).approve(address(hook), userDepositAmountInTokens);
-        hook.deposit(userDepositAmountInTokens, user);
+        hook.deposit(userDepositAmountInTokens, user, ZERO_BYTES);
         vm.stopPrank();
         // verify that user got shares but less than he should have
     }
