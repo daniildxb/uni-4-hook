@@ -17,23 +17,14 @@ contract HotBufferHookTest is BaseTest {
     using SafeERC20 for IERC20;
     using BalanceDeltaLibrary for BalanceDelta;
 
-    // Test accounts
-    address public adminAddress = address(0x8c3D9A0312890527afc6aE4Ee16Ca263Fbb0dCCd);
-    address public testUser = address(0xABCD);
-
     function setUp() public override {
         super.setUp();
 
-        // Fund the test user (instead of using user1/user2 from BaseTest)
-        vm.deal(testUser, 100 ether);
-        deal(Currency.unwrap(token0), testUser, initialTokenBalance, false);
-        deal(Currency.unwrap(token1), testUser, initialTokenBalance, false);
-
         // These values are set in BaseTest but we ensure they're what we expect
-        assertEq(hook.bufferSize0(), 1e7, "Buffer size should be 1e7");
-        assertEq(hook.bufferSize1(), 1e7, "Buffer size should be 1e7");
-        assertEq(hook.minTransferAmount0(), 1e6, "Min transfer amount should be 1e6");
-        assertEq(hook.minTransferAmount1(), 1e6, "Min transfer amount should be 1e6");
+        assertEq(hook.bufferSize0(), bufferSize0(), "Buffer size should be 1e7");
+        assertEq(hook.bufferSize1(), bufferSize1(), "Buffer size should be 1e7");
+        assertEq(hook.minTransferAmount0(), minTransferAmount0(), "Min transfer amount should be 1e6");
+        assertEq(hook.minTransferAmount1(), minTransferAmount1(), "Min transfer amount should be 1e6");
     }
 
     // Tests begin here
@@ -53,12 +44,12 @@ contract HotBufferHookTest is BaseTest {
         assertEq(hook.minTransferAmount1(), 2e6, "Min transfer amount should be updated");
 
         // Test setting buffer size as non-admin
-        vm.prank(testUser);
+        vm.prank(user1);
         vm.expectRevert("Not hook manager");
         hook.setBufferSize(3e7, 3e7);
 
         // Test setting min transfer amount as non-admin
-        vm.prank(testUser);
+        vm.prank(user1);
         vm.expectRevert("Not hook manager");
         hook.setMinTransferAmount(3e6, 3e6);
     }
@@ -78,7 +69,7 @@ contract HotBufferHookTest is BaseTest {
 
         // Perform deposit
         (uint256 token0Amount, uint256 token1Amount, TokenBalances memory before, TokenBalances memory afterBalances) =
-            depositLiquidity(testUser, depositAmount);
+            depositLiquidity(user1, depositAmount);
 
         // Verify amounts are below buffer size
         assertLt(token0Amount, hook.bufferSize0(), "Token0 amount should be below buffer size");
@@ -112,7 +103,7 @@ contract HotBufferHookTest is BaseTest {
 
         // Perform deposit
         (uint256 token0Amount, uint256 token1Amount, TokenBalances memory before, TokenBalances memory afterBalances) =
-            depositLiquidity(testUser, depositAmount);
+            depositLiquidity(user1, depositAmount);
 
         // Verify amounts are above buffer size
         assertGt(token0Amount, hook.bufferSize0(), "Token0 amount should be above buffer size");
@@ -138,21 +129,21 @@ contract HotBufferHookTest is BaseTest {
 
         // Deposit a small amount below buffer
         uint256 depositAmount = 1e4;
-        depositTokensToHook(depositAmount, depositAmount, testUser);
+        depositTokensToHook(depositAmount, depositAmount, user1);
 
         // Get balances before swap
-        TokenBalances memory before = getBalances(testUser);
+        TokenBalances memory before = getBalances(user1);
 
         // Perform small swap token0 -> token1
         int256 swapAmount = -100;
-        vm.startPrank(testUser);
-        deal(token0Address, testUser, uint256(-swapAmount), false);
+        vm.startPrank(user1);
+        deal(token0Address, user1, uint256(-swapAmount), false);
         IERC20(token0Address).forceApprove(address(swapRouter), uint256(-swapAmount));
         BalanceDelta swapDelta = swap(simpleKey, true, swapAmount, ZERO_BYTES);
         vm.stopPrank();
 
         // Get balances after swap
-        TokenBalances memory afterBalances = getBalances(testUser);
+        TokenBalances memory afterBalances = getBalances(user1);
 
         // Verify no aTokens were used
         assertEq(afterBalances.hookAToken0, before.hookAToken0, "Small swap shouldn't change aToken0 balance");
@@ -182,10 +173,10 @@ contract HotBufferHookTest is BaseTest {
 
         // First deposit a large amount to fill Aave
         uint256 depositAmount = 1e10;
-        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
+        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(user1, depositAmount);
 
         // Verify we deposited to Aave
-        TokenBalances memory balances = getBalances(testUser);
+        TokenBalances memory balances = getBalances(user1);
         assertEq(balances.hookToken0, hook.bufferSize0(), "Buffer should be filled with token0");
         assertEq(balances.hookToken1, hook.bufferSize1(), "Buffer should be filled with token1");
         assertEq(balances.hookAToken0, depositToken0 - hook.bufferSize0(), "Excess token0 should be in Aave");
@@ -196,17 +187,17 @@ contract HotBufferHookTest is BaseTest {
         assertLt(uint256(-swapAmount), depositToken0, "Swap amount should be smaller than deposit amount");
 
         // Get balances before swap
-        TokenBalances memory before = getBalances(testUser);
+        TokenBalances memory before = getBalances(user1);
 
         // Execute swap
-        vm.startPrank(testUser);
-        deal(token0Address, testUser, uint256(-swapAmount), false);
+        vm.startPrank(user1);
+        deal(token0Address, user1, uint256(-swapAmount), false);
         IERC20(token0Address).forceApprove(address(swapRouter), uint256(-swapAmount));
         BalanceDelta swapDelta = swap(simpleKey, true, swapAmount, ZERO_BYTES);
         vm.stopPrank();
 
         // Get balances after swap
-        TokenBalances memory afterBalances = getBalances(testUser);
+        TokenBalances memory afterBalances = getBalances(user1);
 
         // Verify hook token balances remain at buffer size
         assertEq(afterBalances.hookToken0, hook.bufferSize0(), "Token0 balance should remain at buffer size");
@@ -238,10 +229,10 @@ contract HotBufferHookTest is BaseTest {
 
         // First deposit a large amount to fill Aave
         uint256 depositAmount = 1e10;
-        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(testUser, depositAmount);
+        (uint256 depositToken0, uint256 depositToken1,,) = depositLiquidity(user1, depositAmount);
 
         // Verify we deposited to Aave
-        TokenBalances memory before = getBalances(testUser);
+        TokenBalances memory before = getBalances(user1);
 
         // Calculate a swap amount that's larger than aToken balance but less than total available
         uint256 swapSize = before.hookAToken0 - 100;
@@ -249,14 +240,14 @@ contract HotBufferHookTest is BaseTest {
         assertLt(swapSize, before.hookAToken0 + before.hookToken0, "Swap amount should be less than total balance");
 
         // Execute swap
-        vm.startPrank(testUser);
-        deal(token0Address, testUser, swapSize, false);
+        vm.startPrank(user1);
+        deal(token0Address, user1, swapSize, false);
         IERC20(token0Address).forceApprove(address(swapRouter), swapSize);
         BalanceDelta swapDelta = swap(simpleKey, true, -int256(swapSize), ZERO_BYTES);
         vm.stopPrank();
 
         // Get balances after swap
-        TokenBalances memory afterBalances = getBalances(testUser);
+        TokenBalances memory afterBalances = getBalances(user1);
 
         // Verify buffer remains at target size
         assertEq(afterBalances.hookToken0, hook.bufferSize0(), "Token0 balance should remain at buffer size");
@@ -282,21 +273,21 @@ contract HotBufferHookTest is BaseTest {
 
         // First deposit funds to Aave
         uint256 depositAmount = 1e10;
-        deal(Currency.unwrap(token0), testUser, depositAmount, false);
-        deal(Currency.unwrap(token1), testUser, depositAmount, false);
-        depositTokensToHook(depositAmount, depositAmount, testUser);
+        deal(Currency.unwrap(token0), user1, depositAmount, false);
+        deal(Currency.unwrap(token1), user1, depositAmount, false);
+        depositTokensToHook(depositAmount, depositAmount, user1);
 
         // Verify we have funds in Aave
-        TokenBalances memory before = getBalances(testUser);
+        TokenBalances memory before = getBalances(user1);
         assertGt(before.hookAToken0, 0, "Should have funds in Aave");
         assertGt(before.hookAToken1, 0, "Should have funds in Aave");
 
         // Withdraw an amount smaller than Aave balance
         uint256 withdrawAmount = 1e4;
-        withdrawTokensFromHook(withdrawAmount, withdrawAmount, testUser);
+        withdrawTokensFromHook(withdrawAmount, withdrawAmount, user1);
 
         // Get balances after withdrawal
-        TokenBalances memory afterBalances = getBalances(testUser);
+        TokenBalances memory afterBalances = getBalances(user1);
 
         // Verify buffer wasn't touched
         assertEq(afterBalances.hookToken0, before.hookToken0, "Buffer should not be used");
@@ -332,20 +323,20 @@ contract HotBufferHookTest is BaseTest {
         hook.setMinTransferAmount(100, 100);
 
         uint256 depositAmount = 2000;
-        deal(Currency.unwrap(token0), testUser, depositAmount, false);
-        deal(Currency.unwrap(token1), testUser, depositAmount, false);
-        depositTokensToHook(depositAmount, depositAmount, testUser);
+        deal(Currency.unwrap(token0), user1, depositAmount, false);
+        deal(Currency.unwrap(token1), user1, depositAmount, false);
+        depositTokensToHook(depositAmount, depositAmount, user1);
 
         // Get balances before withdrawal
-        TokenBalances memory before = getBalances(testUser);
+        TokenBalances memory before = getBalances(user1);
 
         // Calculate a withdrawal amount that will use buffer
         uint256 withdrawAmount = 1500;
 
-        withdrawTokensFromHook(withdrawAmount, withdrawAmount, testUser);
+        withdrawTokensFromHook(withdrawAmount, withdrawAmount, user1);
 
         // Get balances after withdrawal
-        TokenBalances memory afterBalances = getBalances(testUser);
+        TokenBalances memory afterBalances = getBalances(user1);
 
         // Verify buffer was used
         assertLt(afterBalances.hookToken0, before.hookToken0, "Buffer should be used for token0");
@@ -369,16 +360,16 @@ contract HotBufferHookTest is BaseTest {
 
         // Make a small deposit
         uint256 depositAmount = 1000;
-        depositLiquidity(testUser, depositAmount);
+        depositLiquidity(user1, depositAmount);
 
         // Try to withdraw more than deposited
         uint256 withdrawAmount = depositAmount * 2;
 
         // Should fail with ERC4626ExceededMaxRedeem error
-        vm.startPrank(testUser);
+        vm.startPrank(user1);
         // We're expecting the test to fail with ERC4626ExceededMaxRedeem error
         vm.expectRevert();
-        hook.redeem(withdrawAmount, testUser, testUser);
+        hook.redeem(withdrawAmount, user1, user1);
         vm.stopPrank();
     }
 }

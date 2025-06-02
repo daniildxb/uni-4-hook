@@ -97,16 +97,16 @@ contract HookManagerTest is BaseTest {
             poolManager: IPoolManager(manager),
             token0: token0,
             token1: token1,
-            tickMin: tickMin - 10, // Different tick range to make a different pool
-            tickMax: tickMax + 10,
+            tickMin: tickMin() - 10, // Different tick range to make a different pool
+            tickMax: tickMax() + 10,
             aavePoolAddressesProvider: aavePoolAddressesProvider,
             shareName: "Second Hook",
             shareSymbol: "SH",
             fee_bps: fee_bps,
-            bufferSize0: bufferSize,
-            bufferSize1: bufferSize,
-            minTransferAmount0: minTransferAmount,
-            minTransferAmount1: minTransferAmount
+            bufferSize0: bufferSize0(),
+            bufferSize1: bufferSize1(),
+            minTransferAmount0: minTransferAmount0(),
+            minTransferAmount1: minTransferAmount1()
         });
 
         bytes memory constructorArgs = abi.encode(hookParams);
@@ -123,9 +123,9 @@ contract HookManagerTest is BaseTest {
             hookParams.token0,
             hookParams.token1,
             hookAddress,
-            SQRT_PRICE_1_1,
+            initialPrice(),
             secondFee, // Different fee for different pool key
-            tickSpacing,
+            tickSpacing(),
             salt,
             creationCode
         );
@@ -135,7 +135,7 @@ contract HookManagerTest is BaseTest {
             currency0: token0,
             currency1: token1,
             fee: secondFee,
-            tickSpacing: tickSpacing,
+            tickSpacing: tickSpacing(),
             hooks: IHooks(secondHookAddress)
         });
         secondPoolId = secondPoolKey.toId();

@@ -141,8 +141,11 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
             cosignature: bytes("")
         });
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -int256(inputAmount), sqrtPriceLimitX96: 4295128740});
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(inputAmount),
+            sqrtPriceLimitX96: 4295128740
+        });
 
         // Prepare order routing data
         UniswapXExecutor.OrderRoutingData memory routingData =
@@ -193,8 +196,11 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
             cosignature: bytes("")
         });
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -int256(inputAmount), sqrtPriceLimitX96: 7922816251426433759354395033600000});
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -int256(inputAmount),
+            sqrtPriceLimitX96: 7922816251426433759354395033600000
+        });
 
         // Prepare order routing data
         UniswapXExecutor.OrderRoutingData memory routingData =
@@ -245,9 +251,8 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
             cosignature: bytes("")
         });
 
-                IPoolManager.SwapParams memory params =
+        IPoolManager.SwapParams memory params =
             IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -int256(inputAmount), sqrtPriceLimitX96: 0});
-
 
         // Prepare order routing data
         UniswapXExecutor.OrderRoutingData memory routingData =
@@ -329,11 +334,10 @@ contract ExecutorTest is BaseTest, DeployPermit2, PermitSignature {
         IPoolManager.SwapParams memory params =
             IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -int256(inputAmount), sqrtPriceLimitX96: 0});
 
-
         // Prepare order routing data with invalid pool ID
         bytes32 invalidPoolId = keccak256("invalid_pool_id");
         UniswapXExecutor.OrderRoutingData memory routingData =
-            UniswapXExecutor.OrderRoutingData({poolId: invalidPoolId, params: params });
+            UniswapXExecutor.OrderRoutingData({poolId: invalidPoolId, params: params});
 
         // Sign order
         order.cosignature = cosignOrder(order.hash(), cosignerData);

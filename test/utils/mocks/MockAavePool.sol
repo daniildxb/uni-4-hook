@@ -104,7 +104,7 @@ contract MockAavePool is Test {
     }
 
     function _getEmptyReserveData() internal pure returns (DataTypes.ReserveData memory) {
-          return DataTypes.ReserveData({
+        return DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0),
             liquidityIndex: 0,
             currentLiquidityRate: 0,

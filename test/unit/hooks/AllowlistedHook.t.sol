@@ -15,17 +15,11 @@ contract AllowlistedHookTest is BaseTest {
     using SafeERC20 for IERC20;
 
     // Test users
-    address public allowedUser = address(777);
-    address public nonAllowedUser = address(888);
+    address public allowedUser = user1;
+    address public nonAllowedUser = user2;
 
     function setUp() public override {
         super.setUp();
-
-        // Give tokens to test users
-        deal(Currency.unwrap(token0), allowedUser, initialTokenBalance, false);
-        deal(Currency.unwrap(token1), allowedUser, initialTokenBalance, false);
-        deal(Currency.unwrap(token0), nonAllowedUser, initialTokenBalance, false);
-        deal(Currency.unwrap(token1), nonAllowedUser, initialTokenBalance, false);
     }
 
     function test_allowlist_disabled_by_default() public {

@@ -27,7 +27,7 @@ contract AddNewExecutor is Script, Deployers, Config {
 
         // Access the hook manager from the config
         hookManager = HookManager(config.hookManager);
-        
+
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         UniswapXExecutor executor =
             new UniswapXExecutor(config.poolManager, config.reactor, filler, config.weth, address(hookManager));

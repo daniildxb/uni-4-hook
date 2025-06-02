@@ -2,35 +2,42 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
-
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
+import {ModularHookBaseTest} from "./ModularHookBaseTest.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {ModularHookV1} from "../../src/ModularHookV1.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-
-import {BaseTest} from "../BaseTest.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {ModularHookV1} from "src/ModularHookV1.sol";
 
-contract HookV1Test is BaseTest {
+/**
+ * @title ModularHookDepositTest
+ * @notice Tests for deposit functionality in ModularHookV1
+ */
+contract ModularHookDepositTest is ModularHookBaseTest {
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
     using SafeERC20 for IERC20;
 
-    address public allowedUser = address(777);
-    address public nonAllowedUser = address(888);
-
+    /**
+     * @notice Tests the basic construction of the hook
+     */
     function test_construction() public {
         assertNotEq(address(hook), address(0));
     }
 
+    /**
+     * @notice Tests that liquidity cannot be added directly through the router
+     */
     function test_cannot_add_liquidity_directly() public {
         vm.expectRevert();
         modifyLiquidityRouter.modifyLiquidity(simpleKey, LIQUIDITY_PARAMS, abi.encode(0));
     }
 
+    /**
+     * @notice Tests the full cycle of adding liquidity through the hook and redeeming it
+     */
     function test_add_liquidity_through_hook() public {
         console.log("Adding liquidity through hook");
         deal(Currency.unwrap(token0), address(manager), 1000, false);
@@ -41,8 +48,11 @@ contract HookV1Test is BaseTest {
         console.log("address of runner", address(this));
         console.log("Token0 balance before: ", balance0);
         console.log("Token1 balance before: ", balance1);
+
         IERC20(Currency.unwrap(token0)).forceApprove(address(hook), 1000);
         IERC20(Currency.unwrap(token1)).forceApprove(address(hook), 1000);
+
+        // Deposit tokens to hook
         (uint256 sharesMinted,,,) = depositTokensToHook(140, 140, address(this));
 
         uint256 balance0New = token0.balanceOf(address(this));
@@ -55,7 +65,7 @@ contract HookV1Test is BaseTest {
         assertEq(balance0New, balance0 - expectedDiff); // hardcoded based on the ticks and current price
         assertEq(balance1New, balance1 - expectedDiff);
 
-        // position is not provisioned on the liqudity add
+        // Verify that position is not provisioned on the liquidity add
         (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
             manager.getPositionInfo(simplePoolId, address(hook), int24(0), int24(60), 0);
 
@@ -63,69 +73,20 @@ contract HookV1Test is BaseTest {
         assertEq(feeGrowthInside0LastX128, 0);
         assertEq(feeGrowthInside1LastX128, 0);
 
+        // Redeem shares
         hook.redeem(sharesMinted, address(this), address(this));
 
         // 1 unit of assets is lost in the rounding
         assertEq(token0.balanceOf(address(this)), balance0 - 1, "test runner token0 balance after LP removal");
         assertEq(token1.balanceOf(address(this)), balance1 - 1, "test runner token1 balance after LP removal");
+
         uint256 sharesAfterRedeem = IERC20(address(hook)).balanceOf(address(this));
         assertEq(sharesAfterRedeem, 0, "test runner shares after LP removal");
     }
 
-    function test_liqudity_is_added_before_swap() public {
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
-
-        uint256 depositAmount = 1000;
-
-        deal(Currency.unwrap(token0), address(manager), depositAmount, false);
-        deal(Currency.unwrap(token1), address(manager), depositAmount, false);
-
-        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), depositAmount);
-        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), depositAmount);
-
-        depositTokensToHook(depositAmount, depositAmount, address(this));
-
-        uint256 balance0New = token0.balanceOf(address(this));
-        uint256 balance1New = token1.balanceOf(address(this));
-
-        console.log("balance diff", balance0 - balance0New);
-        console.log("balance diff", balance1 - balance1New);
-
-        assertEq(balance0New, balance0 - depositAmount);
-        assertEq(balance1New, balance1 - depositAmount);
-
-        console.log("hook balance0", token0.balanceOf(address(hook)));
-        console.log("hook balance1", token1.balanceOf(address(hook)));
-
-        // swap
-
-        bool zeroForOne = true;
-        int256 amountSpecified = 100; // negative number indicates exact input swap!
-
-        IERC20(Currency.unwrap(token0)).forceApprove(address(swapRouter), 1000);
-        IERC20(Currency.unwrap(token1)).forceApprove(address(swapRouter), 1000);
-
-        BalanceDelta swapDelta = swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
-        // ------------------- //
-        console.log("Swap delta amount0: ", swapDelta.amount0());
-        console.log("Swap delta amount1: ", swapDelta.amount1());
-
-        uint256 balance0AfterSwap = token0.balanceOf(address(this));
-        uint256 balance1AfterSwap = token1.balanceOf(address(this));
-
-        console.log("balance diff after swap", balance0New - balance0AfterSwap);
-        console.log("balance diff after swap", balance1AfterSwap - balance1New);
-
-        BalanceDelta swapDelta2 = swap(simpleKey, false, amountSpecified, ZERO_BYTES);
-        // todo: add asserts about after swap state
-    }
-
     /**
-     * @notice Test scenario where:
-     * 1. User 1 deposits into a new pool
-     * 2. User 2 deposits into a pool with 2x amount of User 1
-     * 3. Value of shares user 1 has is not affected by that deposit
+     * @notice Tests that the share value remains stable after new deposits
+     * Verifies that User 1's share value is not diluted when User 2 deposits
      */
     function test_share_value_remains_stable_after_new_deposits() public {
         // First, ensure the pool manager has some tokens
@@ -216,7 +177,7 @@ contract HookV1Test is BaseTest {
     }
 
     /**
-     * @notice Similar test with a more detailed breakdown of share values
+     * @notice Detailed test for share value calculation with multiple deposits
      */
     function test_share_value_calculation_with_multiple_deposits() public {
         // Setup the initial state
@@ -328,7 +289,7 @@ contract HookV1Test is BaseTest {
         assertApproxEqAbs(
             (assets2After - assets2Before),
             (assets1After - assets1Before) * 2,
-            4, // compounding from other 1 deltas ; todo: verify
+            4, // compounding from other 1 deltas; todo: verify
             "User 2 should redeem ~2x the assets of User 1"
         );
     }

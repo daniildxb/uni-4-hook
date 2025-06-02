@@ -45,7 +45,7 @@ struct ModularHookV1HookConfig {
  * @notice Most of the functionality is inherited, only defines permissions
  * and overrides for abstract methods
  */
-contract ModularHookV1 is AllowlistedHook, DepositCapHook, RescueHook, AaveFeesHook {
+contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, AaveFeesHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20Metadata;
@@ -116,7 +116,7 @@ contract ModularHookV1 is AllowlistedHook, DepositCapHook, RescueHook, AaveFeesH
     function _beforeHookDeposit(uint256 amount0, uint256 amount1, address receiver)
         internal
         virtual
-        override(AaveFeesHook, AllowlistedHook, DepositCapHook)
+        override(AaveFeesHook, DepositCapHook, AllowlistedHook)
     {
         return super._beforeHookDeposit(amount0, amount1, receiver);
     }

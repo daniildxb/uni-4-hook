@@ -26,7 +26,6 @@ contract SingleTokenAaveSupportTest is HookV1Test {
         address greaterToken = Currency.unwrap(token0) < token3 ? token3 : Currency.unwrap(token0);
         _deployHook(Currency.wrap(lesserToken), Currency.wrap(greaterToken));
 
-
         token0 = Currency.wrap(lesserToken);
         token1 = Currency.wrap(greaterToken);
         token0Address = lesserToken;
@@ -38,13 +37,9 @@ contract SingleTokenAaveSupportTest is HookV1Test {
         deal(Currency.unwrap(token1), address(this), 1e18, false);
 
         // Give tokens to the test users
-        deal(Currency.unwrap(token0), user1, initialTokenBalance, false);
-        deal(Currency.unwrap(token1), user1, initialTokenBalance, false);
-        deal(Currency.unwrap(token0), user2, initialTokenBalance * 2, false);
-        deal(Currency.unwrap(token1), user2, initialTokenBalance * 2, false);
-        // to deploy new hook you need to update _deployHook function in BaseTest to allow specifying token addresses
+        deal(Currency.unwrap(token0), user1, userInitialBalance0(), false);
+        deal(Currency.unwrap(token1), user1, userInitialBalance1(), false);
+        deal(Currency.unwrap(token0), user2, userInitialBalance0() * 2, false);
+        deal(Currency.unwrap(token1), user2, userInitialBalance1() * 2, false);
     }
-
-    // no need to implement actual test scenarios as they are inherited from HookV1Test
-
 }

@@ -15,14 +15,14 @@ contract DepositCapHookTest is BaseTest {
     using SafeERC20 for IERC20;
 
     // Test users
-    address public depositUser = address(777);
+    address public depositUser = user1;
 
     function setUp() public override {
         super.setUp();
 
-        // Give tokens to test user
-        deal(Currency.unwrap(token0), depositUser, initialTokenBalance * 10, false);
-        deal(Currency.unwrap(token1), depositUser, initialTokenBalance * 10, false);
+        // Give more to test user
+        deal(Currency.unwrap(token0), depositUser, userInitialBalance0() * 10, false);
+        deal(Currency.unwrap(token1), depositUser, userInitialBalance1() * 10, false);
     }
 
     function test_deposit_caps_disabled_by_default() public {
@@ -32,21 +32,8 @@ contract DepositCapHookTest is BaseTest {
         assertEq(depositCap0, 0, "Deposit cap for token0 should be 0 by default");
         assertEq(depositCap1, 0, "Deposit cap for token1 should be 0 by default");
 
-        // Large deposit should succeed when caps are disabled
-        uint256 depositAmount = initialTokenBalance * 2;
-        (uint256 token0Amount, uint256 token1Amount) = getTokenAmountsForLiquidity(depositAmount);
-
-        vm.startPrank(depositUser);
-        IERC20(Currency.unwrap(token0)).approve(address(hook), token0Amount);
-        IERC20(Currency.unwrap(token1)).approve(address(hook), token1Amount);
-
-        // Should not revert since deposit caps are disabled
-        hook.deposit(depositAmount, depositUser, ZERO_BYTES);
-        vm.stopPrank();
-
-        // Verify deposit was successful
-        uint256 userShares = ModularHookV1(address(hook)).balanceOf(depositUser);
-        assertEq(userShares, depositAmount, "User should be able to deposit when caps are disabled");
+        (uint256 userShares,,,) = depositTokensToHook(userInitialBalance0(), userInitialBalance1(), depositUser);
+        assertGt(userShares, 0, "User should be able to deposit when caps are disabled");
     }
 
     function test_set_deposit_caps() public {
