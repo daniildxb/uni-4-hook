@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/console.sol";
-
 import {AaveHook} from "./AaveHook.sol";
 import {RolesHook} from "./RolesHook.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
@@ -126,10 +124,6 @@ abstract contract HotBufferHook is AaveHook, RolesHook {
         if (_tokenSupportedByAave(token)) {
             aTokenBalance = IERC20Metadata(aToken).balanceOf(address(this));
         }
-        console.log("aTokenBalance:", aTokenBalance);
-        console.log("tokenBalance", tokenBuffer);
-        console.log("withdraw amount", amount);
-        console.log("aToken underlying balance", IERC20Metadata(token).balanceOf(aToken));
         if (aTokenBalance >= amount) {
             _withdrawFromAave(token, amount, receiver);
         } else if (tokenBuffer >= amount) {

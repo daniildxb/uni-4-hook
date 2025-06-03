@@ -47,17 +47,19 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
         // 3. Check that share value has increased
         uint256 newShareValue = hook.convertToAssets(user1Shares);
         {
-        (uint256 newToken0, uint256 newToken1) = getTokenAmountsForLiquidity(newShareValue);
+            (uint256 newToken0, uint256 newToken1) = getTokenAmountsForLiquidity(newShareValue);
 
-        console.log("Initial share value:", initialShareValue);
-        console.log("New share value after yield:", newShareValue);
-        console.log("Initial token amounts:", initialToken0 + initialToken1);
-        console.log("New token amounts:", newToken0 + newToken1);
+            console.log("Initial share value:", initialShareValue);
+            console.log("New share value after yield:", newShareValue);
+            console.log("Initial token amounts:", initialToken0 + initialToken1);
+            console.log("New token amounts:", newToken0 + newToken1);
 
-        assertGe(
-            newToken0 + newToken1, initialToken0 + initialToken1, "Token amounts should increase after yield accrual"
-        );
-        assertGe(newShareValue, initialShareValue, "Share value should not decrease after yield accrual");
+            assertGe(
+                newToken0 + newToken1,
+                initialToken0 + initialToken1,
+                "Token amounts should increase after yield accrual"
+            );
+            assertGe(newShareValue, initialShareValue, "Share value should not decrease after yield accrual");
         }
 
         // 4. Second user deposits the same amount after yield accrual
@@ -104,13 +106,13 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
             uint256 token0Redeemed;
             uint256 token1Redeemed;
             {
-            uint256 token0Before = IERC20(token0Address).balanceOf(user2);
-            uint256 token1Before = IERC20(token1Address).balanceOf(user2);
-            hook.redeem(user2Shares, user2, user2);
-            vm.stopPrank();
+                uint256 token0Before = IERC20(token0Address).balanceOf(user2);
+                uint256 token1Before = IERC20(token1Address).balanceOf(user2);
+                hook.redeem(user2Shares, user2, user2);
+                vm.stopPrank();
 
-            token0Redeemed = IERC20(token0Address).balanceOf(user2) - token0Before;
-            token1Redeemed = IERC20(token1Address).balanceOf(user2) - token1Before;
+                token0Redeemed = IERC20(token0Address).balanceOf(user2) - token0Before;
+                token1Redeemed = IERC20(token1Address).balanceOf(user2) - token1Before;
             }
 
             console.log("User2 token0 redeemed:", token0Redeemed);
@@ -169,16 +171,16 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
 
         // 3. Calculate the new value of shares for both users
         {
-        uint256 user1ShareValue = hook.convertToAssets(user1Shares);
-        uint256 user2ShareValue = hook.convertToAssets(user2Shares);
+            uint256 user1ShareValue = hook.convertToAssets(user1Shares);
+            uint256 user2ShareValue = hook.convertToAssets(user2Shares);
 
-        console.log("User1 share value after yield:", user1ShareValue);
-        console.log("User2 share value after yield:", user2ShareValue);
+            console.log("User1 share value after yield:", user1ShareValue);
+            console.log("User2 share value after yield:", user2ShareValue);
 
-        // 4. Verify both users' shares appreciated equally
-        assertApproxEqRelDecimal(
-            user1ShareValue, user2ShareValue, 1e12, 18, "Both users' shares should appreciate equally"
-        );
+            // 4. Verify both users' shares appreciated equally
+            assertApproxEqRelDecimal(
+                user1ShareValue, user2ShareValue, 1e12, 18, "Both users' shares should appreciate equally"
+            );
         }
 
         // 5. Verify both users can redeem their shares for the correct amount of tokens
@@ -218,10 +220,18 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
         );
 
         // Both users should get more than they deposited due to yield
-        assertGt(user1Token0Redeemed, uint256(int256(user1DepositToken0)), "User1 should redeem more token0 than deposited");
-        assertGt(user1Token1Redeemed, uint256(int256(user1DepositToken1)), "User1 should redeem more token1 than deposited");
-        assertGt(user2Token0Redeemed, uint256(int256(user2DepositToken0)), "User2 should redeem more token0 than deposited");
-        assertGt(user2Token1Redeemed, uint256(int256(user2DepositToken1)), "User2 should redeem more token1 than deposited");
+        assertGt(
+            user1Token0Redeemed, uint256(int256(user1DepositToken0)), "User1 should redeem more token0 than deposited"
+        );
+        assertGt(
+            user1Token1Redeemed, uint256(int256(user1DepositToken1)), "User1 should redeem more token1 than deposited"
+        );
+        assertGt(
+            user2Token0Redeemed, uint256(int256(user2DepositToken0)), "User2 should redeem more token0 than deposited"
+        );
+        assertGt(
+            user2Token1Redeemed, uint256(int256(user2DepositToken1)), "User2 should redeem more token1 than deposited"
+        );
     }
 
     /**
@@ -230,7 +240,8 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
      */
     function test_yield_after_partial_withdrawal() public {
         // 1. First user deposits
-        (uint256 user1Shares,,int128 _depositedAmount0,int128 _depositedAmount1) = depositTokensToHook(userInitialBalance0(), userInitialBalance1(), user1);
+        (uint256 user1Shares,, int128 _depositedAmount0, int128 _depositedAmount1) =
+            depositTokensToHook(userInitialBalance0(), userInitialBalance1(), user1);
 
         // 2. User withdraws half their shares
         uint256 halfShares = user1Shares / 2;
@@ -263,8 +274,16 @@ contract ModularHookYieldAccrualTest is ModularHookBaseTest {
         console.log("Final token1 redeemed:", token1Redeemed);
 
         // 6. User should get back more than half their deposit due to yield
-        assertGt(token0Redeemed, uint256(int256(_depositedAmount0)) / 2, "User should redeem more token0 than half the deposit");
-        assertGt(token1Redeemed, uint256(int256(_depositedAmount1)) / 2, "User should redeem more token1 than half the deposit");
+        assertGt(
+            token0Redeemed,
+            uint256(int256(_depositedAmount0)) / 2,
+            "User should redeem more token0 than half the deposit"
+        );
+        assertGt(
+            token1Redeemed,
+            uint256(int256(_depositedAmount1)) / 2,
+            "User should redeem more token1 than half the deposit"
+        );
     }
 
     /**
