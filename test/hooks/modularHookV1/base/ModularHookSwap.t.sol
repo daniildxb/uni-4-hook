@@ -43,7 +43,6 @@ contract ModularHookSwapTest is ModularHookBaseTest {
         uint256 hookBalance1 = token1.balanceOf(address(hook));
 
         BalanceDelta swapDelta = executeSwap(zeroForOne, amountSpecified);
-
     }
 
     /**
@@ -82,9 +81,7 @@ contract ModularHookSwapTest is ModularHookBaseTest {
         uint256 finalShareValue = hook.convertToAssets(user1Shares);
         console.log("Final share value:", finalShareValue);
 
-        assertGe(
-            finalShareValue, initialShareValue, "Share value should increase after swaps"
-        );
+        assertGe(finalShareValue, initialShareValue, "Share value should increase after swaps");
         // not adding asserts for withdrawals here, as pool composition has changed due to swaps
         // and withdrawal amounts will not be in the same ratio as deposits
     }

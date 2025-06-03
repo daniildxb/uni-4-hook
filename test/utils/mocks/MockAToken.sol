@@ -5,9 +5,11 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockAToken is ERC20 {
     address internal _underlyingAsset;
+    uint8 internal _decimals;
 
-    constructor(address underlyingAsset, string memory name, string memory symbol) ERC20(name, symbol) {
+    constructor(address underlyingAsset, string memory name, string memory symbol, uint8 dec) ERC20(name, symbol) {
         _underlyingAsset = underlyingAsset;
+        _decimals = dec;
     }
 
     function mint(address caller, address reciever, uint256 amount) external {
@@ -19,7 +21,7 @@ contract MockAToken is ERC20 {
         ERC20(_underlyingAsset).transfer(receiver, amount);
     }
 
-    function decimals() public pure override returns (uint8) {
-        return 18;
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
     }
 }

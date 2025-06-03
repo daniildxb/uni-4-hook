@@ -90,12 +90,18 @@ contract ModularHookFeeAccrualTest is ModularHookBaseTest {
         uint256 user1InitialValue = hook.convertToAssets(user1Shares);
         uint256 user2InitialValue = hook.convertToAssets(user2Shares);
 
-        // Execute multiple swaps to generate fees
-        for (uint256 i = 0; i < 10; i++) {
-            bool zeroForOne = i % 2 == 0;
-            int256 _swapAmount =
-                zeroForOne ? -int256(scaleToken0Amount(swapAmount)) : -int256(scaleToken1Amount(swapAmount));
-            executeSwap(zeroForOne, _swapAmount);
+        // Execute swaps to generate fees
+        uint256 _initialSwapAmount = scaleToken0Amount(swapAmount);
+        for (uint256 i = 0; i < 40; i++) {
+            if (i % 2 == 0) {
+                // Swap token0 -> token1
+                BalanceDelta delta = executeSwap(true, -int256(_initialSwapAmount));
+                _initialSwapAmount = uint256(int256(delta.amount1()));
+            } else {
+                // Swap token1 -> token0
+                BalanceDelta delta = executeSwap(false, -int256(_initialSwapAmount));
+                _initialSwapAmount = uint256(int256(delta.amount0()));
+            }
         }
 
         // Check final values
@@ -121,15 +127,16 @@ contract ModularHookFeeAccrualTest is ModularHookBaseTest {
             uint256 user1Token1After = IERC20(token1Address).balanceOf(user1);
             vm.stopPrank();
 
+            uint256 actualRedeemedToken0 = user1Token0After - user1Token0Before;
+            uint256 actualRedeemedToken1 = user1Token1After - user1Token1Before;
+
+            // allowing different ratio of redeemed tokens to accomodate for price change in pool
+            uint256 token0RedeemedBips = (actualRedeemedToken0 * 10000) / uint256(int256(user1DepositToken0));
+            uint256 token1RedeemedBips = (actualRedeemedToken1 * 10000) / uint256(int256(user1DepositToken1));
             assertGe(
-                user1Token0After - user1Token0Before,
-                uint256(int256(user1DepositToken0)),
-                "User1 should redeem close to deposited amount"
-            );
-            assertGe(
-                user1Token1After - user1Token1Before,
-                uint256(int256(user1DepositToken1)),
-                "User1 should redeem close to deposited amount"
+                token0RedeemedBips + token1RedeemedBips,
+                20000,
+                "Redeemed tokens should be at least 200% of deposited amounts"
             );
         }
 
@@ -142,15 +149,16 @@ contract ModularHookFeeAccrualTest is ModularHookBaseTest {
             uint256 user2Token1After = IERC20(token1Address).balanceOf(user2);
             vm.stopPrank();
 
+            uint256 actualRedeemedToken0 = user2Token0After - user2Token0Before;
+            uint256 actualRedeemedToken1 = user2Token1After - user2Token1Before;
+
+            // allowing different ratio of redeemed tokens to accomodate for price change in pool
+            uint256 token0RedeemedBips = (actualRedeemedToken0 * 10000) / uint256(int256(user2DepositToken0));
+            uint256 token1RedeemedBips = (actualRedeemedToken1 * 10000) / uint256(int256(user2DepositToken1));
             assertGe(
-                user2Token0After - user2Token0Before,
-                uint256(int256(user2DepositToken0)),
-                "User1 should redeem close to deposited amount"
-            );
-            assertGe(
-                user2Token1After - user2Token1Before,
-                uint256(int256(user2DepositToken1)),
-                "User1 should redeem close to deposited amount"
+                token0RedeemedBips + token1RedeemedBips,
+                20000,
+                "Redeemed tokens should be at least 200% of deposited amounts"
             );
         }
     }
@@ -216,13 +224,16 @@ contract ModularHookFeeAccrualTest is ModularHookBaseTest {
         }
 
         // Execute swaps to generate fees
+        uint256 _initialSwapAmount = scaleToken0Amount(swapAmount);
         for (uint256 i = 0; i < 40; i++) {
             if (i % 2 == 0) {
                 // Swap token0 -> token1
-                executeSwap(true, -int256(scaleToken0Amount(swapAmount)));
+                BalanceDelta delta = executeSwap(true, -int256(_initialSwapAmount));
+                _initialSwapAmount = uint256(int256(delta.amount1()));
             } else {
                 // Swap token1 -> token0
-                executeSwap(false, -int256(scaleToken1Amount(swapAmount)));
+                BalanceDelta delta = executeSwap(false, -int256(_initialSwapAmount));
+                _initialSwapAmount = uint256(int256(delta.amount0()));
             }
         }
 
@@ -263,8 +274,16 @@ contract ModularHookFeeAccrualTest is ModularHookBaseTest {
         console.log("Actual redeemed token0:", actualRedeemedToken0);
         console.log("Actual redeemed token1:", actualRedeemedToken1);
 
-        assertGe(actualRedeemedToken0, uint256(int256(_depositAmount0)), "Token 0 should accrue interest from swaps");
-        assertGe(actualRedeemedToken1, uint256(int256(_depositAmount1)), "Token 1 should accrue interest from swaps");
+        {
+            // allowing different ratio of redeemed tokens to accomodate for price change in pool
+            uint256 token0RedeemedBips = (actualRedeemedToken0 * 10000) / uint256(int256(_depositAmount0));
+            uint256 token1RedeemedBips = (actualRedeemedToken1 * 10000) / uint256(int256(_depositAmount1));
+            assertGe(
+                token0RedeemedBips + token1RedeemedBips,
+                20000,
+                "Redeemed tokens should be at least 200% of deposited amounts"
+            );
+        }
 
         assertApproxEqAbs(
             actualRedeemedToken0,

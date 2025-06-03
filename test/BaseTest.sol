@@ -87,8 +87,8 @@ contract BaseTest is Test, Deployers {
         (token0, token1) = _deployMintAndApprove2Currencies();
         _deployCreate2();
 
-        MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0");
-        MockAToken atoken1 = new MockAToken(Currency.unwrap(token1), "aToken1", "aToken1");
+        MockAToken aToken0 = new MockAToken(Currency.unwrap(token0), "aToken0", "aToken0", token0Decimals());
+        MockAToken atoken1 = new MockAToken(Currency.unwrap(token1), "aToken1", "aToken1", token1Decimals());
 
         MockAavePool aavePool = new MockAavePool(Currency.unwrap(token0), aToken0, Currency.unwrap(token1), atoken1);
         aavePoolAddressesProvider = address(new MockAavePoolAddressesProvider(address(aavePool)));
@@ -334,9 +334,11 @@ contract BaseTest is Test, Deployers {
         vm.stopPrank();
         amount0 = amount0 < 0 ? -amount0 : amount0;
         amount1 = amount1 < 0 ? -amount1 : amount1;
+        console.log("Deposited tokens to hook:", uint256(int256(amount0)), uint256(int256(amount1)));
     }
 
     function depositTokensToHookExpectRevert(uint256 token0Amount, uint256 token1Amount, address receiver) internal {
+        console.log("Depositing tokens to hook:", token0Amount, token1Amount);
         (uint256 liquidity,,) = hook.getLiquidityForTokenAmounts(token0Amount, token1Amount);
         vm.startPrank(receiver);
         IERC20(token0Address).approve(address(hook), token0Amount);

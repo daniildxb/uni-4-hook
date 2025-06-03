@@ -89,8 +89,9 @@ contract ModularHookBaseTest is BaseTest {
      */
     function executeSwap(bool zeroForOne, int256 amountSpecified) internal returns (BalanceDelta swapDelta) {
         // Approve tokens for swap
+        uint256 amountToApprove = uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified);
         address tokenIn = zeroForOne ? Currency.unwrap(token0) : Currency.unwrap(token1);
-        IERC20(tokenIn).forceApprove(address(swapRouter), uint256(-amountSpecified));
+        IERC20(tokenIn).forceApprove(address(swapRouter), amountToApprove);
 
         // Execute the swap
         swapDelta = swap(simpleKey, zeroForOne, amountSpecified, bytes(""));

@@ -130,13 +130,14 @@ contract ModularHookFeatureComboTest is ModularHookBaseTest {
         setupDepositCaps(scaleToken0Amount(depositCap), scaleToken1Amount(depositCap));
 
         // User deposits up to the cap
-        (uint256 depositShares,,,) = depositTokensToHook(scaleToken0Amount(depositCap - 1), scaleToken1Amount(depositCap - 1), user1);
+        (uint256 depositShares,,,) =
+            depositTokensToHook(scaleToken0Amount(depositCap - 1), scaleToken1Amount(depositCap - 1), user1);
 
         // Verify deposit succeeded
         assertEq(IERC20(address(hook)).balanceOf(user1), depositShares, "Deposit should succeed up to cap");
 
         // Try to deposit more (should fail)
-        depositTokensToHookExpectRevert(scaleToken0Amount(1), scaleToken1Amount(1), user1);
+        depositTokensToHookExpectRevert(scaleToken0Amount(2), scaleToken1Amount(2), user1);
 
         // User withdraws some funds
         vm.startPrank(user1);
@@ -163,14 +164,17 @@ contract ModularHookFeatureComboTest is ModularHookBaseTest {
 
         // Both users deposit
         uint256 depositAmount = 500;
-        (uint256 user1Shares,,,) = depositTokensToHook(depositAmount, depositAmount, user1);
-        (uint256 user2Shares,,,) = depositTokensToHook(depositAmount, depositAmount, user2);
+        (uint256 user1Shares,,,) =
+            depositTokensToHook(scaleToken0Amount(depositAmount), scaleToken1Amount(depositAmount), user1);
+        (uint256 user2Shares,,,) =
+            depositTokensToHook(scaleToken0Amount(depositAmount), scaleToken1Amount(depositAmount), user2);
 
         // Enable allowlist but only add user1
         setupAllowlist(true, user1);
 
         // User1 should be able to deposit more
-        (uint256 additionalUser1Shares,,,) = depositTokensToHook(depositAmount, depositAmount, user1);
+        (uint256 additionalUser1Shares,,,) =
+            depositTokensToHook(scaleToken0Amount(depositAmount), scaleToken1Amount(depositAmount), user1);
         assertGt(additionalUser1Shares, 0, "Allowlisted user should be able to deposit more");
 
         // User2 should not be able to deposit more

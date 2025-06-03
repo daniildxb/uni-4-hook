@@ -71,7 +71,8 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
      */
     function test_partial_withdrawal() public {
         // User deposits
-        (uint256 shares,,,) = depositTokensToHook(depositAmount0(), depositAmount1(), user1);
+        (uint256 shares,, int128 depositedToken0, int128 depositedToken1) =
+            depositTokensToHook(depositAmount0(), depositAmount1(), user1);
 
         // User withdraws half their shares
         uint256 sharesToWithdraw = shares / 2;
@@ -95,10 +96,16 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
         // User should get back approximately half of what they deposited
         // allowing 0.01% delta
         assertApproxEqRel(
-            token0Withdrawn, depositAmount0() / 2, 1e14, "Should withdraw approximately half deposited token0 amount"
+            token0Withdrawn,
+            uint256(int256(depositedToken0)) / 2,
+            1e14,
+            "Should withdraw approximately half deposited token0 amount"
         );
         assertApproxEqRel(
-            token1Withdrawn, depositAmount1() / 2, 1e14, "Should withdraw approximately half deposited token1 amount"
+            token1Withdrawn,
+            uint256(int256(depositedToken1)) / 2,
+            1e14,
+            "Should withdraw approximately half deposited token1 amount"
         );
 
         // User should have approximately half their shares left
@@ -122,8 +129,10 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
      */
     function test_withdrawal_with_multiple_users() public {
         // Both users deposit
-        (uint256 user1Shares,,,) = depositTokensToHook(depositAmount0(), depositAmount1(), user1);
-        (uint256 user2Shares,,,) = depositTokensToHook(depositAmount0() * 2, depositAmount1() * 2, user2);
+        (uint256 user1Shares,, int128 user1DepositedToken0, int128 user1DepositedToken1) =
+            depositTokensToHook(depositAmount0(), depositAmount1(), user1);
+        (uint256 user2Shares,, int128 user2DepositedToken0, int128 user2DepositedToken1) =
+            depositTokensToHook(depositAmount0() * 2, depositAmount1() * 2, user2);
 
         // Verify shares are proportional
         // allow some slippage due to inconsistent deposit sizes
@@ -137,11 +146,8 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
         hook.redeem(user1Shares, user1, user1);
         vm.stopPrank();
 
-        uint256 user1Token0After = IERC20(token0Address).balanceOf(user1);
-        uint256 user1Token1After = IERC20(token1Address).balanceOf(user1);
-
-        uint256 user1Token0Withdrawn = user1Token0After - user1Token0Before;
-        uint256 user1Token1Withdrawn = user1Token1After - user1Token1Before;
+        uint256 user1Token0Withdrawn = IERC20(token0Address).balanceOf(user1) - user1Token0Before;
+        uint256 user1Token1Withdrawn = IERC20(token1Address).balanceOf(user1) - user1Token1Before;
 
         // User2 withdraws second
         uint256 user2Token0Before = IERC20(token0Address).balanceOf(user2);
@@ -151,11 +157,8 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
         hook.redeem(user2Shares, user2, user2);
         vm.stopPrank();
 
-        uint256 user2Token0After = IERC20(token0Address).balanceOf(user2);
-        uint256 user2Token1After = IERC20(token1Address).balanceOf(user2);
-
-        uint256 user2Token0Withdrawn = user2Token0After - user2Token0Before;
-        uint256 user2Token1Withdrawn = user2Token1After - user2Token1Before;
+        uint256 user2Token0Withdrawn = IERC20(token0Address).balanceOf(user2) - user2Token0Before;
+        uint256 user2Token1Withdrawn = IERC20(token1Address).balanceOf(user2) - user2Token1Before;
 
         console.log("User1 token0 withdrawn:", user1Token0Withdrawn);
         console.log("User1 token1 withdrawn:", user1Token1Withdrawn);
@@ -164,24 +167,48 @@ contract ModularHookWithdrawalTest is ModularHookBaseTest {
 
         // Verify proportional withdrawals
         assertLe(
-            user1Token0Withdrawn, depositAmount0(), "User1 should withdraw no more than deposited token0 amount"
+            user1Token0Withdrawn,
+            uint256(int256(user1DepositedToken0)),
+            "User1 should withdraw no more than deposited token0 amount"
         );
         assertLe(
-            user1Token1Withdrawn, depositAmount1(), "User1 should withdraw no more than deposited token1 amount"
+            user1Token1Withdrawn,
+            uint256(int256(user1DepositedToken1)),
+            "User1 should withdraw no more than deposited token1 amount"
         );
         assertLe(
-            user2Token0Withdrawn, depositAmount0() * 2, "User2 should withdraw no more than deposited token0 amount"
+            user2Token0Withdrawn,
+            uint256(int256(user2DepositedToken0)),
+            "User2 should withdraw no more than deposited token0 amount"
         );
         assertLe(
-            user2Token1Withdrawn, depositAmount1() * 2, "User2 should withdraw no more than deposited token1 amount"
+            user2Token1Withdrawn,
+            uint256(int256(user2DepositedToken1)),
+            "User2 should withdraw no more than deposited token1 amount"
         );
-        assertApproxEqAbs(user1Token0Withdrawn, depositAmount0(), scaleToken0Amount(1), "User1 should withdraw deposited token0 amount");
-        assertApproxEqAbs(user1Token1Withdrawn, depositAmount1(), scaleToken1Amount(1), "User1 should withdraw deposited token1 amount");
         assertApproxEqAbs(
-            user2Token0Withdrawn, depositAmount0() * 2, scaleToken0Amount(1), "User2 should withdraw 2x deposited token0 amount"
+            user1Token0Withdrawn,
+            uint256(int256(user1DepositedToken0)),
+            scaleToken0Amount(1),
+            "User1 should withdraw deposited token0 amount"
         );
         assertApproxEqAbs(
-            user2Token1Withdrawn, depositAmount1() * 2, scaleToken1Amount(1), "User2 should withdraw 2x deposited token1 amount"
+            user1Token1Withdrawn,
+            uint256(int256(user1DepositedToken1)),
+            scaleToken1Amount(1),
+            "User1 should withdraw deposited token1 amount"
+        );
+        assertApproxEqAbs(
+            user2Token0Withdrawn,
+            uint256(int256(user2DepositedToken0)),
+            scaleToken0Amount(1),
+            "User2 should withdraw 2x deposited token0 amount"
+        );
+        assertApproxEqAbs(
+            user2Token1Withdrawn,
+            uint256(int256(user2DepositedToken1)),
+            scaleToken1Amount(1),
+            "User2 should withdraw 2x deposited token1 amount"
         );
 
         // Both users should have no shares left
