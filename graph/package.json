@@ -1,6 +1,6 @@
 {
   "name": "uni-v4-lending-hook-subgraph",
-  "version": "1.0.10",
+  "version": "1.0.21",
   "scripts": {
     "deploy": "ts-node ./scripts/deploy.ts --",
     "test": "npm run build -- localhost && graph test",
@@ -12,8 +12,8 @@
     "setup": "ts-node ./scripts/setup.ts --"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.97.0",
-    "@graphprotocol/graph-ts": "0.38.0"
+    "@graphprotocol/graph-cli": "0.97.1",
+    "@graphprotocol/graph-ts": "0.38.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

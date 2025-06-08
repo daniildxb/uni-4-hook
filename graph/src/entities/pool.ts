@@ -68,7 +68,6 @@ export function createPoolFromHookManagerEvent(event: HookDeployedEvent): Pool {
   pool.tickSpacing = BigInt.fromI32(tickSpacing);
   pool.fee = BigInt.fromI32(fee);
   pool.currentPrice = prices[0];
-  pool.totalValueLockedUSD = ZERO_BD;
   pool.cumulativeSwapFeeUSD = ZERO_BD;
   pool.cumulativeLendingYieldUSD = ZERO_BD;
   pool.cumulativeVolumeUSD = ZERO_BD;
@@ -125,7 +124,6 @@ export function trackSwap(pool: Pool, event: SwapEvent, _token0: Token, _token1:
   .minus(feeUSD);
 
   pool.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD.plus(feeUSD);
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(feeUSD).plus(lendingYieldUSD);
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
 
@@ -170,13 +168,25 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
     token1
   );
 
-  const depositUSD = convertTokenToUSD(token0, event.params.assets0)
-    .plus(convertTokenToUSD(token1, event.params.assets1));
+  log.info(
+    "[trackHookDeposit] token0Balance: {}, token1Balance: {}, pool.token0Amount: {}, pool.token1Amount: {}, event.params.assets0: {}, event.params.assets1: {}, lendingYieldUSD: {}, cumulativeLendingYieldUSD: {}",
+    [
+      token0Balance.toString(),
+      token1Balance.toString(),
+      pool.token0Amount.toString(),
+      pool.token1Amount.toString(),
+      event.params.assets0.toString(),
+      event.params.assets1.toString(),
+      lendingYieldUSD.toString(),
+      pool.cumulativeLendingYieldUSD.toString(),
+    ]
+  );
 
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.plus(depositUSD).plus(lendingYieldUSD);
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
   pool.shares = pool.shares.plus(event.params.shares);
+
+
 
 
   pool.token0Amount = token0Balance;
@@ -186,7 +196,6 @@ export function trackHookDeposit(pool: Pool, event: DepositEvent, token0: Token,
   pool.save();
 
   let protocol = getOrCreateProtocol();
-  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(depositUSD);
   bumpProtocolStats(ZERO_BD, ZERO_BD, lendingYieldUSD);
   protocol.save();
   return pool;
@@ -199,7 +208,6 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
 
 
   // Calculate lending yield in USD using our helper function
-  // todo: include withdraw amount here as it shouldn't be tracked as yield
   const lendingYieldUSD = calculateLendingYieldUSD(
     pool.token0Amount,
     pool.token1Amount,
@@ -208,12 +216,8 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
     token0,
     token1
   );
-  // here
-  const withdrawUSD = convertTokenToUSD(token0, event.params.assets0)
-    .plus(convertTokenToUSD(token1, event.params.assets1));
   pool.shares = pool.shares.minus(event.params.shares);
 
-  pool.totalValueLockedUSD = pool.totalValueLockedUSD.minus(withdrawUSD).plus(lendingYieldUSD);
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
   pool.token0Amount = token0Balance;
@@ -223,8 +227,6 @@ export function trackHookWithdraw(pool: Pool, event: WithdrawEvent, token0: Toke
   pool.save();
 
   let protocol = getOrCreateProtocol();
-  protocol.totalValueLockedUSD =
-    protocol.totalValueLockedUSD.minus(withdrawUSD);
   bumpProtocolStats(ZERO_BD, ZERO_BD, lendingYieldUSD);
 
   protocol.save();
@@ -254,13 +256,22 @@ export function calculateAPY(
   const exponent = SECONDS_PER_YEAR / timeDeltaSeconds; // safe since it's time
 
   const apyValue = Math.pow(base, exponent) - 1;
+  if (!isFinite(apyValue)) {
+    log.error("APY calculation resulted in an infinite value, growthFactor: {}, timeDeltaSeconds: {}", [
+      growthFactor.toString(),
+      timeDeltaSeconds.toString(),
+    ]);
+    return BigDecimal.fromString("999");
+  }
 
   return BigDecimal.fromString(apyValue.toString());
 }
 
 export function getOrCreateSnapshot(
   pool: Pool,
-  block: ethereum.Block
+  block: ethereum.Block,
+  token0: Token,
+  token1: Token
 ): PoolHourlySnapshots {
   let idNum = block.timestamp.toI64() / SECONDS_IN_HOUR;
   let id: string = `${pool.id}-${idNum.toString()}`;
@@ -289,7 +300,14 @@ export function getOrCreateSnapshot(
   snapshot = new PoolHourlySnapshots(id);
   snapshot.pool = pool.id;
   snapshot.currentPrice = pool.currentPrice;
-  snapshot.totalValueLockedUSD = pool.totalValueLockedUSD;
+  // todo: get it from helpers
+  snapshot.totalValueLockedUSD = new BigDecimal(pool.token0Amount).times(token0.lastPriceUSD).div(
+    new BigDecimal(BigInt.fromI32(10).pow(u8(token0.decimals)))
+  ).plus(
+    new BigDecimal(pool.token1Amount).times(token1.lastPriceUSD).div(
+      new BigDecimal(BigInt.fromI32(10).pow(u8(token1.decimals)))
+    )
+  );
   snapshot.cumulativeSwapFeeUSD = pool.cumulativeSwapFeeUSD;
   snapshot.cumulativeLendingYieldUSD = pool.cumulativeLendingYieldUSD;
   snapshot.cumulativeVolumeUSD = pool.cumulativeVolumeUSD;
@@ -335,7 +353,6 @@ export function updatePoolLendingYield(
 
   pool.cumulativeLendingYieldUSD =
     pool.cumulativeLendingYieldUSD.plus(lendingYieldUSD);
-  pool.totalValueLockedUSD = lendingYieldUSD.plus(pool.totalValueLockedUSD);
 
   _updateTimestamps(pool, block);
 

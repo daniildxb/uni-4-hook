@@ -7,9 +7,8 @@ import { log } from '@graphprotocol/graph-ts';
 export function handleHookDeployed(event: HookDeployedEvent): void {
   getOrCreateProtocol();
 
-  log.log(
-    log.Level.INFO,
-    `[HOOK] Hook deployed: ${event.params.hook.toHexString()}`
+  log.error(
+    `[HOOK] Hook deployed: {}`, [event.params.hook.toHexString()]
   );
 
   createPoolFromHookManagerEvent(event);

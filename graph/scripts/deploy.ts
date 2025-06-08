@@ -1,10 +1,10 @@
-import path from "path";
-import { execAsync, getNetwork } from "./utils";
 import dotenv from "dotenv";
+import path from "path";
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+import { execAsync, getNetwork } from "./utils";
 import { version } from "../package.json";
 import { networks as ALLOWED_NETWORKS } from "../src/config";
 
-dotenv.config();
 
 interface EnvVariables {
   GOLDSKY_API_KEY?: string;

@@ -31,7 +31,7 @@ export function handleDeposit(event: DepositEvent): void {
   const pool = getPoolFromHookAddress(event.address);
 
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    log.warning('[HOOK] Pool not found for hook: {}', [event.address.toString()]);
     return;
   }
 
@@ -47,8 +47,10 @@ export function handleDeposit(event: DepositEvent): void {
   let position = getPosition(accountAddress, pool.id);
   if (position === null) {
     // Create a new position if it doesn't exist
+    log.warning('[HOOK] DEPOSIT Creating position: {} and pool: {}', [accountAddress, pool.id]);
     position = createPosition(accountAddress, pool.id, event.params.shares, event);
   } else {
+    log.warning('[HOOK] DEPOSIT Position found: {} and pool: {}', [accountAddress, pool.id]);
     trackDeposit(position, event);
   }
 
@@ -62,9 +64,10 @@ export function handleDeposit(event: DepositEvent): void {
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
+  log.warning('[HOOK] Withdraw event', []);
   const pool = getPoolFromHookAddress(event.address);
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    log.warning('[HOOK] Pool not found for hook: {}', [event.address.toString()]);
     return;
   }
 
@@ -74,6 +77,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
   // Create position ID
   let position = getPosition(address, pool.id);
   if (position === null) {
+    log.warning('[HOOK] Position not found for address: {} and pool: {}', [address, pool.id]);
     // This should not happen as pool should be created during initialization
     return;
   }
@@ -90,7 +94,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
 export function handleFeesTracked(event: FeesTrackedEvent): void {
   const pool = getPoolFromHookAddress(event.address);
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    log.warning('[HOOK] Pool not found for hook: {}', [event.address.toString()]);
     return;
   }
 
@@ -101,7 +105,7 @@ export function handleFeesCollected(event: FeesCollectedEvent): void {
   const pool = getPoolFromHookAddress(event.address);
 
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    log.warning('[HOOK] Pool not found for hook: {}', [event.address.toString()]);
     return;
   }
 
@@ -121,7 +125,7 @@ export function handleTransfer(event: TransferEvent): void {
   }
   const pool = getPoolFromHookAddress(event.address);
   if (pool === null) {
-    log.log(log.Level.WARNING, `[HOOK] Pool not found for hook: ${event.address.toString()}`);
+    log.warning('[HOOK] Pool not found for hook: {}', [event.address.toString()]);
     return;
   }
 

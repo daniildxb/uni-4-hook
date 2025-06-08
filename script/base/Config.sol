@@ -65,9 +65,9 @@ contract Config is SqrtPriceCalculator {
 
     address constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
     address constant BASE_AAVE_PROVIDER = 0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D;
-    address constant BASE_HOOK_MANAGER = 0x725345f4092D56352AaF26DcC490B9F3E0ceF235;
+    address constant BASE_HOOK_MANAGER = 0x424d36CE906C864d1c1fcfAf65e27E90C495bE56;
     address constant BASE_REACTOR = 0x000000001Ec5656dcdB24D90DFa42742738De729;
-    address constant BASE_EXECUTOR = 0xCf640d499F8f7693b6663e1c096bf3E842400C08;
+    address constant BASE_EXECUTOR = 0x044406DfB9908EA5ef7f4dC451f815b1fFFC902a;
 
     address constant LOCAL_HOOK_MANAGER = 0xC06f14998f2B65E7D3dD14F049F827F0DF7Bb8a9;
 
@@ -234,10 +234,10 @@ contract Config is SqrtPriceCalculator {
             tokenPair = TokenPair({
                 token0Address: BASE_GHO,
                 token1Address: BASE_USDC,
-                fee: 50,
-                tickSpacing: DEFAULT_TICK_SPACING,
-                hookAddress: 0xC93000eB1C02B37F497298f917319fa6c53A48C0,
-                poolId: "0xf27a601352d56e0e903ad5d1c86dd4c40e004acfb29832543ee5264d19280ba6"
+                fee: 100, // bug from prev deployment, update on new
+                tickSpacing: 60, // bug from prev deployment, update on new
+                hookAddress: 0x666b0B9A14F01D57Ce39A7382Bbb0913b73388c0,
+                poolId: "0xf9f7eb96d1f6accf45ec7302fe942abc96efac5f3c4f35af98fb8f40e7e7c824"
             });
         } else if (poolId == VIRTUALS_USDC_POOL) {
             tokenPair = TokenPair({
@@ -245,8 +245,8 @@ contract Config is SqrtPriceCalculator {
                 token1Address: BASE_USDC,
                 fee: 100,
                 tickSpacing: 60,
-                hookAddress: 0x16227F74C9e0EC737037FE56b5895eD6abeCC8C0,
-                poolId: "0xaddbf171c2f10e93c483c21c1c56731ac53786d3702cb6a99c8230e2e6560bef"
+                hookAddress: 0x529A8b30B0CA1CdB63c1E3F852366bfe281c48C0,
+                poolId: "0x48007693017776c907ca960417ede92967337b1ca65b9d85c73638fec4117a4e"
             });
         } else {
             revert("Unsupported pool ID for Base");

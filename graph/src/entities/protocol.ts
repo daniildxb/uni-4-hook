@@ -8,7 +8,6 @@ export function getOrCreateProtocol(): Protocol {
   if (protocol === null) {
     protocol = new Protocol("uniswap-v4-lending-hook");
     protocol.name = "Uniswap V4 Lending Hook";
-    protocol.totalValueLockedUSD = ZERO_BD;
     protocol.cumulativeFeeUSD = ZERO_BD;
     protocol.cumulativeVolumeUSD = ZERO_BD;
     protocol.cumulativeProtocolFeeUSD = ZERO_BD;
@@ -24,7 +23,6 @@ export function bumpProtocolStats(feeToAdd: BigDecimal, swapVolumeToAdd: BigDeci
   if (protocol === null) {
     return;
   }
-  protocol.totalValueLockedUSD = protocol.totalValueLockedUSD.plus(feeToAdd).plus(lendingYieldToAdd);
   protocol.cumulativeFeeUSD = protocol.cumulativeFeeUSD.plus(feeToAdd).plus(lendingYieldToAdd);
   protocol.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD.plus(swapVolumeToAdd);
   protocol.save();
@@ -32,7 +30,8 @@ export function bumpProtocolStats(feeToAdd: BigDecimal, swapVolumeToAdd: BigDeci
 
 export function getOrCreateSnapshot(
   protocol: Protocol,
-  block: ethereum.Block
+  block: ethereum.Block,
+  protocolTvlUsd: BigDecimal,
 ): ProtocolHourlySnapshots {
   let id: string = (block.timestamp.toI64() / SECONDS_IN_HOUR).toString();
   let snapshot = ProtocolHourlySnapshots.load(id);
@@ -42,7 +41,7 @@ export function getOrCreateSnapshot(
 
   snapshot = new ProtocolHourlySnapshots(id);
   snapshot.protocol = protocol.id;
-  snapshot.totalValueLockedUSD = protocol.totalValueLockedUSD;
+  snapshot.totalValueLockedUSD = protocolTvlUsd;
   snapshot.cumulativeFeeUSD = protocol.cumulativeFeeUSD;
   snapshot.cumulativeVolumeUSD = protocol.cumulativeVolumeUSD;
   snapshot.cumulativeProtocolFeeUSD = protocol.cumulativeProtocolFeeUSD;

@@ -1160,18 +1160,14 @@
     "type": "function",
     "name": "token0",
     "inputs": [],
-    "outputs": [
-      { "name": "", "type": "address", "internalType": "Currency" }
-    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "Currency" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "token1",
     "inputs": [],
-    "outputs": [
-      { "name": "", "type": "address", "internalType": "Currency" }
-    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "Currency" }],
     "stateMutability": "view"
   },
   {
