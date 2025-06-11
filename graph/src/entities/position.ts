@@ -31,8 +31,6 @@ export function createPosition(
   position.updatedAtTimestamp = event.block.timestamp;
   position.updatedAtBlockNumber = event.block.number;
   position.save();
-  // create empty snapshot to have a clean start
-  createEmptyPositionSnapshot(position, event);
   // track first deposit
   getOrCreateSnapshot(position, event);
   return position;
@@ -83,19 +81,6 @@ export function getOrCreateSnapshot(position: Position, event: ethereum.Event): 
   snapshot.position = position.id;
   snapshot.createdAtTimestamp = event.block.timestamp;
   snapshot.createdAtBlockNumber = event.block.number;
-  snapshot.save();
-  return snapshot;
-}
-
-// for the initial position snapshot
-export function createEmptyPositionSnapshot(position: Position, event: ethereum.Event): PositionSnapshots {
-  const synthethicTimestamp = event.block.timestamp.minus(ONE_BI)
-  const id = `${position.id}-${event.transaction.hash.toHexString()}-${event.transactionLogIndex.toString()}`;
-  let snapshot = new PositionSnapshots(id);
-  snapshot.shares = ZERO_BI;
-  snapshot.position = position.id;
-  snapshot.createdAtTimestamp = synthethicTimestamp;
-  snapshot.createdAtBlockNumber = event.block.number.minus(ONE_BI);
   snapshot.save();
   return snapshot;
 }

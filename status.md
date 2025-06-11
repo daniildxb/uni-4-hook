@@ -25,3 +25,4 @@ Next steps:
 Todo:
 1. Redeploy whoel setup with proper params for gho/usdc
 2. Update log levels on subgraph
+3. Setup arbitrager service for pools

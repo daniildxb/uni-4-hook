@@ -155,11 +155,14 @@ function _getQuoteFromQuoterV2(
 
     const quote = v2Quoter.try_quoteExactInputSingle(params);
     if (!quote.reverted) {
-      // divide by quoter token decimals
-      return quote.value
-        .getAmountOut()
-        .toBigDecimal()
-        .div(new BigDecimal(BigInt.fromI32(10).pow(u8(quoteTokenDecimals))));
+      const amountOut = quote.value.getAmountOut().toBigDecimal();
+      const normalizedAmount = amountOut.div(new BigDecimal(BigInt.fromI32(10).pow(u8(quoteTokenDecimals))));
+      
+      // Reimburse the swap fee - fees[i] is in ten-thousandths (10000 = 1%)
+      const feeRate = new BigDecimal(BigInt.fromI32(fees[i])).div(new BigDecimal(BigInt.fromI32(1000000)));
+      const feeAmount = normalizedAmount.times(feeRate).div(ONE_BD.minus(feeRate));
+      
+      return normalizedAmount.plus(feeAmount);
     }
   }
   log.warning("_getQuoteFromQuoterV2: could not get price for token: {}", [
@@ -207,11 +210,14 @@ function _getQuoteFromQuoterV4(
 
       const quote = v4Quoter.try_quoteExactInputSingle(params);
       if (!quote.reverted) {
-        // divide by quoter token decimals
-        return quote.value
-          .getAmountOut()
-          .toBigDecimal()
-          .div(new BigDecimal(BigInt.fromI32(10).pow(u8(quoteTokenDecimals))));
+        const amountOut = quote.value.getAmountOut().toBigDecimal();
+        const normalizedAmount = amountOut.div(new BigDecimal(BigInt.fromI32(10).pow(u8(quoteTokenDecimals))));
+        
+        // Reimburse the swap fee - fees[i] is in ten-thousandths (10000 = 1%)
+        const feeRate = new BigDecimal(BigInt.fromI32(fees[i])).div(new BigDecimal(BigInt.fromI32(1000000)));
+        const feeAmount = normalizedAmount.times(feeRate).div(ONE_BD.minus(feeRate));
+        
+        return normalizedAmount.plus(feeAmount);
       }
     }
   }
