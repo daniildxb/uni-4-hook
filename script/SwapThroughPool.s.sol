@@ -23,7 +23,7 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
 
     function run() public {
         // Parse the AMOUNT environment variable if provided
-        string memory amountArg = vm.envOr("AMOUNT", string("100000")); // Default to 100000 if not provided
+        string memory amountArg = vm.envOr("AMOUNT", string("1000000")); // Default to 100000 if not provided
         int256 baseAmountToSwap = int256(vm.parseUint(amountArg));
 
         // Get the pool enum from environment variables or default to USDC/USDT pool
@@ -61,9 +61,9 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
         console.log("Performing swap token1 -> token0 with amount:", uint256(amountToSwap1));
         swap(config.poolKey, false, -amountToSwap1, ZERO_BYTES);
 
-        // token0 -> token1 (negative for exact input swap)
-        console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap0));
-        swap(config.poolKey, true, amountToSwap1, ZERO_BYTES);
+        // // token0 -> token1 (negative for exact input swap)
+        // console.log("Performing swap token0 -> token1 with amount:", uint256(amountToSwap0));
+        // swap(config.poolKey, true, amountToSwap1, ZERO_BYTES);
 
         console.log("6");
         vm.stopBroadcast();

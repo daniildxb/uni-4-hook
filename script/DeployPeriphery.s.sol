@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {HookManager} from "../src/HookManager.sol";
 import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Config} from "./base/Config.sol";
-import {UniswapXExecutor} from "../src/UniswapXExecutor.sol";
+import {UniswapXExecutor} from "../src/swappers/UniswapXExecutor.sol";
 
 /// @notice Deploys HookManager
 contract DeployPeripheryScript is Script, Deployers, Config {

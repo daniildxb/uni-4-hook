@@ -17,7 +17,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {BaseTest} from "../../BaseTest.sol";
 import {DeployPermit2} from "../../utils/DeployPermit2.sol";
-import {UniswapXExecutor} from "../../../src/UniswapXExecutor.sol";
+import {UniswapXExecutor} from "../../../src/swappers/UniswapXExecutor.sol";
 import {IReactor} from "@uniswapx/src/interfaces/IReactor.sol";
 import {PriorityOrderReactor} from "@uniswapx/src/reactors/PriorityOrderReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";

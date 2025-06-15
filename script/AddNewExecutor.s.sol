@@ -10,7 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Config} from "./base/Config.sol";
 import {ModularHookV1} from "src/ModularHookV1.sol";
 import {HookManager} from "src/HookManager.sol";
-import {UniswapXExecutor} from "../src/UniswapXExecutor.sol";
+import {UniswapXExecutor} from "../src/swappers/UniswapXExecutor.sol";
 
 /// @notice Withdraws liquidity from an existing pool
 contract AddNewExecutor is Script, Deployers, Config {

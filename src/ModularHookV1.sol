@@ -90,8 +90,8 @@ contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, AaveFeesH
         PoolKey calldata _key,
         IPoolManager.SwapParams calldata swapParams,
         bytes calldata hookData
-    ) internal virtual override(AaveFeesHook, BaseHook) returns (bytes4, BeforeSwapDelta, uint24) {
-        return AaveFeesHook._beforeSwap(sender, _key, swapParams, hookData);
+    ) internal virtual override(AllowlistedHook, AaveFeesHook, BaseHook) returns (bytes4, BeforeSwapDelta, uint24) {
+        return super._beforeSwap(sender, _key, swapParams, hookData);
     }
 
     function _afterSwap(

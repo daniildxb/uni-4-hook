@@ -19,6 +19,8 @@ interface IHook {
     function setDepositCaps(uint256 depositCap0, uint256 depositCap1) external;
     function flipAllowlist() external;
     function flipAddressInAllowList(address addr) external;
+    function flipSwapperAllowlist() external;
+    function flipAddressInSwapperAllowList(address addr) external;
     function setFeeBps(uint256 feeBps) external;
     function collectFees() external;
     function rescue(address token, uint256 amount, address to) external;
@@ -147,6 +149,14 @@ contract HookManager is IHookManager, Ownable {
 
     function flipAddressInAllowList(address hook, address addr) external onlyOwner isValidHook(hook) {
         IHook(hook).flipAddressInAllowList(addr);
+    }
+
+    function flipSwapperAllowlist(address hook) external onlyOwner isValidHook(hook) {
+        IHook(hook).flipSwapperAllowlist();
+    }
+
+    function flipAddressInSwapperAllowList(address hook, address addr) external onlyOwner isValidHook(hook) {
+        IHook(hook).flipAddressInSwapperAllowList(addr);
     }
 
     function setFeeBps(address hook, uint256 feeBps) external onlyOwner isValidHook(hook) {
