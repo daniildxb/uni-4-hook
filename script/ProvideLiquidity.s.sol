@@ -17,8 +17,8 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
 
     function run() public {
         // usdc
-        uint256 maxTokenAmount0 = 50 * 1e18;
-        uint256 maxTokenAmount1 = 100 * 1e6;
+        uint256 maxTokenAmount0 = 1700 * 1e18;
+        uint256 maxTokenAmount1 = 3200 * 1e6;
         uint256 chainId = vm.envUint("CHAIN_ID");
         uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
 
@@ -31,13 +31,11 @@ contract ProvideLiquidityScript is Script, Deployers, Config {
         console.log("amount1", amount1);
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         console.log("1");
-        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(hook), 100 * 1e18);
+        IERC20(Currency.unwrap(hook.token0())).forceApprove(address(hook), maxTokenAmount0 * 2);
         console.log("2");
-        IERC20(Currency.unwrap(hook.token1())).forceApprove(address(hook), 100 * 1e18);
+        IERC20(Currency.unwrap(hook.token1())).forceApprove(address(hook), maxTokenAmount1 * 2);
         console.log("liquidity", uint256(liquidity));
         hook.deposit(uint256(liquidity), receiver, "");
-
-        // hook.moveLiquidityToPool();
         vm.stopBroadcast();
     }
 }
