@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {AaveFeesHook} from "./hooks/AaveFeesHook.sol";
 import {RescueHook} from "./hooks/RescueHook.sol";
+import {DonationHook} from "./hooks/DonationHook.sol";
 import {RolesHook} from "./hooks/RolesHook.sol";
 import {CustodyHook} from "./hooks/CustodyHook.sol";
 import {AllowlistedHook} from "./hooks/AllowlistedHook.sol";
@@ -45,7 +46,7 @@ struct ModularHookV1HookConfig {
  * @notice Most of the functionality is inherited, only defines permissions
  * and overrides for abstract methods
  */
-contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, AaveFeesHook {
+contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, DonationHook, AaveFeesHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20Metadata;

@@ -33,7 +33,7 @@ contract DeployFullRangeScript is Script, Deployers, Config {
             uint256 pool_enum = vm.envUint("POOL_ENUM"); // 0 USDC/USDT ; 1 USDT/DAI
             config = getConfigPerNetwork(chainId, pool_enum);
         }
-        uint160 price = 123071741410724755212216; // needs to be fetched ad hoc
+        uint160 price = 107434118735100899387972; // needs to be fetched ad hoc
 
         ModularHookV1HookConfig memory hookParams;
         {
