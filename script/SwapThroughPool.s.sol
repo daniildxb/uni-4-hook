@@ -23,7 +23,7 @@ contract SwapThroughPoolScript is Script, Deployers, Config {
 
     function run() public {
         // Parse the AMOUNT environment variable if provided
-        string memory amountArg = vm.envOr("AMOUNT", string("1000000")); // Default to 100000 if not provided
+        string memory amountArg = vm.envOr("AMOUNT", string("5000000")); // Default to 100000 if not provided
         int256 baseAmountToSwap = int256(vm.parseUint(amountArg));
 
         // Get the pool enum from environment variables or default to USDC/USDT pool

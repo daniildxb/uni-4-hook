@@ -46,7 +46,7 @@ struct ModularHookV1HookConfig {
  * @notice Most of the functionality is inherited, only defines permissions
  * and overrides for abstract methods
  */
-contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, DonationHook, AaveFeesHook {
+contract ModularHookV1 is DepositCapHook, RescueHook, DonationHook, AaveFeesHook, AllowlistedHook {
     using CurrencyLibrary for Currency;
     using BalanceDeltaLibrary for BalanceDelta;
     using SafeERC20 for IERC20Metadata;
@@ -91,7 +91,7 @@ contract ModularHookV1 is DepositCapHook, AllowlistedHook, RescueHook, DonationH
         PoolKey calldata _key,
         IPoolManager.SwapParams calldata swapParams,
         bytes calldata hookData
-    ) internal virtual override(AllowlistedHook, AaveFeesHook, BaseHook) returns (bytes4, BeforeSwapDelta, uint24) {
+    ) internal virtual override(AaveFeesHook, AllowlistedHook, BaseHook) returns (bytes4, BeforeSwapDelta, uint24) {
         return super._beforeSwap(sender, _key, swapParams, hookData);
     }
 

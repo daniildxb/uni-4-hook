@@ -28,13 +28,15 @@ contract DeployArbitrager is Script, Deployers, Config {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         PoolKey memory uniPoolKey = PoolKey({
             currency0: config.poolKey.currency0,
-            currency1: config.poolKey.currency0,
+            currency1: config.poolKey.currency1,
             fee: 3000,
             tickSpacing: 60,
             hooks: IHooks(0x0000000000000000000000000000000000000000)
         });
 
-        SwapRouterNoChecks routerNoChecks = new SwapRouterNoChecks(IPoolManager(config.poolManager));
+        // SwapRouterNoChecks routerNoChecks = new SwapRouterNoChecks(IPoolManager(config.poolManager));
+        address routerNoChecks = 0x4400ad88f0Cd547f0BC3C279dC2b64A91a98F161; // base
+
         new UniswapArbitrager(config.poolManager, filler, filler, address(routerNoChecks), config.poolKey, uniPoolKey);
         vm.stopBroadcast();
     }

@@ -37,6 +37,8 @@ contract SetAllowListScript is Script, Deployers, Config {
             // Set the allowlist status
             hookManager.flipAllowlist(address(hook));
             hookManager.flipAddressInAllowList(address(hook), receiver);
+            hookManager.flipSwapperAllowlist(address(hook));
+            hookManager.flipAddressInSwapperAllowList(address(hook), receiver);
             console.log("Allowlist status set to", desiredAllowListStatus);
         } else {
             console.log("Allowlist already in desired state:", allowListState);

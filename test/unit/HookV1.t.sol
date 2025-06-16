@@ -332,4 +332,67 @@ contract HookV1Test is BaseTest {
             "User 2 should redeem ~2x the assets of User 1"
         );
     }
+
+    function test_swapper_allowlist_works() public {
+        // Setup: Add some liquidity to the pool first
+        uint256 depositAmount = 1000e6;
+        deal(Currency.unwrap(token0), address(manager), depositAmount, false);
+        deal(Currency.unwrap(token1), address(manager), depositAmount, false);
+        
+        IERC20(Currency.unwrap(token0)).forceApprove(address(hook), depositAmount);
+        IERC20(Currency.unwrap(token1)).forceApprove(address(hook), depositAmount);
+        depositTokensToHook(depositAmount, depositAmount, address(this));
+
+        // Verify initial state - allowlist is disabled
+        assertFalse(hook.isSwapperAllowlistEnabled(), "Swapper allowlist should be disabled initially");
+
+        // Test 1: Enable swapper allowlist without adding anyone to it
+        vm.startPrank(address(hookManager));
+        hook.flipSwapperAllowlist(); // Enable the allowlist
+        vm.stopPrank();
+
+        assertTrue(hook.isSwapperAllowlistEnabled(), "Swapper allowlist should be enabled");
+        assertFalse(hook.swapperAllowlist(tx.origin), "tx.origin should not be in allowlist initially");
+
+        // Test 2: Try to swap when allowlist is enabled but tx.origin not in allowlist - should fail
+        bool zeroForOne = true;
+        int256 amountSpecified = -10e6; // Small swap amount
+
+        IERC20(Currency.unwrap(token0)).forceApprove(address(swapRouter), 100e6);
+        vm.expectRevert(); // Just expect any revert since the error might be wrapped
+        swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
+
+        // Test 3: Add tx.origin to allowlist, swap should work
+        vm.startPrank(address(hookManager));
+        hook.flipAddressInSwapperAllowList(tx.origin); // Add actual tx.origin to allowlist
+        vm.stopPrank();
+
+        assertTrue(hook.swapperAllowlist(tx.origin), "tx.origin should be in allowlist");
+
+        // Now swap should work
+        BalanceDelta delta1 = swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
+        assertTrue(delta1.amount0() != 0 || delta1.amount1() != 0, "Swap should succeed when tx.origin in allowlist");
+
+        // Test 4: Remove tx.origin from allowlist, swaps should fail again
+        vm.startPrank(address(hookManager));
+        hook.flipAddressInSwapperAllowList(tx.origin); // Remove tx.origin from allowlist
+        vm.stopPrank();
+
+        assertFalse(hook.swapperAllowlist(tx.origin), "tx.origin should be removed from allowlist");
+
+        // Swap should fail again
+        vm.expectRevert(); // Just expect any revert since the error might be wrapped
+        swap(simpleKey, !zeroForOne, amountSpecified, ZERO_BYTES);
+
+        // Test 5: Disable allowlist, swap should work even without being in allowlist
+        vm.startPrank(address(hookManager));
+        hook.flipSwapperAllowlist(); // Disable the allowlist
+        vm.stopPrank();
+
+        assertFalse(hook.isSwapperAllowlistEnabled(), "Swapper allowlist should be disabled");
+
+        // Swap should work now even though tx.origin not in allowlist
+        BalanceDelta delta2 = swap(simpleKey, zeroForOne, amountSpecified, ZERO_BYTES);
+        assertTrue(delta2.amount0() != 0 || delta2.amount1() != 0, "Swap should work when allowlist disabled");
+    }
 }
