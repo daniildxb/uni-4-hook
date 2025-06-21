@@ -7,6 +7,12 @@ out/
 /broadcast/*/31337/
 /broadcast/*/5/
 /broadcast/**/dry-run/
+/broadcast/*/11155111/
+/broadcast/ProvideLiquidity.s.sol/
+/broadcast/SwapThroughPool.s.sol/
+/broadcast/WithdrawFromPool.s.sol/
+/broadcast/RescueFromHook.s.sol/
+/broadcast/SetAllowList.s.sol/
 
 # Docs
 docs/
@@ -16,3 +22,11 @@ docs/
 
 # Node modules
 node_modules/
+**/.claude/settings.local.json
+
+# Graph-related
+graph/node_modules/
+graph/generated/
+graph/build/
+graph/subgraph*.yaml
+!graph/subgraph.yaml
