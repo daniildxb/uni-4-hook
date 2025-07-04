@@ -48,24 +48,28 @@ abstract contract ExtendedHook is IModularHook, BaseHook {
     bool public liquidityInitialized;
     PoolKey public key;
 
-    constructor(IPoolManager _poolManager, Currency _token0, Currency _token1, int24 _tickMin, int24 _tickMax)
-        BaseHook(_poolManager)
-    {
-        token0 = _token0;
-        token1 = _token1;
+    constructor(IPoolManager _poolManager, int24 _tickMin, int24 _tickMax) BaseHook(_poolManager) {
         tickMin = _tickMin;
         tickMax = _tickMax;
     }
 
-    // Add a pool to be managed by this hook
-    function addPool(PoolKey calldata _key) public {
-        assert(_key.currency0 == token0);
-        assert(_key.currency1 == token1);
-        // verifies that the pool is not already added
-        assert(address(key.hooks) == address(0));
-        // verifies pool uses this hook
-        assert(address(_key.hooks) == address(this));
-        key = _key;
+    // ensures hook is only used by a single pool and no native asset is used
+    function _beforeInitialize(address sender, PoolKey calldata poolKey, uint160 sqrtPriceX96)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
+        require(address(key.hooks) == address(0), "Hook already initialized");
+        require(
+            (Currency.unwrap(poolKey.currency0) != address(0) && Currency.unwrap(poolKey.currency1) != address(0)),
+            "Hook does not support native assets"
+        );
+        key = poolKey;
+        token0 = poolKey.currency0;
+        token1 = poolKey.currency1;
+
+        return this.beforeInitialize.selector;
     }
 
     // VIEWS

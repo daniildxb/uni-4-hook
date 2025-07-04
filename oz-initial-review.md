@@ -1,4 +1,4 @@
 - Two deltas might be positive / negative check them, instead of relying on a single conditional
-- Total assets do not take into account potential difference in asset ratio due to different yield
-- add pool key on the beforeInitialize
-- revert if native asset is used
+- Total assets do not take into account potential difference in asset ratio due to different yield - if yield differences persist would only be solved by arbitrage flows and donations
+- add pool key on the beforeInitialize - √
+- revert if native asset is used - √

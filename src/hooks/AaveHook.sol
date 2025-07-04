@@ -46,6 +46,20 @@ abstract contract AaveHook is CustodyHook {
         aToken1 = IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(token1)).aTokenAddress;
     }
 
+    function _beforeInitialize(address sender, PoolKey calldata poolKey, uint160 sqrtPriceX96)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
+        super._beforeInitialize(sender, poolKey, sqrtPriceX96);
+        aToken0 =
+            IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(poolKey.currency0)).aTokenAddress;
+        aToken1 =
+            IPool(aavePoolAddressesProvider.getPool()).getReserveData(Currency.unwrap(poolKey.currency1)).aTokenAddress;
+        return this.beforeInitialize.selector;
+    }
+
     /**
      * @dev Returns the total assets held by the hook, using aToken balances
      */

@@ -27,8 +27,6 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 
 struct ModularHookV1HookConfig {
     IPoolManager poolManager;
-    Currency token0;
-    Currency token1;
     int24 tickMin;
     int24 tickMax;
     address aavePoolAddressesProvider;
@@ -55,15 +53,16 @@ contract ModularHookV1 is DepositCapHook, RescueHook, DonationHook, AaveFeesHook
         RolesHook(msg.sender)
         AaveHook(config.aavePoolAddressesProvider)
         HotBufferHook(config.bufferSize0, config.bufferSize1, config.minTransferAmount0, config.minTransferAmount1)
-        ExtendedHook(config.poolManager, config.token0, config.token1, config.tickMin, config.tickMax)
+        ExtendedHook(config.poolManager, config.tickMin, config.tickMax)
         FeeTrackingHook(config.fee_bps)
-        ERC4626(IERC20Metadata(Currency.unwrap(config.token0)))
+        // actual asset is liquidity value from the pool, not token
+        ERC4626(IERC20Metadata(address(0)))
         ERC20(config.shareName, config.shareSymbol)
     {}
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: false,
+            beforeInitialize: true, // <----
             afterInitialize: false,
             beforeAddLiquidity: true, // <----
             afterAddLiquidity: false,
@@ -136,5 +135,14 @@ contract ModularHookV1 is DepositCapHook, RescueHook, DonationHook, AaveFeesHook
         override(AaveFeesHook, CustodyHook)
     {
         return AaveFeesHook._afterHookWithdrawal(amount0, amount1, receiver);
+    }
+
+    function _beforeInitialize(address sender, PoolKey calldata poolKey, uint160 sqrtPriceX96)
+        internal
+        virtual
+        override(AaveFeesHook, ExtendedHook)
+        returns (bytes4)
+    {
+        return AaveFeesHook._beforeInitialize(sender, poolKey, sqrtPriceX96);
     }
 }

@@ -13,7 +13,6 @@ import {IHookManager} from "./interfaces/IHookManager.sol";
 
 interface IHook {
     function key() external view returns (PoolKey memory);
-    function addPool(PoolKey memory key) external;
     function setBufferSize(uint256 bufferSize0, uint256 bufferSize1) external;
     function setMinTransferAmount(uint256 minTransferAmount0, uint256 minTransferAmount1) external;
     function setDepositCaps(uint256 depositCap0, uint256 depositCap1) external;
@@ -86,7 +85,6 @@ contract HookManager is IHookManager, Ownable {
         // Initialize the pool and add it to the hook
         PoolKey memory key = PoolKey(token0, token1, fee, tickSpacing, IHooks(hookAddress));
         IPoolManager(poolManager).initialize(key, sqrtPriceX96);
-        IHook(hookAddress).addPool(key);
 
         // Track the hook
         PoolId poolId = key.toId();

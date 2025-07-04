@@ -90,13 +90,13 @@ contract HookManagerTest is BaseTest {
     function _deploySecondHook() internal {
         // We need a different hook with a unique pool key
         // First, we need to deploy a second hook with a different pool key
-        uint160 flags =
-            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x5555 << 144); // Different namespace
+        uint160 flags = uint160(
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
+                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+        ) ^ (0x5555 << 144); // Different namespace
 
         ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(manager),
-            token0: token0,
-            token1: token1,
             tickMin: tickMin() - 10, // Different tick range to make a different pool
             tickMax: tickMax() + 10,
             aavePoolAddressesProvider: aavePoolAddressesProvider,
@@ -120,8 +120,8 @@ contract HookManagerTest is BaseTest {
 
         // Deploy the second hook through the HookManager
         hookManager.deployHook(
-            hookParams.token0,
-            hookParams.token1,
+            token0,
+            token1,
             hookAddress,
             initialPrice(),
             secondFee, // Different fee for different pool key

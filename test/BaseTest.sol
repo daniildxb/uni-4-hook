@@ -216,13 +216,13 @@ contract BaseTest is Test, Deployers {
 
     function _deployHook(Currency _token0, Currency _token1) internal virtual {
         vm.startPrank(admin);
-        uint160 flags =
-            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144); // Namespace the hook to avoid collisions
+        uint160 flags = uint160(
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
+                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+        ) ^ (0x4444 << 144); // Namespace the hook to avoid collisions
 
         ModularHookV1HookConfig memory hookParams = ModularHookV1HookConfig({
             poolManager: IPoolManager(manager),
-            token0: _token0,
-            token1: _token1,
             tickMin: tickMin(),
             tickMax: tickMax(),
             aavePoolAddressesProvider: aavePoolAddressesProvider,
@@ -239,9 +239,7 @@ contract BaseTest is Test, Deployers {
 
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(hookManager), flags, type(ModularHookV1).creationCode, constructorArgs);
-        hookManager.deployHook(
-            hookParams.token0, hookParams.token1, hookAddress, initialPrice(), fee, tickSpacing(), salt, creationCode
-        ); // Deploy the hook using the hook manager
+        hookManager.deployHook(_token0, _token1, hookAddress, initialPrice(), fee, tickSpacing(), salt, creationCode); // Deploy the hook using the hook manager
         hook = ModularHookV1(hookAddress);
         simpleKey =
             PoolKey({currency0: _token0, currency1: _token1, fee: fee, tickSpacing: tickSpacing(), hooks: IHooks(hook)});

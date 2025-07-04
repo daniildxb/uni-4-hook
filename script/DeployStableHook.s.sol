@@ -52,8 +52,6 @@ contract DeployStableScript is Script, Deployers, Config {
 
             hookParams = ModularHookV1HookConfig({
                 poolManager: IPoolManager(config.poolManager),
-                token0: config.token0,
-                token1: config.token1,
                 tickMin: _tickMin,
                 tickMax: _tickMax,
                 aavePoolAddressesProvider: config.aavePoolAddressesProvider,
@@ -72,8 +70,10 @@ contract DeployStableScript is Script, Deployers, Config {
 
         HookManager hookManager = HookManager(config.hookManager);
         // Move the mining and deployment into the run function where execution occurs
-        uint160 flags =
-            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) ^ (0x4444 << 144);
+        uint160 flags = uint160(
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
+                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+        ) ^ (0x4444 << 144);
         bytes memory creationCode = abi.encodePacked(type(ModularHookV1).creationCode, constructorArgs);
 
         (address hookAddress, bytes32 salt) = HookMiner.find(address(hookManager), flags, creationCode, new bytes(0));

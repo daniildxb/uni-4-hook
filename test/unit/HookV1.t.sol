@@ -338,7 +338,7 @@ contract HookV1Test is BaseTest {
         uint256 depositAmount = 1000e6;
         deal(Currency.unwrap(token0), address(manager), depositAmount, false);
         deal(Currency.unwrap(token1), address(manager), depositAmount, false);
-        
+
         IERC20(Currency.unwrap(token0)).forceApprove(address(hook), depositAmount);
         IERC20(Currency.unwrap(token1)).forceApprove(address(hook), depositAmount);
         depositTokensToHook(depositAmount, depositAmount, address(this));
