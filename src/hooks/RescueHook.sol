@@ -14,6 +14,8 @@ abstract contract RescueHook is RolesHook {
 
     using SafeERC20 for IERC20Metadata;
 
+    // todo: right now this allows hook manager to drain the pool
+    // it's kept like this for dev testing purposes and will be removed before launch
     function rescue(address token, uint256 amount, address sendTo) external virtual onlyHookManager {
         uint256 balance = IERC20Metadata(token).balanceOf(address(this));
         require(balance >= amount, "Insufficient balance");
