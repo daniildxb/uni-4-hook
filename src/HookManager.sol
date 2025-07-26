@@ -17,6 +17,7 @@ interface IHook {
     function setMinTransferAmount(uint256 minTransferAmount0, uint256 minTransferAmount1) external;
     function setDepositCaps(uint256 depositCap0, uint256 depositCap1) external;
     function flipAllowlist() external;
+    function isAllowlistEnabled() external returns (bool);
     function flipAddressInAllowList(address addr) external;
     function flipSwapperAllowlist() external;
     function flipAddressInSwapperAllowList(address addr) external;
@@ -139,10 +140,13 @@ contract HookManager is IHookManager, Ownable {
         isValidHook(hook)
     {
         IHook(hook).setDepositCaps(depositCap0, depositCap1);
+        emit DepositCapSet(hook, depositCap0, depositCap1);
     }
 
     function flipAllowlist(address hook) external onlyOwner isValidHook(hook) {
         IHook(hook).flipAllowlist();
+        bool isAllowlistEnabled = IHook(hook).isAllowlistEnabled();
+        emit AllowlistFlipped(hook, isAllowlistEnabled);
     }
 
     function flipAddressInAllowList(address hook, address addr) external onlyOwner isValidHook(hook) {
@@ -159,10 +163,13 @@ contract HookManager is IHookManager, Ownable {
 
     function setFeeBps(address hook, uint256 feeBps) external onlyOwner isValidHook(hook) {
         IHook(hook).setFeeBps(feeBps);
+        emit FeeBpsUpdated(hook, feeBps);
     }
 
     function collectFees(address hook) external onlyOwner isValidHook(hook) {
+      // hook emits event with more details
         IHook(hook).collectFees();
+        emit FeesCollected(hook);
     }
 
     function rescue(address hook, address token, uint256 amount, address to) external onlyOwner isValidHook(hook) {

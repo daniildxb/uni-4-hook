@@ -7,6 +7,10 @@ import {PoolId} from "v4-core/src/types/PoolId.sol";
 interface IHookManager {
     event HookDeployed(address indexed hook, PoolId indexed poolId, uint256 hookIndex, uint160 sqrtPriceX96);
     event ExecutorAdded(address indexed executor, uint256 executorIndex);
+    event DepositCapSet(address indexed hook, uint256 depositCap0, uint256 depositCap1);
+    event AllowlistFlipped(address indexed hook, bool allowlistState);
+    event FeeBpsUpdated(address indexed hook, uint256 feeBps);
+    event FeesCollected(address indexed hook);
 
     /**
      * @notice Deploys a ModularHookV1 hook with CREATE2 and initializes it
