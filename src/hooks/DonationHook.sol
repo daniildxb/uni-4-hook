@@ -11,7 +11,7 @@ contract DonationHook {
     event Donate(address indexed sender, address indexed token, uint256 amount);
 
     function acceptDonation(address token, uint256 amount) external {
-        IERC20Metadata(token).transferFrom(msg.sender, address(this), amount);
+        IERC20Metadata(token).safeTransferFrom(msg.sender, address(this), amount);
         emit Donate(msg.sender, address(token), amount);
     }
 }
